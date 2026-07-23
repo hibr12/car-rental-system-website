@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\VehicleController;
@@ -44,6 +47,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/vehicles/{vehicle}/reviews', [ReviewController::class, 'store']);
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
 
+    Route::middleware('role:admin,fleet_manager,staff')->group(function () {
+        Route::get('/maintenance', [MaintenanceController::class, 'index']);
+        Route::post('/maintenance', [MaintenanceController::class, 'store']);
+        Route::get('/maintenance/{maintenance}', [MaintenanceController::class, 'show']);
+        Route::put('/maintenance/{maintenance}', [MaintenanceController::class, 'update']);
+        Route::delete('/maintenance/{maintenance}', [MaintenanceController::class, 'destroy']);
+    });
+
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/contact-messages', [ContactMessageController::class, 'index']);
+        Route::put('/contact-messages/{contactMessage}', [ContactMessageController::class, 'update']);
+        Route::delete('/contact-messages/{contactMessage}', [ContactMessageController::class, 'destroy']);
+    });
+
     Route::prefix('admin')->middleware('role:admin,staff')->group(function () {
         Route::get('/bookings', [BookingController::class, 'adminIndex']);
         Route::put('/bookings/{booking}/confirm', [BookingController::class, 'confirm']);
@@ -51,4 +68,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/bookings/{booking}/pickup', [BookingController::class, 'pickup']);
         Route::put('/bookings/{booking}/return', [BookingController::class, 'returnVehicle']);
     });
+
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{user}', [AdminController::class, 'showUser']);
+        Route::put('/users/{user}', [AdminController::class, 'updateUser']);
+    });
 });
+
+Route::post('/contact-messages', [ContactMessageController::class, 'store']);
