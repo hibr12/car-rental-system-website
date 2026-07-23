@@ -25,4 +25,31 @@ class PaymentPolicy
     {
         return $user->isCustomer();
     }
+
+    public function update(User $user, Payment $payment): bool
+    {
+        if ($user->isAdmin() || $user->isStaff()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function delete(User $user, Payment $payment): bool
+    {
+        if ($user->isAdmin() || $user->isStaff()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function refund(User $user, Payment $payment): bool
+    {
+        if ($user->isAdmin() || $user->isStaff()) {
+            return true;
+        }
+
+        return false;
+    }
 }

@@ -18,18 +18,7 @@ class PaymentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->isAdmin() || $user->isStaff() || $user->isFleetManager()) {
-            $payments = Payment::with(['booking'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
-        } else {
-            $payments = Payment::with(['booking'])
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
-        }
+        $payments = $this->paymentService->getPaymentsForUser($request->user());
 
         return response()->json([
             'success' => true,
@@ -67,12 +56,7 @@ class PaymentController extends Controller
 
     public function show(Request $request, Payment $payment): JsonResponse
     {
-        if (!Gate::allows('view', $payment)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('view', $payment);
 
         $payment->load(['booking']);
 
@@ -81,5 +65,45 @@ class PaymentController extends Controller
             'message' => 'Payment retrieved successfully',
             'data' => new PaymentResource($payment),
         ]);
+    }
+
+    public function markAsFailed(Request $request, Payment $payment): JsonResponse
+    {
+        Gate::authorize('update', $payment);
+
+        try {
+            $payment = $this->paymentService->markAsFailed($payment);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as failed',
+                'data' => new PaymentResource($payment),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function refund(Request $request, Payment $payment): JsonResponse
+    {
+        Gate::authorize('refund', $payment);
+
+        try {
+            $payment = $this->paymentService->refundPayment($payment);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment refunded successfully',
+                'data' => new PaymentResource($payment),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }

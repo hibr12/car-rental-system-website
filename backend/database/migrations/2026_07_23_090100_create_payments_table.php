@@ -13,14 +13,16 @@ return new class extends Migration
             $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->enum('payment_method', ['cash', 'bank_transfer', 'card', 'online_payment']);
+            $table->string('payment_method');
             $table->string('transaction_reference')->nullable()->unique();
-            $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+            $table->string('status')->default('pending');
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
 
+            $table->index('status');
             $table->index(['booking_id', 'status']);
             $table->index(['user_id', 'status']);
+            $table->index('paid_at');
         });
     }
 

@@ -10,6 +10,30 @@ class Payment extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_PAID = 'paid';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_REFUNDED = 'refunded';
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_PAID,
+        self::STATUS_FAILED,
+        self::STATUS_REFUNDED,
+    ];
+
+    public const METHOD_CASH = 'cash';
+    public const METHOD_BANK_TRANSFER = 'bank_transfer';
+    public const METHOD_CARD = 'card';
+    public const METHOD_ONLINE_PAYMENT = 'online_payment';
+
+    public const PAYMENT_METHODS = [
+        self::METHOD_CASH,
+        self::METHOD_BANK_TRANSFER,
+        self::METHOD_CARD,
+        self::METHOD_ONLINE_PAYMENT,
+    ];
+
     protected $fillable = [
         'booking_id',
         'user_id',
@@ -40,11 +64,11 @@ class Payment extends Model
 
     public function scopePaid($query)
     {
-        return $query->where('status', 'paid');
+        return $query->where('status', self::STATUS_PAID);
     }
 
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', self::STATUS_PENDING);
     }
 }

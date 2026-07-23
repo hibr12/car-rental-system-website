@@ -34,6 +34,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
+    Route::get('/bookings/price-estimate', [BookingController::class, 'priceEstimate']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::put('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
 
@@ -50,5 +52,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::put('/bookings/{booking}/pickup', [BookingController::class, 'pickup']);
         Route::put('/bookings/{booking}/return', [BookingController::class, 'returnVehicle']);
+
+        Route::put('/payments/{payment}/fail', [PaymentController::class, 'markAsFailed']);
+        Route::put('/payments/{payment}/refund', [PaymentController::class, 'refund']);
     });
 });
