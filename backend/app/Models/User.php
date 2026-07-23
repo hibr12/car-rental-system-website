@@ -40,6 +40,21 @@ class User extends Authenticatable
         return $this->hasMany(Vehicle::class, 'created_by');
     }
 
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

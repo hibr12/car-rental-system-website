@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +21,7 @@ Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
 Route::get('/vehicles', [VehicleController::class, 'index']);
 Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show']);
+Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/categories', [CategoryController::class, 'store'])->middleware('role:admin,fleet_manager');
@@ -27,4 +31,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/vehicles', [VehicleController::class, 'store'])->middleware('role:admin,fleet_manager');
     Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->middleware('role:admin,fleet_manager');
     Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->middleware('role:admin');
+
+    Route::get('/bookings', [BookingController::class, 'index']);
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+    Route::put('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+
+    Route::get('/payments', [PaymentController::class, 'index']);
+    Route::post('/payments', [PaymentController::class, 'store']);
+    Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+
+    Route::post('/vehicles/{vehicle}/reviews', [ReviewController::class, 'store']);
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
+
+    Route::prefix('admin')->middleware('role:admin,staff')->group(function () {
+        Route::get('/bookings', [BookingController::class, 'adminIndex']);
+        Route::put('/bookings/{booking}/confirm', [BookingController::class, 'confirm']);
+        Route::put('/bookings/{booking}/reject', [BookingController::class, 'reject']);
+        Route::put('/bookings/{booking}/pickup', [BookingController::class, 'pickup']);
+        Route::put('/bookings/{booking}/return', [BookingController::class, 'returnVehicle']);
+    });
 });

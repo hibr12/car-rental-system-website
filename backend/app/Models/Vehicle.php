@@ -73,4 +73,19 @@ class Vehicle extends Model
     {
         return $query->where('featured', true);
     }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function averageRating()
+    {
+        return $this->reviews()->approved()->avg('rating');
+    }
 }
