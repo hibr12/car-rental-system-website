@@ -23,8 +23,8 @@ return new class extends Migration
             $table->decimal('additional_charges', 10, 2)->default(0);
             $table->decimal('discount', 10, 2)->default(0);
             $table->decimal('total_price', 10, 2);
-            $table->enum('status', ['pending', 'confirmed', 'active', 'completed', 'cancelled', 'rejected'])->default('pending');
-            $table->enum('payment_status', ['unpaid', 'pending', 'paid', 'failed', 'refunded'])->default('unpaid');
+            $table->string('status')->default('pending');
+            $table->string('payment_status')->default('unpaid');
             $table->text('notes')->nullable();
             $table->timestamps();
 
