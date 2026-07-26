@@ -11,10 +11,15 @@ use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PaymentService
 {
+    public function __construct(
+        private ChapaService $chapaService
+    ) {}
+
     public function getPaymentsForUser(User $user): LengthAwarePaginator
     {
         $query = Payment::with(['booking']);
@@ -26,6 +31,127 @@ class PaymentService
         return $query->orderBy('created_at', 'desc')->paginate(15);
     }
 
+    /**
+     * Initialize a payment for a booking via Chapa.
+     *
+     * @return array{checkout_url: string, tx_ref: string, payment: Payment}
+     */
+    public function initializePayment(array $data, int $userId): array
+    {
+        $booking = Booking::findOrFail($data['booking_id']);
+
+        $this->validateBookingOwnership($booking, $userId);
+        $this->validateBookingEligibleForPayment($booking);
+        $this->validateNoDuplicatePayment($booking);
+
+        $txRef = $this->chapaService->generateTransactionRef();
+
+        $payment = DB::transaction(function () use ($booking, $userId, $txRef) {
+            return Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => $userId,
+                'amount' => $booking->total_price,
+                'payment_method' => Payment::METHOD_ONLINE_PAYMENT,
+                'transaction_reference' => $txRef,
+                'status' => Payment::STATUS_PENDING,
+            ]);
+        });
+
+        $booking->update([
+            'payment_status' => Booking::PAYMENT_STATUS_PENDING,
+        ]);
+
+        event(new PaymentCreated($booking, $payment));
+
+        $user = User::find($userId);
+
+        $checkoutData = $this->chapaService->initializePayment([
+            'tx_ref' => $txRef,
+            'amount' => $booking->total_price,
+            'currency' => 'ETB',
+            'email' => $user->email,
+            'first_name' => explode(' ', $user->name)[0] ?? '',
+            'last_name' => explode(' ', $user->name)[1] ?? '',
+            'title' => 'Car Rental Payment',
+            'description' => 'Payment for booking ' . $booking->booking_reference,
+            'callback_url' => route('payments.callback'),
+            'return_url' => config('services.chapa.return_url', config('FRONTEND_URL') . '/payments/status'),
+        ]);
+
+        Log::info('Payment initialized', [
+            'payment_id' => $payment->id,
+            'booking_id' => $booking->id,
+            'tx_ref' => $txRef,
+            'amount' => $booking->total_price,
+        ]);
+
+        return [
+            'checkout_url' => $checkoutData['checkout_url'],
+            'tx_ref' => $txRef,
+            'payment' => $payment->fresh()->load('booking'),
+        ];
+    }
+
+    /**
+     * Verify a payment transaction with Chapa and update records.
+     */
+    public function verifyPayment(string $txRef): Payment
+    {
+        $payment = Payment::where('transaction_reference', $txRef)->firstOrFail();
+
+        if ($payment->status === Payment::STATUS_PAID) {
+            Log::info('Payment already verified', ['tx_ref' => $txRef]);
+            return $payment->fresh()->load('booking');
+        }
+
+        $verification = $this->chapaService->verifyTransaction($txRef);
+
+        if ($verification['status'] === 'success') {
+            $this->markAsPaid($payment, $verification['reference']);
+        } else {
+            $this->markAsFailed($payment);
+        }
+
+        return $payment->fresh()->load('booking');
+    }
+
+    /**
+     * Handle a callback/webhook from Chapa.
+     */
+    public function handleCallback(array $callbackData): void
+    {
+        $txRef = $callbackData['tx_ref'] ?? null;
+
+        if (!$txRef) {
+            Log::warning('Callback received without tx_ref', ['data' => $callbackData]);
+            return;
+        }
+
+        $payment = Payment::where('transaction_reference', $txRef)->first();
+
+        if (!$payment) {
+            Log::warning('Callback for unknown transaction', ['tx_ref' => $txRef]);
+            return;
+        }
+
+        if ($payment->status === Payment::STATUS_PAID) {
+            Log::info('Duplicate callback ignored', ['tx_ref' => $txRef]);
+            return;
+        }
+
+        try {
+            $this->verifyPayment($txRef);
+        } catch (\Exception $e) {
+            Log::error('Callback verification failed', [
+                'tx_ref' => $txRef,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Process a direct payment (non-Chapa).
+     */
     public function processPayment(array $data, int $userId): Payment
     {
         return DB::transaction(function () use ($data, $userId) {
@@ -57,6 +183,32 @@ class PaymentService
         });
     }
 
+    /**
+     * Mark a payment as paid.
+     */
+    public function markAsPaid(Payment $payment, ?string $reference = null): Payment
+    {
+        return DB::transaction(function () use ($payment, $reference) {
+            $payment->update([
+                'status' => Payment::STATUS_PAID,
+                'paid_at' => now(),
+            ]);
+
+            $payment->booking->update([
+                'payment_status' => Booking::PAYMENT_STATUS_PAID,
+            ]);
+
+            event(new PaymentSucceeded($payment->booking, $payment));
+
+            Log::info('Payment marked as paid', [
+                'payment_id' => $payment->id,
+                'tx_ref' => $payment->transaction_reference,
+            ]);
+
+            return $payment->fresh();
+        });
+    }
+
     public function markAsFailed(Payment $payment): Payment
     {
         return DB::transaction(function () use ($payment) {
@@ -76,6 +228,11 @@ class PaymentService
 
             event(new PaymentFailed($payment->booking, $payment));
 
+            Log::info('Payment marked as failed', [
+                'payment_id' => $payment->id,
+                'tx_ref' => $payment->transaction_reference,
+            ]);
+
             return $payment->fresh();
         });
     }
@@ -94,6 +251,11 @@ class PaymentService
             ]);
 
             event(new PaymentRefunded($payment->booking, $payment));
+
+            Log::info('Payment refunded', [
+                'payment_id' => $payment->id,
+                'tx_ref' => $payment->transaction_reference,
+            ]);
 
             return $payment->fresh();
         });

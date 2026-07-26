@@ -41,7 +41,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::post('/payments/initialize', [PaymentController::class, 'initialize']);
+    Route::get('/payments/verify/{tx_ref}', [PaymentController::class, 'verify'])->name('payments.verify');
     Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+
+    Route::post('/payments/callback', [PaymentController::class, 'callback'])->name('payments.callback')->withoutMiddleware('auth:sanctum');
 
     Route::post('/vehicles/{vehicle}/reviews', [ReviewController::class, 'store']);
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
