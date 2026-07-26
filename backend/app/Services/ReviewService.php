@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Events\ReviewCreated;
+use App\Events\ReviewUpdated;
 use App\Models\Booking;
 use App\Models\Review;
+use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReviewService
 {
@@ -20,20 +23,27 @@ class ReviewService
             ->paginate(10);
     }
 
+    public function getUserReviews(User $user): LengthAwarePaginator
+    {
+        return Review::with(['vehicle', 'booking'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+    }
+
     public function createReview(array $data, int $userId): Review
     {
-        return DB::transaction(function () use ($data, $userId) {
-            $vehicle = $this->findVehicleOrFail($data['vehicle_id']);
+        $vehicle = $this->findVehicleOrFail($data['vehicle_id']);
+        $booking = $this->findBookingOrFail($data['booking_id']);
 
-            $booking = $this->findBookingOrFail($data['booking_id']);
+        $this->validateBookingBelongsToVehicle($booking, $vehicle);
+        $this->validateBookingBelongsToUser($booking, $userId);
+        $this->validateBookingCompleted($booking);
+        $this->validateNoDuplicateReview($booking, $userId);
+        $this->validateRating($data['rating']);
 
-            $this->validateBookingBelongsToVehicle($booking, $vehicle);
-            $this->validateBookingBelongsToUser($booking, $userId);
-            $this->validateBookingCompleted($booking);
-            $this->validateNoDuplicateReview($booking, $userId);
-            $this->validateRating($data['rating']);
-
-            $review = Review::create([
+        $review = DB::transaction(function () use ($data, $userId, $vehicle, $booking) {
+            return Review::create([
                 'user_id' => $userId,
                 'vehicle_id' => $vehicle->id,
                 'booking_id' => $booking->id,
@@ -41,18 +51,61 @@ class ReviewService
                 'comment' => $data['comment'] ?? null,
                 'status' => Review::STATUS_APPROVED,
             ]);
-
-            $review->load('user', 'vehicle');
-
-            event(new ReviewCreated($review));
-
-            return $review;
         });
+
+        $review->load('user', 'vehicle');
+
+        event(new ReviewCreated($review));
+
+        Log::info('Review created', [
+            'review_id' => $review->id,
+            'user_id' => $userId,
+            'vehicle_id' => $vehicle->id,
+            'rating' => $review->rating,
+        ]);
+
+        return $review;
     }
 
-    public function deleteReview(Review $review): void
+    public function updateReview(Review $review, array $data, int $userId): Review
     {
+        $this->validateReviewOwnership($review, $userId);
+
+        if (isset($data['rating'])) {
+            $this->validateRating($data['rating']);
+        }
+
+        $review = DB::transaction(function () use ($review, $data) {
+            $review->update([
+                'rating' => $data['rating'] ?? $review->rating,
+                'comment' => $data['comment'] ?? $review->comment,
+            ]);
+
+            return $review->fresh()->load('user', 'vehicle');
+        });
+
+        event(new ReviewUpdated($review));
+
+        Log::info('Review updated', [
+            'review_id' => $review->id,
+            'user_id' => $userId,
+        ]);
+
+        return $review;
+    }
+
+    public function deleteReview(Review $review, int $userId): void
+    {
+        $this->validateReviewOwnership($review, $userId);
+
+        $reviewId = $review->id;
+
         $review->delete();
+
+        Log::info('Review deleted', [
+            'review_id' => $reviewId,
+            'user_id' => $userId,
+        ]);
     }
 
     private function findVehicleOrFail(int $vehicleId): Vehicle
@@ -106,6 +159,13 @@ class ReviewService
 
         if ($existingReview) {
             throw new \InvalidArgumentException('You have already reviewed this booking.');
+        }
+    }
+
+    private function validateReviewOwnership(Review $review, int $userId): void
+    {
+        if ($review->user_id !== $userId) {
+            throw new \InvalidArgumentException('You can only manage your own reviews.');
         }
     }
 

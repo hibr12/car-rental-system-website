@@ -47,7 +47,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/payments/callback', [PaymentController::class, 'callback'])->name('payments.callback')->withoutMiddleware('auth:sanctum');
 
+    Route::get('/reviews', [ReviewController::class, 'userReviews']);
     Route::post('/vehicles/{vehicle}/reviews', [ReviewController::class, 'store']);
+    Route::put('/reviews/{review}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
 
     Route::prefix('admin')->middleware('role:admin,staff')->group(function () {

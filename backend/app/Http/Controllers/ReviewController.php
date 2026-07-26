@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreReviewRequest;
+use App\Http\Requests\UpdateReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Review;
 use App\Models\Vehicle;
@@ -35,6 +36,23 @@ class ReviewController extends Controller
         ]);
     }
 
+    public function userReviews(Request $request): JsonResponse
+    {
+        $reviews = $this->reviewService->getUserReviews($request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User reviews retrieved successfully',
+            'data' => ReviewResource::collection($reviews),
+            'meta' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page' => $reviews->lastPage(),
+                'per_page' => $reviews->perPage(),
+                'total' => $reviews->total(),
+            ],
+        ]);
+    }
+
     public function store(StoreReviewRequest $request, Vehicle $vehicle): JsonResponse
     {
         Gate::authorize('create', Review::class);
@@ -58,12 +76,34 @@ class ReviewController extends Controller
         }
     }
 
+    public function update(UpdateReviewRequest $request, Review $review): JsonResponse
+    {
+        try {
+            $review = $this->reviewService->updateReview(
+                $review,
+                $request->validated(),
+                $request->user()->id
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review updated successfully',
+                'data' => new ReviewResource($review),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
     public function destroy(Request $request, Review $review): JsonResponse
     {
         Gate::authorize('delete', $review);
 
         try {
-            $this->reviewService->deleteReview($review);
+            $this->reviewService->deleteReview($review, $request->user()->id);
 
             return response()->json([
                 'success' => true,
