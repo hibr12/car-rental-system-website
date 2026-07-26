@@ -7,16 +7,13 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class BookingPickupReminder extends Notification
+class AdminBookingCancelled extends Notification
 {
     use Queueable;
 
-    public Booking $booking;
-
-    public function __construct(Booking $booking)
-    {
-        $this->booking = $booking;
-    }
+    public function __construct(
+        public Booking $booking
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -26,15 +23,14 @@ class BookingPickupReminder extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Vehicle Pickup Confirmation - ' . $this->booking->booking_reference)
+            ->subject('Booking Cancelled - ' . $this->booking->booking_reference)
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your vehicle has been picked up successfully.')
+            ->line('A booking has been cancelled.')
             ->line('Booking Reference: ' . $this->booking->booking_reference)
+            ->line('Customer: ' . $this->booking->user->name)
             ->line('Vehicle: ' . $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model)
-            ->line('Pickup Location: ' . $this->booking->pickup_location)
-            ->line('Expected Return: ' . $this->booking->return_date->format('Y-m-d H:i'))
-            ->action('View Booking', url('/api/bookings/' . $this->booking->id))
-            ->line('Please return the vehicle on time. Thank you for choosing our service!');
+            ->action('View Booking', url('/api/admin/bookings/' . $this->booking->id))
+            ->line('The vehicle has been released back to available inventory.');
     }
 
     public function toArray(object $notifiable): array
@@ -42,9 +38,11 @@ class BookingPickupReminder extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
-            'title' => 'Vehicle Picked Up',
-            'message' => 'Vehicle for booking ' . $this->booking->booking_reference . ' has been picked up.',
-            'type' => 'booking_picked_up',
+            'customer_name' => $this->booking->user->name,
+            'vehicle' => $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model,
+            'title' => 'Booking Cancelled',
+            'message' => 'Booking ' . $this->booking->booking_reference . ' has been cancelled.',
+            'type' => 'admin_booking_cancelled',
             'created_at' => now()->toISOString(),
         ];
     }

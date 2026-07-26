@@ -7,18 +7,14 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class BookingRejected extends Notification
+class AdminBookingRejected extends Notification
 {
     use Queueable;
 
-    public Booking $booking;
-    public ?string $reason;
-
-    public function __construct(Booking $booking, ?string $reason = null)
-    {
-        $this->booking = $booking;
-        $this->reason = $reason;
-    }
+    public function __construct(
+        public Booking $booking,
+        public ?string $reason = null
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -30,8 +26,9 @@ class BookingRejected extends Notification
         $mail = (new MailMessage)
             ->subject('Booking Rejected - ' . $this->booking->booking_reference)
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Unfortunately, your booking has been rejected.')
+            ->line('A booking has been rejected.')
             ->line('Booking Reference: ' . $this->booking->booking_reference)
+            ->line('Customer: ' . $this->booking->user->name)
             ->line('Vehicle: ' . $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model);
 
         if ($this->reason) {
@@ -39,8 +36,8 @@ class BookingRejected extends Notification
         }
 
         return $mail
-            ->action('View Details', url('/api/bookings/' . $this->booking->id))
-            ->line('If you have any questions, please contact support.');
+            ->action('View Booking', url('/api/admin/bookings/' . $this->booking->id))
+            ->line('The customer has been notified of the rejection.');
     }
 
     public function toArray(object $notifiable): array
@@ -48,11 +45,13 @@ class BookingRejected extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
+            'customer_name' => $this->booking->user->name,
+            'vehicle' => $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model,
             'reason' => $this->reason,
             'title' => 'Booking Rejected',
             'message' => 'Booking ' . $this->booking->booking_reference . ' has been rejected.'
                 . ($this->reason ? ' Reason: ' . $this->reason : ''),
-            'type' => 'booking_rejected',
+            'type' => 'admin_booking_rejected',
             'created_at' => now()->toISOString(),
         ];
     }

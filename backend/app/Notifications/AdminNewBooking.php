@@ -7,16 +7,13 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class BookingCreated extends Notification
+class AdminNewBooking extends Notification
 {
     use Queueable;
 
-    public Booking $booking;
-
-    public function __construct(Booking $booking)
-    {
-        $this->booking = $booking;
-    }
+    public function __construct(
+        public Booking $booking
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -26,16 +23,17 @@ class BookingCreated extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Booking Created - ' . $this->booking->booking_reference)
+            ->subject('New Booking Received - ' . $this->booking->booking_reference)
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your booking has been created successfully.')
+            ->line('A new booking has been created and requires review.')
             ->line('Booking Reference: ' . $this->booking->booking_reference)
+            ->line('Customer: ' . $this->booking->user->name)
             ->line('Vehicle: ' . $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model)
             ->line('Pickup: ' . $this->booking->pickup_date->format('Y-m-d H:i'))
             ->line('Return: ' . $this->booking->return_date->format('Y-m-d H:i'))
             ->line('Total Price: $' . number_format($this->booking->total_price, 2))
-            ->action('View Booking', url('/api/bookings/' . $this->booking->id))
-            ->line('Thank you for choosing our service!');
+            ->action('Review Booking', url('/api/admin/bookings/' . $this->booking->id))
+            ->line('Please review and confirm or reject this booking.');
     }
 
     public function toArray(object $notifiable): array
@@ -43,9 +41,12 @@ class BookingCreated extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
-            'title' => 'Booking Created',
-            'message' => 'Booking ' . $this->booking->booking_reference . ' created successfully.',
-            'type' => 'booking_created',
+            'customer_name' => $this->booking->user->name,
+            'vehicle' => $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model,
+            'total_price' => $this->booking->total_price,
+            'title' => 'New Booking Received',
+            'message' => 'New booking ' . $this->booking->booking_reference . ' from ' . $this->booking->user->name . '.',
+            'type' => 'admin_new_booking',
             'created_at' => now()->toISOString(),
         ];
     }

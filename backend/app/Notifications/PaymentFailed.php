@@ -46,8 +46,10 @@ class PaymentFailed extends Notification
             'payment_id' => $this->payment->id,
             'booking_reference' => $this->booking->booking_reference,
             'amount' => $this->payment->amount,
+            'title' => 'Payment Failed',
             'message' => 'Payment of $' . number_format($this->payment->amount, 2) . ' for booking ' . $this->booking->booking_reference . ' has failed.',
             'type' => 'payment_failed',
+            'created_at' => now()->toISOString(),
         ];
     }
 }

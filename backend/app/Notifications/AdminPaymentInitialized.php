@@ -8,18 +8,14 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PaymentSuccess extends Notification
+class AdminPaymentInitialized extends Notification
 {
     use Queueable;
 
-    public Booking $booking;
-    public Payment $payment;
-
-    public function __construct(Booking $booking, Payment $payment)
-    {
-        $this->booking = $booking;
-        $this->payment = $payment;
-    }
+    public function __construct(
+        public Booking $booking,
+        public Payment $payment
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -29,15 +25,16 @@ class PaymentSuccess extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Payment Successful - ' . $this->booking->booking_reference)
+            ->subject('Payment Initialized - ' . $this->booking->booking_reference)
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your payment has been processed successfully.')
+            ->line('A payment has been initialized for a booking.')
             ->line('Booking Reference: ' . $this->booking->booking_reference)
-            ->line('Amount Paid: $' . number_format($this->payment->amount, 2))
+            ->line('Customer: ' . $this->booking->user->name)
+            ->line('Amount: $' . number_format($this->payment->amount, 2))
             ->line('Payment Method: ' . ucfirst(str_replace('_', ' ', $this->payment->payment_method)))
             ->line('Transaction Reference: ' . $this->payment->transaction_reference)
-            ->action('View Booking', url('/api/bookings/' . $this->booking->id))
-            ->line('Thank you for your payment!');
+            ->action('View Booking', url('/api/admin/bookings/' . $this->booking->id))
+            ->line('The customer is completing the payment process.');
     }
 
     public function toArray(object $notifiable): array
@@ -46,10 +43,11 @@ class PaymentSuccess extends Notification
             'booking_id' => $this->booking->id,
             'payment_id' => $this->payment->id,
             'booking_reference' => $this->booking->booking_reference,
+            'customer_name' => $this->booking->user->name,
             'amount' => $this->payment->amount,
-            'title' => 'Payment Successful',
-            'message' => 'Payment of $' . number_format($this->payment->amount, 2) . ' for booking ' . $this->booking->booking_reference . ' was successful.',
-            'type' => 'payment_success',
+            'title' => 'Payment Initialized',
+            'message' => 'Payment of $' . number_format($this->payment->amount, 2) . ' initialized for booking ' . $this->booking->booking_reference . '.',
+            'type' => 'admin_payment_initialized',
             'created_at' => now()->toISOString(),
         ];
     }
