@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CancelBookingRequest;
+use App\Http\Requests\CheckAvailabilityRequest;
+use App\Http\Requests\PriceEstimateRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
@@ -194,14 +196,8 @@ class BookingController extends Controller
         ]);
     }
 
-    public function checkAvailability(Request $request): JsonResponse
+    public function checkAvailability(CheckAvailabilityRequest $request): JsonResponse
     {
-        $request->validate([
-            'vehicle_id' => 'required|integer|exists:vehicles,id',
-            'pickup_date' => 'required|date|after_or_equal:today',
-            'return_date' => 'required|date|after:pickup_date',
-        ]);
-
         $vehicle = Vehicle::find($request->vehicle_id);
 
         if (!$vehicle || $vehicle->status !== 'available') {
@@ -223,16 +219,8 @@ class BookingController extends Controller
         ]);
     }
 
-    public function priceEstimate(Request $request): JsonResponse
+    public function priceEstimate(PriceEstimateRequest $request): JsonResponse
     {
-        $request->validate([
-            'vehicle_id' => 'required|integer|exists:vehicles,id',
-            'pickup_date' => 'required|date|after_or_equal:today',
-            'return_date' => 'required|date|after:pickup_date',
-            'additional_charges' => 'nullable|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-        ]);
-
         $vehicle = Vehicle::find($request->vehicle_id);
 
         if (!$vehicle) {
@@ -244,24 +232,26 @@ class BookingController extends Controller
 
         $pickupDate = Carbon::parse($request->pickup_date);
         $returnDate = Carbon::parse($request->return_date);
-        $numberOfDays = max(1, $pickupDate->diffInDays($returnDate));
-        $pricePerDay = (float) $vehicle->rental_price_per_day;
-        $subtotal = $numberOfDays * $pricePerDay;
-        $additionalCharges = (float) ($request->additional_charges ?? 0);
-        $discount = (float) ($request->discount ?? 0);
-        $totalPrice = $subtotal + $additionalCharges - $discount;
+
+        $breakdown = $this->bookingService->calculatePriceBreakdown(
+            $vehicle,
+            $pickupDate,
+            $returnDate,
+            (float) ($request->additional_charges ?? 0),
+            (float) ($request->discount ?? 0)
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'Price estimate calculated successfully.',
             'data' => [
-                'vehicle_id' => $vehicle->id,
-                'price_per_day' => number_format($pricePerDay, 2),
-                'number_of_days' => $numberOfDays,
-                'subtotal' => number_format($subtotal, 2),
-                'additional_charges' => number_format($additionalCharges, 2),
-                'discount' => number_format($discount, 2),
-                'total_price' => number_format($totalPrice, 2),
+                'vehicle_id' => $breakdown['vehicle_id'],
+                'price_per_day' => number_format($breakdown['price_per_day'], 2),
+                'number_of_days' => $breakdown['number_of_days'],
+                'subtotal' => number_format($breakdown['subtotal'], 2),
+                'additional_charges' => number_format($breakdown['additional_charges'], 2),
+                'discount' => number_format($breakdown['discount'], 2),
+                'total_price' => number_format($breakdown['total_price'], 2),
             ],
         ]);
     }
