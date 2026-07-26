@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Events\PaymentCreated;
 use App\Events\PaymentFailed;
+use App\Events\PaymentRefunded;
 use App\Events\PaymentSucceeded;
 use App\Models\Booking;
 use App\Models\Payment;
@@ -48,6 +50,7 @@ class PaymentService
                 'payment_status' => Booking::PAYMENT_STATUS_PAID,
             ]);
 
+            event(new PaymentCreated($booking, $payment));
             event(new PaymentSucceeded($booking, $payment));
 
             return $payment->fresh()->load('booking');
@@ -89,6 +92,8 @@ class PaymentService
             $payment->booking->update([
                 'payment_status' => Booking::PAYMENT_STATUS_REFUNDED,
             ]);
+
+            event(new PaymentRefunded($payment->booking, $payment));
 
             return $payment->fresh();
         });

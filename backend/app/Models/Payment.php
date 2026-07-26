@@ -71,4 +71,14 @@ class Payment extends Model
     {
         return $query->where('status', self::STATUS_PENDING);
     }
+
+    public function scopeFailed($query)
+    {
+        return $query->where('status', self::STATUS_FAILED);
+    }
+
+    public function scopeRefunded($query)
+    {
+        return $query->where('status', self::STATUS_REFUNDED);
+    }
 }

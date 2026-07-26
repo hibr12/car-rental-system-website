@@ -8,7 +8,9 @@ use App\Events\BookingConfirmed;
 use App\Events\BookingCreated;
 use App\Events\BookingPickedUp;
 use App\Events\BookingRejected;
+use App\Events\PaymentCreated;
 use App\Events\PaymentFailed;
+use App\Events\PaymentRefunded;
 use App\Events\PaymentSucceeded;
 use App\Events\ReviewCreated;
 use App\Listeners\SendBookingCancelledNotification;
@@ -56,6 +58,10 @@ class EventServiceProvider extends ServiceProvider
         PaymentFailed::class => [
             SendPaymentFailureNotification::class,
         ],
+
+        PaymentCreated::class => [],
+
+        PaymentRefunded::class => [],
 
         ReviewCreated::class => [
             SendReviewCreatedNotification::class,
