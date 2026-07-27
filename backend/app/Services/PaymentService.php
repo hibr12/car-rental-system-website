@@ -47,7 +47,7 @@ class PaymentService
         $txRef = $this->chapaService->generateTransactionRef();
 
         $payment = DB::transaction(function () use ($booking, $userId, $txRef) {
-            return Payment::create([
+            $payment = Payment::create([
                 'booking_id' => $booking->id,
                 'user_id' => $userId,
                 'amount' => $booking->total_price,
@@ -55,28 +55,36 @@ class PaymentService
                 'transaction_reference' => $txRef,
                 'status' => Payment::STATUS_PENDING,
             ]);
-        });
 
-        $booking->update([
-            'payment_status' => Booking::PAYMENT_STATUS_PENDING,
-        ]);
+            $booking->update([
+                'payment_status' => Booking::PAYMENT_STATUS_PENDING,
+            ]);
+
+            return $payment;
+        });
 
         event(new PaymentCreated($booking, $payment));
 
         $user = User::find($userId);
 
-        $checkoutData = $this->chapaService->initializePayment([
-            'tx_ref' => $txRef,
-            'amount' => $booking->total_price,
-            'currency' => 'ETB',
-            'email' => $user->email,
-            'first_name' => explode(' ', $user->name)[0] ?? '',
-            'last_name' => explode(' ', $user->name)[1] ?? '',
-            'title' => 'Car Rental Payment',
-            'description' => 'Payment for booking ' . $booking->booking_reference,
-            'callback_url' => route('payments.callback'),
-            'return_url' => config('services.chapa.return_url', config('FRONTEND_URL') . '/payments/status'),
-        ]);
+        try {
+            $checkoutData = $this->chapaService->initializePayment([
+                'tx_ref' => $txRef,
+                'amount' => $booking->total_price,
+                'currency' => 'ETB',
+                'email' => $user->email,
+                'first_name' => explode(' ', $user->name)[0] ?? '',
+                'last_name' => explode(' ', $user->name)[1] ?? '',
+                'title' => 'Car Rental Payment',
+                'description' => 'Payment for booking ' . $booking->booking_reference,
+                'callback_url' => route('payments.callback'),
+                'return_url' => config('services.chapa.return_url', env('FRONTEND_URL', 'http://localhost:5173') . '/payments/status'),
+            ]);
+        } catch (\RuntimeException $e) {
+            $this->markAsFailed($payment);
+
+            throw $e;
+        }
 
         Log::info('Payment initialized', [
             'payment_id' => $payment->id,

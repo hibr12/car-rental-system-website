@@ -78,6 +78,8 @@ class ReviewController extends Controller
 
     public function update(UpdateReviewRequest $request, Review $review): JsonResponse
     {
+        Gate::authorize('update', $review);
+
         try {
             $review = $this->reviewService->updateReview(
                 $review,

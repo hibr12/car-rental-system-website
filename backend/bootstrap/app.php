@@ -39,6 +39,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
+        $exceptions->renderable(function (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Unauthorized. Insufficient permissions.',
+            ], 403);
+        });
+
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e) {
             return response()->json([
                 'success' => false,
@@ -58,6 +65,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 'success' => false,
                 'message' => 'Too many requests. Please try again later.',
             ], 429);
+        });
+
+        $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The requested method is not allowed.',
+            ], 405);
+        });
+
+        $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\BadRequestHttpException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Bad request.',
+            ], 400);
         });
 
         $exceptions->shouldRenderJsonWhen(function (\Illuminate\Http\Request $request, \Throwable $e) {

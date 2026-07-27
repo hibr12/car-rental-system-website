@@ -116,7 +116,17 @@ class PaymentController extends Controller
     public function callback(Request $request): JsonResponse
     {
         try {
-            $this->paymentService->handleCallback($request->all());
+            $data = $request->all();
+
+            if (empty($data['tx_ref'])) {
+                Log::warning('Payment callback received with invalid data', [
+                    'keys' => array_keys($data),
+                ]);
+
+                return response()->json(['status' => 'error', 'message' => 'Invalid callback data'], 400);
+            }
+
+            $this->paymentService->handleCallback($data);
 
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {

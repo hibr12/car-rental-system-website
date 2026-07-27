@@ -9,6 +9,7 @@ use App\Events\BookingCreated;
 use App\Events\BookingPickedUp;
 use App\Events\BookingRejected;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
@@ -147,6 +148,10 @@ class BookingService
                 'notes' => $notes,
             ]);
 
+            if ($booking->vehicle->status === 'reserved') {
+                $booking->vehicle->update(['status' => 'available']);
+            }
+
             return $booking->fresh()->load('vehicle', 'user');
         });
 
@@ -171,7 +176,14 @@ class BookingService
         }
 
         $booking = DB::transaction(function () use ($booking) {
-            $booking->update(['status' => Booking::STATUS_CANCELLED]);
+            $booking->update([
+                'status' => Booking::STATUS_CANCELLED,
+                'payment_status' => Booking::PAYMENT_STATUS_UNPAID,
+            ]);
+
+            $booking->payments()
+                ->where('status', Payment::STATUS_PENDING)
+                ->update(['status' => Payment::STATUS_FAILED]);
 
             if ($booking->vehicle->status === 'reserved') {
                 $booking->vehicle->update(['status' => 'available']);

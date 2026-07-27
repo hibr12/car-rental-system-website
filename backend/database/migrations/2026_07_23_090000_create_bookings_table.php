@@ -28,7 +28,6 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->index('booking_reference');
             $table->index(['user_id', 'status']);
             $table->index(['vehicle_id', 'status']);
             $table->index('pickup_date');

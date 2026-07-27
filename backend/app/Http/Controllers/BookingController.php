@@ -23,7 +23,12 @@ class BookingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $bookings = Booking::with(['vehicle', 'user'])
+        $bookings = Booking::with([
+                'vehicle.category',
+                'vehicle.images',
+                'vehicle.primaryImage',
+                'user',
+            ])
             ->where('user_id', $request->user()->id)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -45,7 +50,12 @@ class BookingController extends Controller
     {
         Gate::authorize('view', $booking);
 
-        $booking->load(['vehicle', 'user']);
+        $booking->load([
+            'vehicle.category',
+            'vehicle.images',
+            'vehicle.primaryImage',
+            'user',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -179,7 +189,12 @@ class BookingController extends Controller
     {
         Gate::authorize('manageAll', Booking::class);
 
-        $bookings = Booking::with(['vehicle', 'user'])
+        $bookings = Booking::with([
+                'vehicle.category',
+                'vehicle.images',
+                'vehicle.primaryImage',
+                'user',
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
