@@ -4,16 +4,16 @@ You are a senior Laravel backend developer working on a shared professional Car 
 
 The project uses:
 
-* PHP 8.2+
-* Laravel 12+
-* PostgreSQL
-* Laravel Sanctum
-* Eloquent ORM
-* RESTful API architecture
-* Form Requests
-* API Resources
-* Policies and Gates
-* PHPUnit or Pest
+- PHP 8.2+
+- Laravel 12+
+- PostgreSQL
+- Laravel Sanctum
+- Eloquent ORM
+- RESTful API architecture
+- Form Requests
+- API Resources
+- Policies and Gates
+- PHPUnit or Pest
 
 Your branch is:
 
@@ -27,14 +27,14 @@ Your responsibility is to implement the backend foundation, authentication, auth
 
 Verify and configure:
 
-* PostgreSQL database
-* Laravel Sanctum
-* API-based architecture
-* `.env.example`
-* `.gitignore`
-* CORS
-* API route structure
-* Secure environment variables
+- PostgreSQL database
+- Laravel Sanctum
+- API-based architecture
+- `.env.example`
+- `.gitignore`
+- CORS
+- API route structure
+- Secure environment variables
 
 The backend must be completely separated from the future React frontend.
 
@@ -42,22 +42,22 @@ The backend must be completely separated from the future React frontend.
 
 Create or improve the users system with:
 
-* id
-* name
-* email
-* password
-* phone
-* profile_photo
-* role
-* email_verified_at
-* timestamps
+- id
+- name
+- email
+- password
+- phone
+- profile_photo
+- role
+- email_verified_at
+- timestamps
 
 Roles:
 
-* customer
-* admin
-* fleet_manager
-* staff
+- customer
+- admin
+- fleet_manager
+- staff
 
 Use secure password hashing.
 
@@ -79,24 +79,24 @@ Use Laravel Sanctum.
 
 Implement:
 
-* Registration
-* Login
-* Logout
-* Current authenticated user
-* Profile update
-* Secure token handling
-* Validation
-* Consistent API responses
+- Registration
+- Login
+- Logout
+- Current authenticated user
+- Profile update
+- Secure token handling
+- Validation
+- Consistent API responses
 
 Use Form Requests such as:
 
-* RegisterRequest
-* LoginRequest
-* UpdateProfileRequest
+- RegisterRequest
+- LoginRequest
+- UpdateProfileRequest
 
 Use API Resources such as:
 
-* UserResource
+- UserResource
 
 Never expose passwords or password hashes.
 
@@ -104,32 +104,32 @@ Never expose passwords or password hashes.
 
 Implement:
 
-* Role middleware
-* Policies
-* Gates where appropriate
+- Role middleware
+- Policies
+- Gates where appropriate
 
 Permissions:
 
 ### Customer
 
-* Browse vehicles
-* View vehicle details
-* View categories
-* Manage personal profile
+- Browse vehicles
+- View vehicle details
+- View categories
+- Manage personal profile
 
 ### Admin
 
-* Complete system access
+- Complete system access
 
 ### Fleet Manager
 
-* Create vehicles
-* Update vehicles
-* Manage vehicle availability
+- Create vehicles
+- Update vehicles
+- Manage vehicle availability
 
 ### Staff
 
-* View operational information according to their permissions
+- View operational information according to their permissions
 
 Ensure unauthorized users receive HTTP 403 responses.
 
@@ -139,21 +139,21 @@ Create a normalized category system.
 
 Fields:
 
-* id
-* name
-* slug
-* description
-* timestamps
+- id
+- name
+- slug
+- description
+- timestamps
 
 Example categories:
 
-* Economy
-* Sedan
-* SUV
-* Luxury
-* Sports
-* Electric
-* Van
+- Economy
+- Sedan
+- SUV
+- Luxury
+- Sports
+- Electric
+- Van
 
 API:
 
@@ -171,39 +171,39 @@ Only authorized users should create, update, or delete categories.
 
 Create the vehicles system with:
 
-* id
-* category_id
-* brand
-* model
-* year
-* registration_number
-* vin_number
-* description
-* fuel_type
-* transmission
-* seats
-* color
-* mileage
-* purchase_price
-* rental_price_per_day
-* status
-* featured
-* location
-* timestamps
+- id
+- category_id
+- brand
+- model
+- year
+- registration_number
+- vin_number
+- description
+- fuel_type
+- transmission
+- seats
+- color
+- mileage
+- purchase_price
+- rental_price_per_day
+- status
+- featured
+- location
+- timestamps
 
 Statuses:
 
-* available
-* rented
-* reserved
-* maintenance
-* unavailable
+- available
+- rented
+- reserved
+- maintenance
+- unavailable
 
 Create proper relationships between:
 
-* Category
-* Vehicle
-* Vehicle Images
+- Category
+- Vehicle
+- Vehicle Images
 
 ## 7. Vehicle Images
 
@@ -211,11 +211,11 @@ A vehicle can have multiple images.
 
 Fields:
 
-* id
-* vehicle_id
-* image_url
-* is_primary
-* timestamps
+- id
+- vehicle_id
+- image_url
+- is_primary
+- timestamps
 
 Implement proper relationships and API output.
 
@@ -254,10 +254,10 @@ Support:
 
 Implement:
 
-* Search
-* Filtering
-* Sorting
-* Pagination
+- Search
+- Filtering
+- Sorting
+- Pagination
 
 Use efficient database queries and avoid loading unnecessary records into memory.
 
@@ -265,10 +265,10 @@ Use efficient database queries and avoid loading unnecessary records into memory
 
 Use Form Request classes:
 
-* StoreVehicleRequest
-* UpdateVehicleRequest
-* StoreCategoryRequest
-* UpdateCategoryRequest
+- StoreVehicleRequest
+- UpdateVehicleRequest
+- StoreCategoryRequest
+- UpdateCategoryRequest
 
 Validate all input.
 
@@ -278,10 +278,10 @@ Do not place large validation logic inside controllers.
 
 Create:
 
-* UserResource
-* CategoryResource
-* VehicleResource
-* VehicleImageResource if appropriate
+- UserResource
+- CategoryResource
+- VehicleResource
+- VehicleImageResource if appropriate
 
 Do not expose raw database models unnecessarily.
 
@@ -299,13 +299,13 @@ Use consistent responses:
 
 Create realistic factories and seeders for:
 
-* Admin user
-* Staff user
-* Fleet manager
-* Customer users
-* Vehicle categories
-* At least 20 realistic vehicles
-* Vehicle images
+- Admin user
+- Staff user
+- Fleet manager
+- Customer users
+- Vehicle categories
+- At least 20 realistic vehicles
+- Vehicle images
 
 Make the data useful for future frontend development.
 
@@ -315,38 +315,38 @@ Create tests for:
 
 ### Authentication
 
-* User can register
-* User can log in
-* Invalid credentials fail
-* User can log out
+- User can register
+- User can log in
+- Invalid credentials fail
+- User can log out
 
 ### Authorization
 
-* Customer cannot access admin operations
-* Fleet manager can manage vehicles
-* Unauthorized users cannot create vehicles
+- Customer cannot access admin operations
+- Fleet manager can manage vehicles
+- Unauthorized users cannot create vehicles
 
 ### Vehicles
 
-* Anyone can view vehicles
-* Authorized users can create vehicles
-* Validation works
-* Filtering works
-* Pagination works
+- Anyone can view vehicles
+- Authorized users can create vehicles
+- Validation works
+- Filtering works
+- Pagination works
 
 ## Important Rules
 
-* Follow Laravel conventions.
-* Keep controllers thin.
-* Use services when business logic becomes complex.
-* Use policies for authorization.
-* Use Form Requests for validation.
-* Use API Resources.
-* Use eager loading where appropriate.
-* Add indexes where useful.
-* Do not create duplicate migrations or models.
-* Do not delete working code.
-* Do not implement booking, payment, review, maintenance, or dashboard features because those belong to other team members.
+- Follow Laravel conventions.
+- Keep controllers thin.
+- Use services when business logic becomes complex.
+- Use policies for authorization.
+- Use Form Requests for validation.
+- Use API Resources.
+- Use eager loading where appropriate.
+- Add indexes where useful.
+- Do not create duplicate migrations or models.
+- Do not delete working code.
+- Do not implement booking, payment, review, maintenance, or dashboard features because those belong to other team members.
 
 Before finishing:
 
@@ -361,24 +361,23 @@ Before finishing:
 
 Finally, provide a summary of all files changed and explain how the other team members can use the users, roles, categories, and vehicles created by this part.
 
-
 # Backend Team Member 2: Bookings, Payments & Reviews
 
 You are a senior Laravel backend developer working on a shared professional Car Rental System backend.
 
 The project uses:
 
-* PHP 8.2+
-* Laravel 12+
-* PostgreSQL
-* Laravel Sanctum
-* Eloquent ORM
-* RESTful API architecture
-* Form Requests
-* API Resources
-* Policies
-* Services
-* PHPUnit or Pest
+- PHP 8.2+
+- Laravel 12+
+- PostgreSQL
+- Laravel Sanctum
+- Eloquent ORM
+- RESTful API architecture
+- Form Requests
+- API Resources
+- Policies
+- Services
+- PHPUnit or Pest
 
 Your branch is:
 
@@ -394,50 +393,50 @@ Your responsibility is to implement bookings, booking business logic, payments, 
 
 Create a bookings table with:
 
-* id
-* booking_reference
-* user_id
-* vehicle_id
-* pickup_location
-* return_location
-* pickup_date
-* return_date
-* number_of_days
-* price_per_day
-* subtotal
-* additional_charges
-* discount
-* total_price
-* status
-* payment_status
-* notes
-* timestamps
+- id
+- booking_reference
+- user_id
+- vehicle_id
+- pickup_location
+- return_location
+- pickup_date
+- return_date
+- number_of_days
+- price_per_day
+- subtotal
+- additional_charges
+- discount
+- total_price
+- status
+- payment_status
+- notes
+- timestamps
 
 Booking statuses:
 
-* pending
-* confirmed
-* active
-* completed
-* cancelled
-* rejected
+- pending
+- confirmed
+- active
+- completed
+- cancelled
+- rejected
 
 Payment statuses:
 
-* unpaid
-* pending
-* paid
-* failed
-* refunded
+- unpaid
+- pending
+- paid
+- failed
+- refunded
 
 Generate a unique booking reference automatically.
 
 Create relationships with:
 
-* User
-* Vehicle
-* Payments
-* Reviews
+- User
+- Vehicle
+- Payments
+- Reviews
 
 ## 2. Booking Business Logic
 
@@ -506,17 +505,17 @@ Admins and authorized staff can manage operational booking actions.
 
 Create Form Requests:
 
-* StoreBookingRequest
-* CancelBookingRequest if needed
+- StoreBookingRequest
+- CancelBookingRequest if needed
 
 Validate:
 
-* Vehicle ID
-* Pickup location
-* Return location
-* Pickup date
-* Return date
-* Notes
+- Vehicle ID
+- Pickup location
+- Return location
+- Pickup date
+- Return date
+- Notes
 
 The backend must perform all important business validation.
 
@@ -530,11 +529,11 @@ BookingResource
 
 Return clean JSON data including:
 
-* Booking information
-* Vehicle information
-* Customer information where authorized
-* Payment status
-* Booking status
+- Booking information
+- Vehicle information
+- Customer information where authorized
+- Payment status
+- Booking status
 
 Do not expose unnecessary database fields.
 
@@ -542,29 +541,29 @@ Do not expose unnecessary database fields.
 
 Create a payments table:
 
-* id
-* booking_id
-* user_id
-* amount
-* payment_method
-* transaction_reference
-* status
-* paid_at
-* timestamps
+- id
+- booking_id
+- user_id
+- amount
+- payment_method
+- transaction_reference
+- status
+- paid_at
+- timestamps
 
 Payment methods:
 
-* cash
-* bank_transfer
-* card
-* online_payment
+- cash
+- bank_transfer
+- card
+- online_payment
 
 Payment statuses:
 
-* pending
-* paid
-* failed
-* refunded
+- pending
+- paid
+- failed
+- refunded
 
 Create:
 
@@ -576,9 +575,9 @@ Build a clean architecture that can later integrate with a real payment gateway.
 
 Never store:
 
-* Raw card numbers
-* CVV
-* Private payment credentials
+- Raw card numbers
+- CVV
+- Private payment credentials
 
 API:
 
@@ -600,21 +599,21 @@ PaymentResource
 
 Create a reviews table:
 
-* id
-* user_id
-* vehicle_id
-* booking_id
-* rating
-* comment
-* status
-* timestamps
+- id
+- user_id
+- vehicle_id
+- booking_id
+- rating
+- comment
+- status
+- timestamps
 
 Rules:
 
-* Rating must be between 1 and 5.
-* Only customers with completed bookings can review.
-* A customer cannot review the same booking multiple times.
-* Administrators can moderate or delete reviews.
+- Rating must be between 1 and 5.
+- Only customers with completed bookings can review.
+- A customer cannot review the same booking multiple times.
+- Administrators can moderate or delete reviews.
 
 API:
 
@@ -635,12 +634,12 @@ ReviewResource
 
 Implement notifications for:
 
-* Successful booking
-* Booking confirmation
-* Booking cancellation
-* Payment success
-* Payment failure
-* Booking reminders
+- Successful booking
+- Booking confirmation
+- Booking cancellation
+- Payment success
+- Payment failure
+- Booking reminders
 
 Use Laravel Notifications.
 
@@ -654,47 +653,47 @@ Create tests for:
 
 ### Bookings
 
-* Customer can create a booking.
-* Invalid dates are rejected.
-* Return date must be after pickup date.
-* Overlapping bookings are rejected.
-* Vehicle availability is checked.
-* Vehicle under maintenance cannot be booked.
-* Total price is calculated by the backend.
-* Customer can cancel an eligible booking.
+- Customer can create a booking.
+- Invalid dates are rejected.
+- Return date must be after pickup date.
+- Overlapping bookings are rejected.
+- Vehicle availability is checked.
+- Vehicle under maintenance cannot be booked.
+- Total price is calculated by the backend.
+- Customer can cancel an eligible booking.
 
 ### Authorization
 
-* Customer cannot access another user's booking.
-* Unauthorized users cannot manage bookings.
-* Staff can perform authorized operational actions.
+- Customer cannot access another user's booking.
+- Unauthorized users cannot manage bookings.
+- Staff can perform authorized operational actions.
 
 ### Payments
 
-* Payment records can be created.
-* Payment amount is validated.
-* Users cannot access unauthorized payment records.
+- Payment records can be created.
+- Payment amount is validated.
+- Users cannot access unauthorized payment records.
 
 ### Reviews
 
-* Completed customers can review vehicles.
-* Incomplete bookings cannot create reviews.
-* Duplicate reviews are rejected.
-* Ratings outside 1–5 are rejected.
+- Completed customers can review vehicles.
+- Incomplete bookings cannot create reviews.
+- Duplicate reviews are rejected.
+- Ratings outside 1–5 are rejected.
 
 ## Important Rules
 
-* Follow existing models and relationships from Part 1.
-* Reuse the existing User and Vehicle models.
-* Do not create duplicate User or Vehicle models.
-* Do not modify unrelated features unnecessarily.
-* Keep controllers thin.
-* Use services for complex business logic.
-* Use Form Requests.
-* Use API Resources.
-* Use Policies.
-* Use database transactions.
-* Use consistent API responses.
+- Follow existing models and relationships from Part 1.
+- Reuse the existing User and Vehicle models.
+- Do not create duplicate User or Vehicle models.
+- Do not modify unrelated features unnecessarily.
+- Keep controllers thin.
+- Use services for complex business logic.
+- Use Form Requests.
+- Use API Resources.
+- Use Policies.
+- Use database transactions.
+- Use consistent API responses.
 
 Before finishing:
 
@@ -710,25 +709,24 @@ Before finishing:
 
 Finally, provide a summary of all files changed and explain the API endpoints implemented.
 
-
 # Backend Team Member 3: Admin, Maintenance, Contact, Dashboard & Documentation
 
 You are a senior Laravel backend developer working on a shared professional Car Rental System backend.
 
 The project uses:
 
-* PHP 8.2+
-* Laravel 12+
-* PostgreSQL
-* Laravel Sanctum
-* Eloquent ORM
-* RESTful API architecture
-* Form Requests
-* API Resources
-* Policies
-* Services
-* Notifications
-* PHPUnit or Pest
+- PHP 8.2+
+- Laravel 12+
+- PostgreSQL
+- Laravel Sanctum
+- Eloquent ORM
+- RESTful API architecture
+- Form Requests
+- API Resources
+- Policies
+- Services
+- Notifications
+- PHPUnit or Pest
 
 Your branch is:
 
@@ -744,41 +742,41 @@ Your responsibility is to implement administrative management, fleet management,
 
 Use the existing roles:
 
-* admin
-* fleet_manager
-* staff
-* customer
+- admin
+- fleet_manager
+- staff
+- customer
 
 Use Laravel Policies and middleware.
 
 Admin:
 
-* Full system access
+- Full system access
 
 Fleet Manager:
 
-* Manage vehicles
-* Manage availability
-* Manage maintenance
+- Manage vehicles
+- Manage availability
+- Manage maintenance
 
 Staff:
 
-* Manage operational rental activities
-* View and update authorized bookings
+- Manage operational rental activities
+- View and update authorized bookings
 
 Customers:
 
-* Must not access admin endpoints
+- Must not access admin endpoints
 
 ## 2. Admin User Management
 
 Implement APIs for administrators to:
 
-* View users
-* View user details
-* Update user information
-* Change user roles where appropriate
-* Disable or manage accounts according to project rules
+- View users
+- View user details
+- Update user information
+- Change user roles where appropriate
+- Disable or manage accounts according to project rules
 
 Protect all admin endpoints with authorization.
 
@@ -798,10 +796,10 @@ PUT /api/admin/bookings/{booking}/return
 
 Ensure:
 
-* Correct status transitions
-* Proper authorization
-* Database consistency
-* Vehicle status updates where necessary
+- Correct status transitions
+- Proper authorization
+- Database consistency
+- Vehicle status updates where necessary
 
 Do not duplicate the Booking model or BookingService.
 
@@ -811,25 +809,25 @@ Create a maintenance system.
 
 Fields:
 
-* id
-* vehicle_id
-* title
-* description
-* maintenance_type
-* cost
-* start_date
-* end_date
-* status
-* notes
-* created_by
-* timestamps
+- id
+- vehicle_id
+- title
+- description
+- maintenance_type
+- cost
+- start_date
+- end_date
+- status
+- notes
+- created_by
+- timestamps
 
 Maintenance statuses:
 
-* scheduled
-* in_progress
-* completed
-* cancelled
+- scheduled
+- in_progress
+- completed
+- cancelled
 
 API:
 
@@ -842,19 +840,19 @@ DELETE /api/maintenance/{maintenance}
 
 Rules:
 
-* Vehicles under maintenance cannot be booked.
-* Starting maintenance should update vehicle availability where appropriate.
-* Completing maintenance should allow authorized users to update vehicle status.
-* Record who created the maintenance record.
+- Vehicles under maintenance cannot be booked.
+- Starting maintenance should update vehicle availability where appropriate.
+- Completing maintenance should allow authorized users to update vehicle status.
+- Record who created the maintenance record.
 
 Create:
 
-* Maintenance model
-* Maintenance migration
-* Maintenance controller
-* Maintenance requests
-* Maintenance resource
-* Maintenance policy
+- Maintenance model
+- Maintenance migration
+- Maintenance controller
+- Maintenance requests
+- Maintenance resource
+- Maintenance policy
 
 ## 5. Contact Messages
 
@@ -862,24 +860,24 @@ Create a contact message system.
 
 Fields:
 
-* id
-* name
-* email
-* phone
-* subject
-* message
-* status
-* replied_at
-* timestamps
+- id
+- name
+- email
+- phone
+- subject
+- message
+- status
+- replied_at
+- timestamps
 
 Customers or public users can submit contact messages.
 
 Administrators can:
 
-* View messages
-* Mark messages as read
-* Mark messages as replied
-* Delete messages
+- View messages
+- Mark messages as read
+- Mark messages as replied
+- Delete messages
 
 Create suitable API routes and validation.
 
@@ -893,22 +891,22 @@ GET /api/admin/dashboard
 
 Return:
 
-* Total users
-* Total customers
-* Total vehicles
-* Available vehicles
-* Rented vehicles
-* Vehicles under maintenance
-* Total bookings
-* Pending bookings
-* Active rentals
-* Completed rentals
-* Cancelled bookings
-* Total revenue
-* Monthly revenue
-* Recent bookings
-* Recent users
-* Popular vehicles
+- Total users
+- Total customers
+- Total vehicles
+- Available vehicles
+- Rented vehicles
+- Vehicles under maintenance
+- Total bookings
+- Pending bookings
+- Active rentals
+- Completed rentals
+- Cancelled bookings
+- Total revenue
+- Monthly revenue
+- Recent bookings
+- Recent users
+- Popular vehicles
 
 Create:
 
@@ -926,12 +924,12 @@ Avoid unnecessary repeated queries.
 
 Implement useful admin reporting data where appropriate:
 
-* Revenue summaries
-* Booking summaries
-* Vehicle utilization
-* Popular vehicles
-* Booking status statistics
-* Maintenance cost summaries
+- Revenue summaries
+- Booking summaries
+- Vehicle utilization
+- Popular vehicles
+- Booking status statistics
+- Maintenance cost summaries
 
 Keep the implementation efficient and scalable.
 
@@ -941,11 +939,11 @@ Review and integrate the notification system created by Part 2.
 
 Ensure important events can trigger:
 
-* Booking confirmation
-* Booking cancellation
-* Payment notifications
-* Booking reminders
-* Vehicle return reminders
+- Booking confirmation
+- Booking cancellation
+- Payment notifications
+- Booking reminders
+- Vehicle return reminders
 
 Do not create duplicate notification classes.
 
@@ -953,21 +951,21 @@ Do not create duplicate notification classes.
 
 Create or improve policies for:
 
-* Users
-* Vehicles
-* Categories
-* Bookings
-* Payments
-* Reviews
-* Maintenance
-* Contact messages
+- Users
+- Vehicles
+- Categories
+- Bookings
+- Payments
+- Reviews
+- Maintenance
+- Contact messages
 
 Ensure:
 
-* Customers cannot access admin endpoints.
-* Staff only access staff-authorized operations.
-* Fleet managers manage vehicles and maintenance.
-* Admins have full access.
+- Customers cannot access admin endpoints.
+- Staff only access staff-authorized operations.
+- Fleet managers manage vehicles and maintenance.
+- Admins have full access.
 
 ## 10. Documentation
 
@@ -980,29 +978,29 @@ API_DOCUMENTATION.md
 
 README must include:
 
-* Project description
-* Technologies
-* Requirements
-* Installation
-* Environment configuration
-* PostgreSQL setup
-* Migration commands
-* Seeder commands
-* Development commands
-* Testing commands
-* Deployment instructions
+- Project description
+- Technologies
+- Requirements
+- Installation
+- Environment configuration
+- PostgreSQL setup
+- Migration commands
+- Seeder commands
+- Development commands
+- Testing commands
+- Deployment instructions
 
 API_DOCUMENTATION.md must document every endpoint with:
 
-* HTTP method
-* URL
-* Authentication requirement
-* Required role
-* Parameters
-* Request body
-* Successful response
-* Error response
-* Example request
+- HTTP method
+- URL
+- Authentication requirement
+- Required role
+- Parameters
+- Request body
+- Successful response
+- Error response
+- Example request
 
 ## 11. Deployment Preparation
 
@@ -1010,68 +1008,68 @@ Verify that the backend is ready for deployment.
 
 Check:
 
-* `.env.example`
-* `.gitignore`
-* Production configuration
-* PostgreSQL configuration
-* CORS
-* Frontend URL configuration
-* API route configuration
-* Storage configuration
-* Logging
-* Error handling
+- `.env.example`
+- `.gitignore`
+- Production configuration
+- PostgreSQL configuration
+- CORS
+- Frontend URL configuration
+- API route configuration
+- Storage configuration
+- Logging
+- Error handling
 
 Never commit:
 
-* `.env`
-* Passwords
-* API keys
-* Private tokens
-* Database credentials
+- `.env`
+- Passwords
+- API keys
+- Private tokens
+- Database credentials
 
 ## 12. Final Integration Testing
 
 After implementing your features, test the integration with:
 
-* Authentication
-* Users
-* Vehicles
-* Categories
-* Bookings
-* Payments
-* Reviews
+- Authentication
+- Users
+- Vehicles
+- Categories
+- Bookings
+- Payments
+- Reviews
 
 Verify that your code works with the existing models and services.
 
 Run:
 
-* Migrations
-* Seeders
-* Feature tests
-* Unit tests where appropriate
+- Migrations
+- Seeders
+- Feature tests
+- Unit tests where appropriate
 
 Check:
 
-* Route conflicts
-* Duplicate migrations
-* Duplicate models
-* Authorization errors
-* Database relationship errors
-* API response consistency
+- Route conflicts
+- Duplicate migrations
+- Duplicate models
+- Authorization errors
+- Database relationship errors
+- API response consistency
 
 ## Important Rules
 
-* Inspect existing code before changing anything.
-* Do not duplicate existing models, migrations, services, or notifications.
-* Reuse existing BookingService, PaymentService, User, Vehicle, and Booking models.
-* Keep controllers thin.
-* Use services for complex logic.
-* Use Form Requests.
-* Use API Resources.
-* Use Policies.
-* Use database transactions when necessary.
-* Follow Laravel conventions.
-* Do not add frontend UI code.
+- Inspect existing code before changing anything.
+- Do not duplicate existing models, migrations, services, or notifications.
+- Reuse existing BookingService, PaymentService, User, Vehicle, and Booking models.
+- Keep controllers thin.
+- Use services for complex logic.
+- Use Form Requests.
+- Use API Resources.
+- Use Policies.
+- Use database transactions when necessary.
+- Follow Laravel conventions.
+- Do not add frontend UI code.
 
 Finally, provide:
 
