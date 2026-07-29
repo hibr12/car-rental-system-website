@@ -309,4 +309,29 @@ class BookingTest extends TestCase
             'status' => 'available',
         ]);
     }
+
+    public function test_admin_can_reject_booking_with_reason(): void
+    {
+        $adminToken = $this->admin->createToken('auth-token')->plainTextToken;
+
+        $booking = Booking::factory()->create([
+            'user_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $adminToken)
+            ->putJson('/api/admin/bookings/' . $booking->id . '/reject', [
+                'reason' => 'Vehicle unavailable',
+            ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => 'rejected',
+        ]);
+
+        $booking->refresh();
+        $this->assertStringContainsString('Vehicle unavailable', $booking->notes);
+    }
 }

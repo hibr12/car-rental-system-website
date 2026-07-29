@@ -8,6 +8,7 @@ use App\Models\Maintenance;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminMaintenanceTest extends TestCase
@@ -66,5 +67,31 @@ class AdminMaintenanceTest extends TestCase
 
         $response->assertOk();
         $this->assertDatabaseHas('contact_messages', ['id' => $message->id, 'status' => 'replied']);
+    }
+
+    public function test_admin_can_update_user_role_and_password(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $token = $admin->createToken('auth-token')->plainTextToken;
+        $user = User::factory()->customer()->create();
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->putJson('/api/admin/users/' . $user->id, [
+                'name' => 'Updated User',
+                'email' => 'updated.user@example.com',
+                'phone' => '1234567890',
+                'role' => 'staff',
+                'password' => 'StrongPassword123',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.role', 'staff');
+
+        $user->refresh();
+        $this->assertSame('Updated User', $user->name);
+        $this->assertSame('updated.user@example.com', $user->email);
+        $this->assertSame('1234567890', $user->phone);
+        $this->assertSame('staff', $user->role);
+        $this->assertTrue(Hash::check('StrongPassword123', $user->password));
     }
 }

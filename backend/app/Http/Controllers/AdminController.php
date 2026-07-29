@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Resources\BookingResource;
 use App\Http\Resources\UserResource;
 use App\Models\Booking;
@@ -10,6 +11,7 @@ use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
@@ -62,18 +64,17 @@ class AdminController extends Controller
         ]);
     }
 
-    public function updateUser(Request $request, User $user): JsonResponse
+    public function updateUser(UpdateUserRequest $request, User $user): JsonResponse
     {
         if (!Gate::allows('update', $user)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'role' => ['sometimes', 'string', 'in:customer,admin,fleet_manager,staff'],
-        ]);
+        $data = $request->validated();
+
+        if (isset($data['password']) && $data['password'] !== null && $data['password'] !== '') {
+            $data['password'] = Hash::make($data['password']);
+        }
 
         $user->update($data);
 
