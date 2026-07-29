@@ -94,4 +94,42 @@ class AdminMaintenanceTest extends TestCase
         $this->assertSame('staff', $user->role);
         $this->assertTrue(Hash::check('StrongPassword123', $user->password));
     }
+
+    public function test_admin_can_complete_maintenance_and_release_vehicle(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $token = $admin->createToken('auth-token')->plainTextToken;
+        $category = Category::factory()->create();
+        $vehicle = Vehicle::factory()->available()->create(['category_id' => $category->id]);
+        $maintenance = Maintenance::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'created_by' => $admin->id,
+            'status' => 'scheduled',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->putJson('/api/maintenance/' . $maintenance->id, [
+                'status' => 'completed',
+                'cost' => 200,
+            ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('maintenances', ['id' => $maintenance->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('vehicles', ['id' => $vehicle->id, 'status' => 'available']);
+    }
+
+    public function test_admin_can_mark_contact_message_as_replied_with_timestamp(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $token = $admin->createToken('auth-token')->plainTextToken;
+        $message = ContactMessage::factory()->create(['status' => 'pending']);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->putJson('/api/contact-messages/' . $message->id, ['status' => 'replied']);
+
+        $response->assertOk();
+        $message->refresh();
+        $this->assertSame('replied', $message->status);
+        $this->assertNotNull($message->replied_at);
+    }
 }
