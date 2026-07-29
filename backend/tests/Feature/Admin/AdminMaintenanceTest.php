@@ -132,4 +132,29 @@ class AdminMaintenanceTest extends TestCase
         $this->assertSame('replied', $message->status);
         $this->assertNotNull($message->replied_at);
     }
+
+    public function test_dashboard_returns_structured_reporting_data(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $token = $admin->createToken('auth-token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/admin/dashboard');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'summary',
+                    'monthly_revenue',
+                    'booking_statuses',
+                    'maintenance_costs',
+                    'revenue_summary',
+                    'recent_bookings',
+                    'recent_users',
+                    'popular_vehicles',
+                ],
+            ]);
+    }
 }

@@ -23,24 +23,26 @@ class DashboardService
             ->take(5)
             ->get();
 
+        $summary = [
+            'total_users' => User::count(),
+            'total_customers' => User::where('role', 'customer')->count(),
+            'total_vehicles' => Vehicle::count(),
+            'available_vehicles' => Vehicle::where('status', 'available')->count(),
+            'rented_vehicles' => Vehicle::where('status', 'rented')->count(),
+            'vehicles_under_maintenance' => Vehicle::where('status', 'maintenance')->count(),
+            'total_bookings' => Booking::count(),
+            'pending_bookings' => Booking::where('status', 'pending')->count(),
+            'active_rentals' => Booking::where('status', 'active')->count(),
+            'completed_rentals' => Booking::where('status', 'completed')->count(),
+            'cancelled_bookings' => Booking::where('status', 'cancelled')->count(),
+            'total_revenue' => (float) Booking::sum('total_price'),
+            'monthly_revenue' => (float) Booking::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('total_price'),
+            'pending_messages' => ContactMessage::where('status', 'pending')->count(),
+            'maintenance_count' => Maintenance::count(),
+        ];
+
         return [
-            'summary' => [
-                'total_users' => User::count(),
-                'total_customers' => User::where('role', 'customer')->count(),
-                'total_vehicles' => Vehicle::count(),
-                'available_vehicles' => Vehicle::where('status', 'available')->count(),
-                'rented_vehicles' => Vehicle::where('status', 'rented')->count(),
-                'vehicles_under_maintenance' => Vehicle::where('status', 'maintenance')->count(),
-                'total_bookings' => Booking::count(),
-                'pending_bookings' => Booking::where('status', 'pending')->count(),
-                'active_rentals' => Booking::where('status', 'active')->count(),
-                'completed_rentals' => Booking::where('status', 'completed')->count(),
-                'cancelled_bookings' => Booking::where('status', 'cancelled')->count(),
-                'total_revenue' => (float) Booking::sum('total_price'),
-                'monthly_revenue' => (float) Booking::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('total_price'),
-                'pending_messages' => ContactMessage::where('status', 'pending')->count(),
-                'maintenance_count' => Maintenance::count(),
-            ],
+            'summary' => $summary,
             'monthly_revenue' => $this->monthlyRevenue(),
             'booking_statuses' => $this->bookingStatusBreakdown(),
             'maintenance_costs' => $this->maintenanceCostBreakdown(),
@@ -48,6 +50,13 @@ class DashboardService
             'recent_bookings' => $recentBookings,
             'recent_users' => $recentUsers,
             'popular_vehicles' => $popularVehicles,
+            'report_sections' => [
+                'overview',
+                'revenue',
+                'bookings',
+                'maintenance',
+                'activity',
+            ],
         ];
     }
 
