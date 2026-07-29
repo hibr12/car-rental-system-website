@@ -32,66 +32,79 @@
 - Authentication: Sanctum
 - Required role: Any authenticated user
 
+### Update profile
+
+- Method: PUT
+- URL: /api/auth/profile
+- Authentication: Sanctum
+- Required role: Any authenticated user
+
+## Categories
+
+- GET /api/categories
+- GET /api/categories/{category}
+- POST /api/categories
+- PUT /api/categories/{category}
+- DELETE /api/categories/{category}
+
 ## Vehicles
 
-### List vehicles
-
-- Method: GET
-- URL: /api/vehicles
-- Authentication: None
-- Required role: Public
-- Query params: search, category, min_price, max_price, fuel_type, transmission, status, featured, sort, page
-
-### Create vehicle
-
-- Method: POST
-- URL: /api/vehicles
-- Authentication: Sanctum
-- Required role: admin or fleet_manager
+- GET /api/vehicles
+- GET /api/vehicles/{vehicle}
+- POST /api/vehicles
+- PUT /api/vehicles/{vehicle}
+- DELETE /api/vehicles/{vehicle}
+- GET /api/vehicles/{vehicle}/reviews
 
 ## Bookings
 
-### Create booking
-
-- Method: POST
-- URL: /api/bookings
-- Authentication: Sanctum
-- Required role: customer
+- GET /api/bookings
+- POST /api/bookings
+- GET /api/bookings/{booking}
+- PUT /api/bookings/{booking}/cancel
 
 ### Admin booking actions
 
-- Method: PUT
-- URL: /api/admin/bookings/{booking}/confirm|reject|pickup|return
-- Authentication: Sanctum
-- Required role: admin or staff
+- GET /api/admin/bookings
+- PUT /api/admin/bookings/{booking}/confirm
+- PUT /api/admin/bookings/{booking}/reject
+- PUT /api/admin/bookings/{booking}/pickup
+- PUT /api/admin/bookings/{booking}/return
+
+## Payments
+
+- GET /api/payments
+- POST /api/payments
+- GET /api/payments/{payment}
+
+## Reviews
+
+- POST /api/vehicles/{vehicle}/reviews
+- DELETE /api/reviews/{review}
 
 ## Maintenance
 
-### List maintenance records
+- GET /api/maintenance
+- POST /api/maintenance
+- GET /api/maintenance/{maintenance}
+- PUT /api/maintenance/{maintenance}
+- DELETE /api/maintenance/{maintenance}
 
-- Method: GET
-- URL: /api/maintenance
-- Authentication: Sanctum
-- Required role: admin, fleet_manager, or staff
+## Contact Messages
 
-### Create maintenance record
+- POST /api/contact-messages
+- GET /api/contact-messages
+- PUT /api/contact-messages/{contactMessage}
+- DELETE /api/contact-messages/{contactMessage}
 
-- Method: POST
-- URL: /api/maintenance
-- Authentication: Sanctum
-- Required role: admin or fleet_manager
+## Admin Dashboard
 
-## Contact messages
+- GET /api/admin/dashboard
+- GET /api/admin/users
+- GET /api/admin/users/{user}
+- PUT /api/admin/users/{user}
 
-### Submit contact message
+## Notes
 
-- Method: POST
-- URL: /api/contact-messages
-- Authentication: None
-- Required role: Public
-
-### Admin manage contact messages
-
-- Method: PUT /api/contact-messages/{message}
-- Authentication: Sanctum
-- Required role: admin
+- Public endpoints allow browsing vehicles and categories.
+- Admin and staff endpoints require authentication and the appropriate role-based permissions.
