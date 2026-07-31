@@ -49,6 +49,8 @@ class AuthState {
   static void initApiClientCallback() {
     ApiClient.instance.onUnauthorized = () {
       _token = '';
+      // Fire-and-forget: clear from persistent storage.
+      // ignore: unawaited_futures
       TokenStorage.deleteToken();
     };
   }
