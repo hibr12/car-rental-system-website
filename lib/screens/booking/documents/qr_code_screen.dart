@@ -33,12 +33,14 @@ class QRCodeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: const Icon(LucideIcons.qrCode, size: 200, color: AppColors.textPrimary),
+                child: const Icon(LucideIcons.qrCode,
+                    size: 200, color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 booking.bookingReference,
-                style: AppTypography.textTheme.headlineMedium?.copyWith(letterSpacing: 4),
+                style: AppTypography.textTheme.headlineMedium
+                    ?.copyWith(letterSpacing: 4),
               ),
             ],
           ),

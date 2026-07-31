@@ -27,7 +27,8 @@ class PaginatedListBuilder<T> extends StatefulWidget {
   });
 
   @override
-  State<PaginatedListBuilder<T>> createState() => _PaginatedListBuilderState<T>();
+  State<PaginatedListBuilder<T>> createState() =>
+      _PaginatedListBuilderState<T>();
 }
 
 class _PaginatedListBuilderState<T> extends State<PaginatedListBuilder<T>> {

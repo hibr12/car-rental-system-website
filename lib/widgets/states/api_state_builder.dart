@@ -47,12 +47,14 @@ class ApiStateBuilder<T> extends StatelessWidget {
           if (!response.success || response.error != null) {
             return onError?.call(
                   context,
-                  response.error ?? ApiError(statusCode: 500, message: 'Unknown error'),
+                  response.error ??
+                      ApiError(statusCode: 500, message: 'Unknown error'),
                 ) ??
                 _buildDefaultError(response.error?.message ?? 'Unknown error');
           }
 
-          if (response.data == null || (isEmpty != null && isEmpty!(response.data as T))) {
+          if (response.data == null ||
+              (isEmpty != null && isEmpty!(response.data as T))) {
             return onEmpty?.call(context) ?? _buildDefaultEmpty();
           }
 
@@ -77,7 +79,8 @@ class ApiStateBuilder<T> extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(LucideIcons.alertCircle, size: 48, color: AppColors.error),
+            const Icon(LucideIcons.alertCircle,
+                size: 48, color: AppColors.error),
             const SizedBox(height: AppSpacing.md),
             Text(
               'Oops! Something went wrong.',
@@ -87,7 +90,8 @@ class ApiStateBuilder<T> extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               message,
-              style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
@@ -115,7 +119,8 @@ class ApiStateBuilder<T> extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(LucideIcons.inbox, size: 48, color: AppColors.textTertiary),
+            const Icon(LucideIcons.inbox,
+                size: 48, color: AppColors.textTertiary),
             const SizedBox(height: AppSpacing.md),
             Text(
               'Nothing to see here',
@@ -125,7 +130,8 @@ class ApiStateBuilder<T> extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Check back later for updates.',
-              style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],

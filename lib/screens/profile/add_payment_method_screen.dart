@@ -33,7 +33,10 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
   void _saveCard() {
     if (_formKey.currentState?.validate() ?? false) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Card added successfully'), backgroundColor: AppColors.success),
+        const SnackBar(
+            content: Text(
+                'Adding payment methods requires backend support (Not implemented).'),
+            backgroundColor: AppColors.warning),
       );
       Navigator.pop(context);
     }
@@ -54,17 +57,17 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
               children: [
                 _buildCardPreview(),
                 const SizedBox(height: AppSpacing.xxl),
-                
-                Text('Card Information', style: AppTypography.textTheme.headlineMedium),
+                Text('Card Information',
+                    style: AppTypography.textTheme.headlineMedium),
                 const SizedBox(height: AppSpacing.md),
-                
                 TextFormField(
                   controller: _nameController,
-                  decoration: _inputDecoration('Cardholder Name', LucideIcons.user),
-                  validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                  decoration:
+                      _inputDecoration('Cardholder Name', LucideIcons.user),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                
                 TextFormField(
                   controller: _cardNumberController,
                   keyboardType: TextInputType.number,
@@ -72,11 +75,13 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(16),
                   ],
-                  decoration: _inputDecoration('Card Number', LucideIcons.creditCard),
-                  validator: (value) => value == null || value.length < 16 ? 'Invalid card number' : null,
+                  decoration:
+                      _inputDecoration('Card Number', LucideIcons.creditCard),
+                  validator: (value) => value == null || value.length < 16
+                      ? 'Invalid card number'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                
                 Row(
                   children: [
                     Expanded(
@@ -87,8 +92,11 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(4),
                         ],
-                        decoration: _inputDecoration('MM/YY', LucideIcons.calendar),
-                        validator: (value) => value == null || value.length < 4 ? 'Invalid' : null,
+                        decoration:
+                            _inputDecoration('MM/YY', LucideIcons.calendar),
+                        validator: (value) => value == null || value.length < 4
+                            ? 'Invalid'
+                            : null,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -101,22 +109,23 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
                           LengthLimitingTextInputFormatter(4),
                         ],
                         decoration: _inputDecoration('CVV', LucideIcons.lock),
-                        validator: (value) => value == null || value.length < 3 ? 'Invalid CVV' : null,
+                        validator: (value) => value == null || value.length < 3
+                            ? 'Invalid CVV'
+                            : null,
                       ),
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: AppSpacing.lg),
                 CheckboxListTile(
                   title: const Text('Set as default payment method'),
                   value: _setAsDefault,
-                  onChanged: (val) => setState(() => _setAsDefault = val ?? false),
+                  onChanged: (val) =>
+                      setState(() => _setAsDefault = val ?? false),
                   activeColor: AppColors.primary,
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
-                
                 const SizedBox(height: AppSpacing.xxxl),
                 PrimaryButton(
                   text: 'Save Card',
@@ -157,13 +166,16 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(LucideIcons.creditCard, color: AppColors.textSecondary, size: 32),
-              Icon(LucideIcons.wifi, color: AppColors.surface.withOpacity(0.5), size: 28),
+              const Icon(LucideIcons.creditCard,
+                  color: AppColors.textSecondary, size: 32),
+              Icon(LucideIcons.wifi,
+                  color: AppColors.surface.withOpacity(0.5), size: 28),
             ],
           ),
           Text(
             '•••• •••• •••• ••••',
-            style: AppTypography.textTheme.displaySmall?.copyWith(color: AppColors.surface, letterSpacing: 4),
+            style: AppTypography.textTheme.displaySmall
+                ?.copyWith(color: AppColors.surface, letterSpacing: 4),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -171,15 +183,23 @@ class _AddPaymentMethodScreenState extends State<AddPaymentMethodScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('CARDHOLDER', style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.textTertiary)),
-                  Text('YOUR NAME', style: AppTypography.textTheme.titleMedium?.copyWith(color: AppColors.surface)),
+                  Text('CARDHOLDER',
+                      style: AppTypography.textTheme.labelSmall
+                          ?.copyWith(color: AppColors.textTertiary)),
+                  Text('YOUR NAME',
+                      style: AppTypography.textTheme.titleMedium
+                          ?.copyWith(color: AppColors.surface)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('EXPIRES', style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.textTertiary)),
-                  Text('MM/YY', style: AppTypography.textTheme.titleMedium?.copyWith(color: AppColors.surface)),
+                  Text('EXPIRES',
+                      style: AppTypography.textTheme.labelSmall
+                          ?.copyWith(color: AppColors.textTertiary)),
+                  Text('MM/YY',
+                      style: AppTypography.textTheme.titleMedium
+                          ?.copyWith(color: AppColors.surface)),
                 ],
               ),
             ],

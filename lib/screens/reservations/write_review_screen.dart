@@ -5,6 +5,7 @@ import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../widgets/buttons/app_buttons.dart';
 import '../../models/booking_model.dart';
+import '../../data/repositories/review_repository.dart';
 
 class WriteReviewScreen extends StatefulWidget {
   final Booking booking;
@@ -17,6 +18,7 @@ class WriteReviewScreen extends StatefulWidget {
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
   double _rating = 0;
   final TextEditingController _reviewController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -24,7 +26,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     super.dispose();
   }
 
-  void _submitReview() {
+  Future<void> _submitReview() async {
     if (_rating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a rating.')),
@@ -32,10 +34,37 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Thank you for your review!'), backgroundColor: AppColors.success),
+    setState(() => _isSubmitting = true);
+
+    final res = await ReviewRepository.instance.addReview(
+      vehicleId: widget.booking.vehicle.id,
+      bookingId: widget.booking.id,
+      rating: _rating.round(), // Backend requires int 1-5
+      comment: _reviewController.text.trim(),
     );
-    Navigator.pop(context);
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thank you for your review!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      // Handle 422 (already reviewed / booking not completed) and 403
+      final errorMsg = res.error?.friendlyMessage ??
+          'Failed to submit review. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -56,40 +85,52 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 width: 160,
                 height: 100,
                 fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 160,
+                  height: 100,
+                  color: AppColors.textTertiary,
+                  child: const Icon(Icons.image_not_supported, size: 32),
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(widget.booking.vehicle.fullName, style: AppTypography.textTheme.headlineMedium),
+            Text(widget.booking.vehicle.fullName,
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.xs),
-            Text('Trip ended on ${widget.booking.returnDate.toString().split(' ')[0]}', style: AppTypography.textTheme.bodyMedium),
+            Text(
+              'Trip ended on ${widget.booking.returnDate.toString().split(' ')[0]}',
+              style: AppTypography.textTheme.bodyMedium,
+            ),
             const SizedBox(height: AppSpacing.xxxl),
-            
-            Text('How was your trip?', style: AppTypography.textTheme.titleLarge),
+            Text('How was your trip?',
+                style: AppTypography.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.md),
             RatingBar.builder(
               initialRating: 0,
               minRating: 1,
               direction: Axis.horizontal,
-              allowHalfRating: true,
+              allowHalfRating: false, // Backend requires integer 1-5
               itemCount: 5,
               itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-              itemBuilder: (context, _) => const Icon(Icons.star, color: AppColors.warning),
+              itemBuilder: (context, _) =>
+                  const Icon(Icons.star, color: AppColors.warning),
               onRatingUpdate: (rating) {
                 setState(() => _rating = rating);
               },
             ),
             const SizedBox(height: AppSpacing.xxxl),
-            
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Share your experience', style: AppTypography.textTheme.titleMedium),
+              child: Text('Share your experience',
+                  style: AppTypography.textTheme.titleMedium),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _reviewController,
               maxLines: 5,
               decoration: InputDecoration(
-                hintText: 'What did you like about this vehicle? Would you recommend it?',
+                hintText:
+                    'What did you like about this vehicle? Would you recommend it?',
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
@@ -102,15 +143,16 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary, width: 1.5),
                 ),
               ),
             ),
-            
             const SizedBox(height: AppSpacing.xxxl),
             PrimaryButton(
               text: 'Submit Review',
-              onPressed: _submitReview,
+              isLoading: _isSubmitting,
+              onPressed: _isSubmitting ? null : _submitReview,
             ),
           ],
         ),

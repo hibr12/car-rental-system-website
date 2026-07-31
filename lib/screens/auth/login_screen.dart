@@ -7,6 +7,8 @@ import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
 import '../../widgets/buttons/app_buttons.dart';
 import '../../widgets/inputs/app_text_field.dart';
+import '../../data/repositories/user_repository.dart';
+import '../../core/config/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,19 +19,44 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  void _handleLogin() {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-      // Simulate network request
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          context.go(AppRoutes.home);
+
+      final response = await UserRepository.instance.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.success) {
+        // Set auth state with the token (attached to response.message)
+        if (response.message != null && response.message!.isNotEmpty) {
+          await AuthState.setToken(response.message!);
         }
-      });
+        if (mounted) context.go(AppRoutes.home);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.error?.friendlyMessage ?? 'Login failed'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -62,10 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: AppTypography.textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                
                 AppTextField(
                   label: 'Email',
                   hint: 'Enter your email',
+                  controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: LucideIcons.mail,
                   validator: (val) {
@@ -74,23 +101,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                
                 AppTextField(
                   label: 'Password',
                   hint: 'Enter your password',
+                  controller: _passwordController,
                   isPassword: _obscurePassword,
                   prefixIcon: LucideIcons.lock,
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff, color: AppColors.textTertiary),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                        _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
+                        color: AppColors.textTertiary),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   validator: (val) {
-                    if (val == null || val.isEmpty) return 'Password is required';
+                    if (val == null || val.isEmpty)
+                      return 'Password is required';
                     return null;
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
-                
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -106,32 +136,34 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                
                 const SizedBox(height: AppSpacing.xxl),
                 PrimaryButton(
                   text: 'Log in',
                   isLoading: _isLoading,
                   onPressed: _handleLogin,
                 ),
-                
                 const SizedBox(height: AppSpacing.xl),
                 Row(
                   children: [
                     const Expanded(child: Divider()),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text('OR', style: AppTypography.textTheme.bodyMedium),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child:
+                          Text('OR', style: AppTypography.textTheme.bodyMedium),
                     ),
                     const Expanded(child: Divider()),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                
                 SecondaryButton(
                   text: 'Continue with Google',
                   icon: LucideIcons.chrome,
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logging in with Google...')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Google login is not available yet.'),
+                      backgroundColor: AppColors.warning,
+                    ));
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -139,10 +171,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   text: 'Continue with Apple',
                   icon: LucideIcons.apple,
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logging in with Apple...')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Apple login is not available yet.'),
+                      backgroundColor: AppColors.warning,
+                    ));
                   },
                 ),
-                
                 const SizedBox(height: AppSpacing.xxl),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

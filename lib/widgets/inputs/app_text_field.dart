@@ -12,6 +12,7 @@ class AppTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
+  final String? errorText;
 
   const AppTextField({
     super.key,
@@ -23,6 +24,7 @@ class AppTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.validator,
+    this.errorText,
   });
 
   @override
@@ -47,6 +49,7 @@ class AppTextField extends StatelessWidget {
           ),
           decoration: InputDecoration(
             hintText: hint,
+            errorText: errorText,
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, color: AppColors.textTertiary)
                 : null,
@@ -60,6 +63,7 @@ class AppTextField extends StatelessWidget {
 
 class SearchBarWidget extends StatelessWidget {
   final String hint;
+  final TextEditingController? controller;
   final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
   final bool readOnly;
@@ -68,6 +72,7 @@ class SearchBarWidget extends StatelessWidget {
   const SearchBarWidget({
     super.key,
     this.hint = 'Search for a car...',
+    this.controller,
     this.onTap,
     this.onChanged,
     this.readOnly = false,
@@ -89,6 +94,7 @@ class SearchBarWidget extends StatelessWidget {
         ],
       ),
       child: TextField(
+        controller: controller,
         readOnly: readOnly,
         onTap: onTap,
         onChanged: onChanged,

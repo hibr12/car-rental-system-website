@@ -3,7 +3,7 @@ class AppConstants {
   static const String keyToken = 'auth_token';
   static const String keyThemeMode = 'theme_mode';
   static const String keyFirstLaunch = 'first_launch';
-  
+
   // Pagination
   static const int defaultPageSize = 20;
 

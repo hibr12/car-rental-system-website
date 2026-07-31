@@ -1,10 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/config/auth_state.dart';
 import '../../screens/splash/splash_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/auth/forgot_password_screen.dart';
 import '../../screens/main_shell.dart';
+import '../../screens/browse/browse_screen.dart';
 import '../../screens/vehicle/vehicle_details_screen.dart';
 import '../../screens/booking/booking_date_screen.dart';
 import '../../screens/booking/booking_summary_screen.dart';
@@ -39,16 +42,23 @@ import '../../screens/transactions/transaction_history_screen.dart';
 import '../../screens/transactions/invoice_detail_screen.dart';
 import '../../models/vehicle_model.dart' as vehicle_model;
 import '../../models/booking_model.dart' as booking_model;
+import '../../models/booking_draft.dart' as booking_draft;
 import '../../models/branch_model.dart' as branch_model;
 import '../../models/transaction_model.dart' as transaction_model;
 
 class AppRoutes {
+  AppRoutes._();
+
+  // ── Public routes (no auth required) ───────────────────────────────
   static const String splash = '/';
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
+
+  // ── Protected routes (require auth token) ──────────────────────────
   static const String home = '/home';
+  static const String browse = '/browse';
   static const String vehicleDetails = '/vehicle-details';
   static const String bookingDate = '/booking-date';
   static const String bookingSummary = '/booking-summary';
@@ -82,193 +92,237 @@ class AppRoutes {
   static const String vehicleInspection = '/inspection';
   static const String inspectionSummary = '/inspection-summary';
 
+  /// All paths that require an active session.
+  static const _protectedPaths = [
+    home,
+    browse,
+    favorites,
+    notifications,
+    reviews,
+    settings,
+    legal,
+    rewards,
+    support,
+    chat,
+    editProfile,
+    paymentMethods,
+    addPaymentMethod,
+    driverLicense,
+    changePassword,
+    savedAddresses,
+    rentalAgreement,
+    insurancePolicy,
+    cancellationPolicy,
+    driverRequirements,
+    reservationDetails,
+    cancelReservation,
+    writeReview,
+    extras,
+    branchList,
+    branchDetail,
+    transactionHistory,
+    invoiceDetail,
+    vehicleInspection,
+    inspectionSummary,
+    vehicleDetails,
+    bookingDate,
+    bookingSummary,
+    bookingSuccess,
+  ];
+
+  // ── Router ────────────────────────────────────────────────────────
+
   static final GoRouter router = GoRouter(
     initialLocation: splash,
+    redirect: (context, state) {
+      final isLoggedIn = AuthState.isAuthenticated;
+      final path = state.matchedLocation;
+
+      // Splash always passes through — it decides its own navigation.
+      if (path == splash) return null;
+
+      // Public auth pages should redirect to home if already logged in.
+      if (isLoggedIn &&
+          (path == login || path == register || path == onboarding)) {
+        return home;
+      }
+
+      // Protected paths redirect to login if not authenticated.
+      if (!isLoggedIn && _protectedPaths.contains(path)) {
+        return login;
+      }
+
+      return null;
+    },
     routes: [
+      GoRoute(path: splash, builder: (_, __) => const SplashScreen()),
+      GoRoute(path: onboarding, builder: (_, __) => const OnboardingScreen()),
+      GoRoute(path: login, builder: (_, __) => const LoginScreen()),
+      GoRoute(path: register, builder: (_, __) => const RegisterScreen()),
       GoRoute(
-        path: splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
+          path: forgotPassword,
+          builder: (_, __) => const ForgotPasswordScreen()),
+      GoRoute(path: home, builder: (_, __) => const MainShell()),
       GoRoute(
-        path: onboarding,
-        builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: register,
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: forgotPassword,
-        builder: (context, state) => const ForgotPasswordScreen(),
-      ),
-      GoRoute(
-        path: home,
-        builder: (context, state) => const MainShell(),
-      ),
-      GoRoute(
-        path: '/vehicle-details',
+        path: browse,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
+          // Optional initial category slug passed from the home chips.
+          final slug = state.extra is String ? state.extra as String : null;
+          return BrowseScreen(initialCategorySlug: slug);
+        },
+      ),
+      GoRoute(
+        path: vehicleDetails,
+        builder: (context, state) {
+          final vehicle = _extra<vehicle_model.Vehicle>(context, state);
           return VehicleDetailsScreen(vehicle: vehicle);
         },
       ),
       GoRoute(
         path: bookingDate,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
+          final vehicle = _extra<vehicle_model.Vehicle>(context, state);
           return BookingDateScreen(vehicle: vehicle);
         },
       ),
       GoRoute(
         path: bookingSummary,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
-          return BookingSummaryScreen(vehicle: vehicle);
+          // Accepts a BookingDraft (preferred) or a bare Vehicle (fallback).
+          final extra = state.extra;
+          if (extra is booking_draft.BookingDraft) {
+            return BookingSummaryScreen(draft: extra);
+          }
+          if (extra is vehicle_model.Vehicle) {
+            return BookingSummaryScreen(
+              draft: booking_draft.BookingDraft(
+                vehicle: extra,
+                pickupDate: DateTime.now().add(const Duration(days: 1)),
+                returnDate: DateTime.now().add(const Duration(days: 3)),
+                pickupTime: const TimeOfDay(hour: 10, minute: 0),
+                returnTime: const TimeOfDay(hour: 10, minute: 0),
+                pickupLocation: extra.location,
+                returnLocation: extra.location,
+              ),
+            );
+          }
+          // Wrong/missing extra — pop back instead of crashing.
+          return _fallbackPop(
+              context,
+              const Scaffold(
+                  body: Center(child: Text('Invalid booking data'))));
         },
       ),
       GoRoute(
         path: bookingSuccess,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
-          return BookingSuccessScreen(vehicle: vehicle);
+          // Prefer a real Booking (carries the booking_reference).
+          final extra = state.extra;
+          if (extra is booking_model.Booking) {
+            return BookingSuccessScreen(booking: extra);
+          }
+          if (extra is vehicle_model.Vehicle) {
+            return BookingSuccessScreen(vehicle: extra);
+          }
+          return _fallbackPop(
+            context,
+            const Scaffold(
+                body: Center(child: Text('Booking data unavailable'))),
+          );
         },
       ),
+      GoRoute(path: favorites, builder: (_, __) => const FavoritesScreen()),
       GoRoute(
-        path: favorites,
-        builder: (context, state) => const FavoritesScreen(),
-      ),
-      GoRoute(
-        path: notifications,
-        builder: (context, state) => const NotificationsScreen(),
-      ),
+          path: notifications, builder: (_, __) => const NotificationsScreen()),
       GoRoute(
         path: reviews,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
+          final vehicle = _extra<vehicle_model.Vehicle>(context, state);
           return ReviewsScreen(vehicle: vehicle);
         },
       ),
-      GoRoute(
-        path: settings,
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: legal,
-        builder: (context, state) => const LegalScreen(),
-      ),
-      GoRoute(
-        path: rewards,
-        builder: (context, state) => const RewardsScreen(),
-      ),
-      GoRoute(
-        path: support,
-        builder: (context, state) => const SupportScreen(),
-      ),
-      GoRoute(
-        path: chat,
-        builder: (context, state) => const ChatScreen(),
-      ),
+      GoRoute(path: settings, builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: legal, builder: (_, __) => const LegalScreen()),
+      GoRoute(path: rewards, builder: (_, __) => const RewardsScreen()),
+      GoRoute(path: support, builder: (_, __) => const SupportScreen()),
+      GoRoute(path: chat, builder: (_, __) => const ChatScreen()),
       GoRoute(
         path: reservationDetails,
         builder: (context, state) {
-          final booking = state.extra as booking_model.Booking;
+          final booking = _extra<booking_model.Booking>(context, state);
           return ReservationDetailsScreen(booking: booking);
         },
       ),
       GoRoute(
         path: cancelReservation,
         builder: (context, state) {
-          final booking = state.extra as booking_model.Booking;
+          final booking = _extra<booking_model.Booking>(context, state);
           return CancelReservationScreen(booking: booking);
-        },
-      ),
-      GoRoute(
-        path: bookingSuccess,
-        builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
-          return BookingSuccessScreen(vehicle: vehicle);
         },
       ),
       GoRoute(
         path: writeReview,
         builder: (context, state) {
-          final booking = state.extra as booking_model.Booking;
+          final booking = _extra<booking_model.Booking>(context, state);
           return WriteReviewScreen(booking: booking);
         },
       ),
       GoRoute(
         path: extras,
         builder: (context, state) {
-          final vehicle = state.extra as vehicle_model.Vehicle;
+          final extra = state.extra;
+          if (extra is booking_draft.BookingDraft) {
+            return ExtrasScreen(vehicle: extra.vehicle, draft: extra);
+          }
+          final vehicle = _extra<vehicle_model.Vehicle>(context, state);
           return ExtrasScreen(vehicle: vehicle);
         },
       ),
-      GoRoute(
-        path: branchList,
-        builder: (context, state) => const BranchListScreen(),
-      ),
+      GoRoute(path: branchList, builder: (_, __) => const BranchListScreen()),
       GoRoute(
         path: branchDetail,
         builder: (context, state) {
-          final branch = state.extra as branch_model.Branch;
+          final branch = _extra<branch_model.Branch>(context, state);
           return BranchDetailScreen(branch: branch);
         },
       ),
       GoRoute(
-        path: transactionHistory,
-        builder: (context, state) => const TransactionHistoryScreen(),
-      ),
+          path: transactionHistory,
+          builder: (_, __) => const TransactionHistoryScreen()),
       GoRoute(
         path: invoiceDetail,
         builder: (context, state) {
-          final transaction = state.extra as transaction_model.Transaction;
-          return InvoiceDetailScreen(transaction: transaction);
+          final txn = _extra<transaction_model.Transaction>(context, state);
+          return InvoiceDetailScreen(transaction: txn);
         },
       ),
+      GoRoute(path: editProfile, builder: (_, __) => const EditProfileScreen()),
       GoRoute(
-        path: editProfile,
-        builder: (context, state) => const EditProfileScreen(),
-      ),
+          path: paymentMethods,
+          builder: (_, __) => const PaymentMethodsScreen()),
       GoRoute(
-        path: paymentMethods,
-        builder: (context, state) => const PaymentMethodsScreen(),
-      ),
+          path: addPaymentMethod,
+          builder: (_, __) => const AddPaymentMethodScreen()),
       GoRoute(
-        path: addPaymentMethod,
-        builder: (context, state) => const AddPaymentMethodScreen(),
-      ),
+          path: driverLicense, builder: (_, __) => const DriverLicenseScreen()),
       GoRoute(
-        path: driverLicense,
-        builder: (context, state) => const DriverLicenseScreen(),
-      ),
+          path: changePassword,
+          builder: (_, __) => const ChangePasswordScreen()),
       GoRoute(
-        path: changePassword,
-        builder: (context, state) => const ChangePasswordScreen(),
-      ),
+          path: savedAddresses,
+          builder: (_, __) => const SavedAddressesScreen()),
       GoRoute(
-        path: savedAddresses,
-        builder: (context, state) => const SavedAddressesScreen(),
-      ),
+          path: rentalAgreement,
+          builder: (_, __) => const RentalAgreementScreen()),
       GoRoute(
-        path: rentalAgreement,
-        builder: (context, state) => const RentalAgreementScreen(),
-      ),
+          path: insurancePolicy,
+          builder: (_, __) => const InsurancePolicyScreen()),
       GoRoute(
-        path: insurancePolicy,
-        builder: (context, state) => const InsurancePolicyScreen(),
-      ),
+          path: cancellationPolicy,
+          builder: (_, __) => const CancellationPolicyScreen()),
       GoRoute(
-        path: cancellationPolicy,
-        builder: (context, state) => const CancellationPolicyScreen(),
-      ),
-      GoRoute(
-        path: driverRequirements,
-        builder: (context, state) => const DriverRequirementsScreen(),
-      ),
+          path: driverRequirements,
+          builder: (_, __) => const DriverRequirementsScreen()),
       GoRoute(
         path: vehicleInspection,
         builder: (context, state) {
@@ -285,4 +339,32 @@ class AppRoutes {
       ),
     ],
   );
+}
+
+/// Safely extracts a typed extra from route state.
+///
+/// If the extra is missing or the wrong type, pops the route (which
+/// falls back to the previous screen) instead of throwing a [TypeError]
+/// that would crash the app.
+T _extra<T>(BuildContext context, GoRouterState state) {
+  final extra = state.extra;
+  if (extra is T) return extra;
+  // Fallback: pop back so the user never sees a red error screen.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) Navigator.of(context).pop();
+  });
+  // This line is technically unreachable for correct navigation,
+  // but Dart's type system needs a return. Returning a dummy via
+  // a late error is safer than throwing here.
+  throw StateError('Route extra was missing or wrong type (expected $T).');
+}
+
+/// Returns [screen] but schedules a [Navigator.maybePop] for the next frame
+/// so the user is sent back when a route was opened with a missing/invalid
+/// extra, instead of seeing a red error screen.
+Widget _fallbackPop(BuildContext context, Widget screen) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) Navigator.of(context).maybePop();
+  });
+  return screen;
 }

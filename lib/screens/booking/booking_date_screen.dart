@@ -4,6 +4,7 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../models/booking_draft.dart';
 import '../../models/vehicle_model.dart';
 import '../../widgets/buttons/app_buttons.dart';
 import 'components/booking_date_components.dart';
@@ -83,7 +84,11 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
     }
   }
 
-  bool get _canProceed => _startDate != null && _endDate != null && _startTime != null && _endTime != null;
+  bool get _canProceed =>
+      _startDate != null &&
+      _endDate != null &&
+      _startTime != null &&
+      _endTime != null;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +108,8 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
                   children: [
                     VehicleSummaryCard(vehicle: widget.vehicle),
                     const SizedBox(height: AppSpacing.xxl),
-                    Text('Trip Dates', style: AppTypography.textTheme.headlineMedium),
+                    Text('Trip Dates',
+                        style: AppTypography.textTheme.headlineMedium),
                     const SizedBox(height: AppSpacing.md),
                     DateSelectorCard(
                       startDate: _startDate,
@@ -111,7 +117,8 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
                       onTap: _selectDateRange,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    Text('Pickup & Return Time', style: AppTypography.textTheme.headlineMedium),
+                    Text('Pickup & Return Time',
+                        style: AppTypography.textTheme.headlineMedium),
                     const SizedBox(height: AppSpacing.md),
                     Row(
                       children: [
@@ -160,9 +167,20 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
       ),
       child: PrimaryButton(
         text: 'Continue to Checkout',
-        onPressed: _canProceed ? () {
-          context.push(AppRoutes.bookingSummary, extra: widget.vehicle);
-        } : null,
+        onPressed: _canProceed
+            ? () {
+                final draft = BookingDraft(
+                  vehicle: widget.vehicle,
+                  pickupDate: _startDate!,
+                  returnDate: _endDate!,
+                  pickupTime: _startTime!,
+                  returnTime: _endTime!,
+                  pickupLocation: widget.vehicle.location,
+                  returnLocation: widget.vehicle.location,
+                );
+                context.push(AppRoutes.bookingSummary, extra: draft);
+              }
+            : null,
       ),
     );
   }

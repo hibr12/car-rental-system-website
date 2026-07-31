@@ -45,11 +45,13 @@ class FilterChoiceChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-          border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+          border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border),
         ),
         child: Text(
           label,
@@ -120,14 +122,17 @@ class FilterRangeSlider extends StatelessWidget {
           max: max,
           activeColor: AppColors.primary,
           inactiveColor: AppColors.border,
-          labels: RangeLabels('$prefix${values.start.toInt()}', '$prefix${values.end.toInt()}'),
+          labels: RangeLabels(
+              '$prefix${values.start.toInt()}', '$prefix${values.end.toInt()}'),
           onChanged: onChanged,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('$prefix${values.start.toInt()}', style: AppTypography.textTheme.bodyMedium),
-            Text('$prefix${values.end.toInt()}', style: AppTypography.textTheme.bodyMedium),
+            Text('$prefix${values.start.toInt()}',
+                style: AppTypography.textTheme.bodyMedium),
+            Text('$prefix${values.end.toInt()}',
+                style: AppTypography.textTheme.bodyMedium),
           ],
         ),
       ],

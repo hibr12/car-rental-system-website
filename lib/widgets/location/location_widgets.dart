@@ -39,26 +39,32 @@ class LocationSelectorWidget extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
-              child: const Icon(LucideIcons.mapPin, color: AppColors.primary, size: 20),
+              child: const Icon(LucideIcons.mapPin,
+                  color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTypography.textTheme.bodySmall?.copyWith(color: AppColors.textTertiary)),
+                  Text(title,
+                      style: AppTypography.textTheme.bodySmall
+                          ?.copyWith(color: AppColors.textTertiary)),
                   const SizedBox(height: AppSpacing.xs),
                   if (isLoading)
                     const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.primary),
                     )
                   else
                     Text(
                       location ?? 'Select Location',
                       style: AppTypography.textTheme.titleMedium?.copyWith(
-                        color: location == null ? AppColors.textTertiary : AppColors.textPrimary,
+                        color: location == null
+                            ? AppColors.textTertiary
+                            : AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -103,7 +109,8 @@ class LocationPermissionPlaceholder extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'We need your location to show nearby branches and available cars.',
-            style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -148,7 +155,8 @@ class MapPreviewPlaceholder extends StatelessWidget {
                 interval: 20,
                 divisions: 1,
                 subdivisions: 1,
-                child: SizedBox(width: double.infinity, height: double.infinity),
+                child:
+                    SizedBox(width: double.infinity, height: double.infinity),
               ),
             ),
             Column(
@@ -156,7 +164,8 @@ class MapPreviewPlaceholder extends StatelessWidget {
               children: [
                 Icon(LucideIcons.map, size: 32, color: AppColors.primary),
                 SizedBox(height: AppSpacing.sm),
-                Text('Tap to view map', style: TextStyle(color: AppColors.textPrimary)),
+                Text('Tap to view map',
+                    style: TextStyle(color: AppColors.textPrimary)),
               ],
             ),
           ],

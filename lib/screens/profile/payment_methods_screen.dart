@@ -5,7 +5,6 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
-import '../../mock_data/mock_data.dart';
 import '../../models/payment_method_model.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
@@ -21,7 +20,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   @override
   void initState() {
     super.initState();
-    _methods = List.from(mockPaymentMethods);
+    _methods = [];
   }
 
   IconData _getCardIcon(PaymentMethodType type) {
@@ -44,18 +43,23 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove Payment Method'),
-        content: Text('Remove ${_methods[index].displayName} from your saved methods?'),
+        content: Text(
+            'Remove ${_methods[index].displayName} from your saved methods?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               setState(() => _methods.removeAt(index));
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payment method removed'), backgroundColor: AppColors.success),
+                const SnackBar(
+                    content: Text('Payment method removed'),
+                    backgroundColor: AppColors.success),
               );
             },
-            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Remove', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -79,18 +83,22 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(LucideIcons.creditCard, size: 64, color: AppColors.textTertiary),
+                  const Icon(LucideIcons.creditCard,
+                      size: 64, color: AppColors.textTertiary),
                   const SizedBox(height: AppSpacing.md),
-                  Text('No payment methods', style: AppTypography.textTheme.titleLarge),
+                  Text('No payment methods',
+                      style: AppTypography.textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.sm),
-                  Text('Add a card to get started', style: AppTypography.textTheme.bodyMedium),
+                  Text('Add a card to get started',
+                      style: AppTypography.textTheme.bodyMedium),
                 ],
               ),
             )
           : ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.pagePadding),
               itemCount: _methods.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
                 final method = _methods[index];
                 return Container(
@@ -99,7 +107,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     border: Border.all(
-                      color: method.isDefault ? AppColors.primary : AppColors.border,
+                      color: method.isDefault
+                          ? AppColors.primary
+                          : AppColors.border,
                       width: method.isDefault ? 1.5 : 1.0,
                     ),
                   ),
@@ -109,35 +119,43 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         padding: const EdgeInsets.all(AppSpacing.sm),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
                         ),
-                        child: Icon(_getCardIcon(method.type), color: AppColors.primary),
+                        child: Icon(_getCardIcon(method.type),
+                            color: AppColors.primary),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(method.displayName, style: AppTypography.textTheme.titleMedium),
+                            Text(method.displayName,
+                                style: AppTypography.textTheme.titleMedium),
                             if (method.expiryDate != null)
-                              Text('Expires ${method.expiryDate}', style: AppTypography.textTheme.bodySmall),
+                              Text('Expires ${method.expiryDate}',
+                                  style: AppTypography.textTheme.bodySmall),
                             if (method.isDefault)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: AppColors.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: Text('Default', style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.primary)),
+                                  child: Text('Default',
+                                      style: AppTypography.textTheme.labelSmall
+                                          ?.copyWith(color: AppColors.primary)),
                                 ),
                               ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(LucideIcons.trash2, size: 20, color: AppColors.error),
+                        icon: const Icon(LucideIcons.trash2,
+                            size: 20, color: AppColors.error),
                         onPressed: () => _deleteMethod(index),
                       ),
                     ],

@@ -14,7 +14,8 @@ class AppStrings {
   static const String errorGeneric = 'Something went wrong. Please try again.';
   static const String errorNetwork = 'Please check your internet connection.';
   static const String errorTimeout = 'Request timed out.';
-  static const String errorUnauthorized = 'Session expired. Please log in again.';
+  static const String errorUnauthorized =
+      'Session expired. Please log in again.';
 
   // Auth
   static const String loginTitle = 'Welcome Back';
@@ -26,11 +27,11 @@ class AppStrings {
   static const String homeFeaturedCars = 'Featured Cars';
   static const String homePopularRentals = 'Popular Rentals';
   static const String homeSeeAll = 'See All';
-  
+
   // Booking
   static const String bookingSummary = 'Booking Summary';
   static const String bookingSuccess = 'Booking Successful!';
-  
+
   // Profile
   static const String profileSettings = 'Settings';
   static const String profileLogout = 'Log Out';

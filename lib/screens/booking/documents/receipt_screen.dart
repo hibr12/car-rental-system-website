@@ -33,19 +33,24 @@ class ReceiptScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Icon(LucideIcons.checkCircle2, size: 64, color: AppColors.success),
+              const Icon(LucideIcons.checkCircle2,
+                  size: 64, color: AppColors.success),
               const SizedBox(height: AppSpacing.md),
-              Text('Payment Successful', style: AppTypography.textTheme.headlineMedium),
+              Text('Payment Successful',
+                  style: AppTypography.textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Transaction #${transaction.id}',
-                style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.textSecondary),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
                 child: Divider(),
               ),
-              _buildRow('Amount Paid', '\$${transaction.amount.toStringAsFixed(2)}', isBold: true),
+              _buildRow(
+                  'Amount Paid', '\$${transaction.amount.toStringAsFixed(2)}',
+                  isBold: true),
               const SizedBox(height: AppSpacing.md),
               _buildRow('Date', transaction.date.toString().substring(0, 16)),
               const SizedBox(height: AppSpacing.md),
@@ -65,7 +70,9 @@ class ReceiptScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+        Text(label,
+            style: AppTypography.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary)),
         Text(
           value,
           style: isBold

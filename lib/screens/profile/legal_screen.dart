@@ -48,10 +48,12 @@ class LegalScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
             child: Text(
               'Privacy Policy\n\nBy using DriveEase, you consent to our data collection practices as detailed in our full Privacy Policy document available on our website. We collect necessary information to facilitate rentals and verify identity.',
-              style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -64,7 +66,8 @@ class LegalScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding, vertical: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePadding, vertical: AppSpacing.sm),
           child: Text(title, style: AppTypography.textTheme.headlineMedium),
         ),
         Container(
@@ -80,11 +83,15 @@ class LegalScreen extends StatelessWidget {
                   ),
                   child: Icon(item.icon, size: 20, color: AppColors.primary),
                 ),
-                title: Text(item.title, style: AppTypography.textTheme.titleMedium),
-                subtitle: Text(item.subtitle, style: AppTypography.textTheme.bodyMedium),
-                trailing: const Icon(LucideIcons.chevronRight, size: 20, color: AppColors.textTertiary),
+                title: Text(item.title,
+                    style: AppTypography.textTheme.titleMedium),
+                subtitle: Text(item.subtitle,
+                    style: AppTypography.textTheme.bodyMedium),
+                trailing: const Icon(LucideIcons.chevronRight,
+                    size: 20, color: AppColors.textTertiary),
                 onTap: item.onTap,
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pagePadding, vertical: 8),
               );
             }).toList(),
           ),
@@ -100,5 +107,9 @@ class _MenuItem {
   final String subtitle;
   final VoidCallback onTap;
 
-  _MenuItem({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  _MenuItem(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.onTap});
 }

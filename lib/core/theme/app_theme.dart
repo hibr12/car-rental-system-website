@@ -22,7 +22,7 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.background,
       textTheme: AppTypography.textTheme,
-      
+
       // AppBar Theme
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surface,
@@ -109,7 +109,8 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.borderFocused, width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.borderFocused, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -122,7 +123,7 @@ class AppTheme {
           color: AppColors.textSecondary,
         ),
       ),
-      
+
       // Bottom Navigation Bar Theme
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
@@ -131,7 +132,7 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      
+
       // Divider Theme
       dividerTheme: const DividerThemeData(
         color: AppColors.divider,

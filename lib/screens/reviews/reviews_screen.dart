@@ -5,82 +5,104 @@ import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../models/vehicle_model.dart';
 import '../../models/review_model.dart';
-import '../../mock_data/mock_data.dart';
-import '../../widgets/buttons/app_buttons.dart';
 import '../../widgets/states/empty_state_widget.dart';
+import '../../widgets/states/error_state_widget.dart';
+import '../../widgets/buttons/app_buttons.dart';
 
-class ReviewsScreen extends StatelessWidget {
+import '../../data/repositories/review_repository.dart';
+
+class ReviewsScreen extends StatefulWidget {
   final Vehicle vehicle;
 
   const ReviewsScreen({super.key, required this.vehicle});
 
   @override
-  Widget build(BuildContext context) {
-    // Generate mock reviews for this vehicle based on mockCurrentUser and some dummies
-    final reviews = [
-      Review(
-        id: 'r1',
-        vehicleId: vehicle.id,
-        userName: mockCurrentUser.fullName,
-        userProfileImageUrl: mockCurrentUser.profileImageUrl,
-        rating: 5.0,
-        comment: 'Absolutely fantastic car! Very clean and runs perfectly. The owner was very responsive and easy to coordinate with. Highly recommend!',
-        date: DateTime.now().subtract(const Duration(days: 5)),
-      ),
-      Review(
-        id: 'r2',
-        vehicleId: vehicle.id,
-        userName: 'Alex Johnson',
-        userProfileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
-        rating: 4.5,
-        comment: 'Great experience overall. The car was exactly as described. Only minor issue was finding the pickup location, but the host helped me right away.',
-        date: DateTime.now().subtract(const Duration(days: 12)),
-      ),
-      Review(
-        id: 'r3',
-        vehicleId: vehicle.id,
-        userName: 'Sarah Connor',
-        userProfileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-        rating: 5.0,
-        comment: 'Beautiful vehicle. Drives like a dream. Will definitely rent again when I am in town.',
-        date: DateTime.now().subtract(const Duration(days: 20)),
-      ),
-    ];
+  State<ReviewsScreen> createState() => _ReviewsScreenState();
+}
 
+class _ReviewsScreenState extends State<ReviewsScreen> {
+  List<Review> _reviews = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReviews();
+  }
+
+  Future<void> _fetchReviews() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final res =
+        await ReviewRepository.instance.getVehicleReviews(widget.vehicle.id);
+    if (mounted) {
+      setState(() {
+        if (res.success && res.data != null) {
+          _reviews = res.data!.data;
+          _errorMessage = null;
+        } else {
+          _reviews = [];
+          _errorMessage =
+              res.error?.friendlyMessage ?? 'Failed to load reviews';
+        }
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Reviews'),
       ),
-      body: reviews.isEmpty
-          ? EmptyStateWidget(
-              icon: LucideIcons.messageSquare,
-              title: 'No Reviews Yet',
-              message: 'Be the first to review this ${vehicle.brand} ${vehicle.model}!',
-            )
-          : Column(
-              children: [
-                _buildReviewSummary(reviews),
-                const Divider(),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(AppSpacing.pagePadding),
-                    itemCount: reviews.length,
-                    separatorBuilder: (context, index) => const Divider(height: AppSpacing.xxl),
-                    itemBuilder: (context, index) {
-                      return _buildReviewItem(reviews[index]);
-                    },
-                  ),
-                ),
-                _buildBottomBar(context),
-              ],
-            ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? ErrorStateWidget(
+                  message: _errorMessage!,
+                  onRetry: _fetchReviews,
+                )
+              : _reviews.isEmpty
+                  ? EmptyStateWidget(
+                      icon: LucideIcons.messageSquare,
+                      title: 'No Reviews Yet',
+                      message:
+                          'Be the first to review this ${widget.vehicle.brand} ${widget.vehicle.model}!',
+                    )
+                  : Column(
+                      children: [
+                        _buildReviewSummary(_reviews),
+                        const Divider(),
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: _fetchReviews,
+                            child: ListView.separated(
+                              padding:
+                                  const EdgeInsets.all(AppSpacing.pagePadding),
+                              itemCount: _reviews.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: AppSpacing.xxl),
+                              itemBuilder: (context, index) {
+                                return _buildReviewItem(_reviews[index]);
+                              },
+                            ),
+                          ),
+                        ),
+                        _buildBottomBar(context),
+                      ],
+                    ),
     );
   }
 
   Widget _buildReviewSummary(List<Review> reviews) {
-    final avgRating = reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
-    
+    final avgRating =
+        reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
+
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Row(
@@ -96,14 +118,17 @@ class ReviewsScreen extends StatelessWidget {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < avgRating.floor() ? LucideIcons.star : LucideIcons.starHalf,
+                    index < avgRating.floor()
+                        ? LucideIcons.star
+                        : LucideIcons.starHalf,
                     color: AppColors.warning,
                     size: 20,
                   );
                 }),
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text('Based on ${reviews.length} reviews', style: AppTypography.textTheme.bodyMedium),
+              Text('Based on ${reviews.length} reviews',
+                  style: AppTypography.textTheme.bodyMedium),
             ],
           ),
         ],
@@ -118,15 +143,21 @@ class ReviewsScreen extends StatelessWidget {
         Row(
           children: [
             CircleAvatar(
-              backgroundImage: NetworkImage(review.userProfileImageUrl),
+              backgroundImage: review.userProfileImageUrl.isNotEmpty
+                  ? NetworkImage(review.userProfileImageUrl)
+                  : null,
               radius: 20,
+              child: review.userProfileImageUrl.isEmpty
+                  ? const Icon(Icons.person, size: 20)
+                  : null,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(review.userName, style: AppTypography.textTheme.titleMedium),
+                  Text(review.userName,
+                      style: AppTypography.textTheme.titleMedium),
                   Text(
                     '${review.date.day}/${review.date.month}/${review.date.year}',
                     style: AppTypography.textTheme.bodySmall,
@@ -142,11 +173,13 @@ class ReviewsScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.star, size: 14, color: AppColors.warning),
+                  const Icon(LucideIcons.star,
+                      size: 14, color: AppColors.warning),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
                     review.rating.toStringAsFixed(1),
-                    style: AppTypography.textTheme.labelMedium?.copyWith(color: AppColors.warning),
+                    style: AppTypography.textTheme.labelMedium
+                        ?.copyWith(color: AppColors.warning),
                   ),
                 ],
               ),
@@ -175,9 +208,14 @@ class ReviewsScreen extends StatelessWidget {
       child: PrimaryButton(
         text: 'Write a Review',
         onPressed: () {
-          // In a real app, open a modal to write a review
+          // Can't navigate to WriteReviewScreen without a Booking object
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Review editor coming soon')),
+            const SnackBar(
+              content: Text(
+                'To write a review, go to My Bookings → completed trip → Write a Review.',
+              ),
+              duration: Duration(seconds: 4),
+            ),
           );
         },
         icon: LucideIcons.edit3,

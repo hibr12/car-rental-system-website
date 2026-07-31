@@ -1,9 +1,20 @@
+/// Central application configuration.
+///
+/// All API URLs and tunable network constants live here. Endpoint *paths*
+/// themselves are declared in [ApiEndpoints] (see `api_endpoints.dart`).
 class AppConfig {
-  /// Feature flag to toggle between mock data and real API calls.
-  /// When true, repositories will return data from mock_data/ instead of making HTTP requests.
-  /// Set to false when connecting to the Laravel backend.
-  static const bool useMockData = true;
+  AppConfig._();
 
-  // Add other global configurations here if needed (e.g., API base URL)
-  static const String apiBaseUrl = 'https://api.driveease.com/v1';
+  /// Base URL for the Laravel API.
+  ///
+  /// The backend is served on the development machine's LAN Wi-Fi IP.
+  /// Physical devices and emulators on the same Wi-Fi network can reach it.
+  /// Note: cleartext HTTP is enabled in `AndroidManifest.xml`.
+  static const String apiBaseUrl = 'http://192.168.1.2:8000/api';
+
+  /// Connection / read timeout for every HTTP request.
+  static const Duration timeoutDuration = Duration(seconds: 20);
+
+  /// Default page size used for paginated vehicle listings.
+  static const int defaultPageSize = 12;
 }

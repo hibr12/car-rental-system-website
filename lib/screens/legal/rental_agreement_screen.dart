@@ -27,7 +27,8 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Terms and Conditions', style: AppTypography.textTheme.headlineMedium),
+                  Text('Terms and Conditions',
+                      style: AppTypography.textTheme.headlineMedium),
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     '1. The Renter agrees to return the vehicle in the same condition as received.\n\n'
@@ -40,7 +41,8 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
                     style: AppTypography.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
-                  Text('Digital Signature', style: AppTypography.textTheme.titleMedium),
+                  Text('Digital Signature',
+                      style: AppTypography.textTheme.titleMedium),
                   const SizedBox(height: AppSpacing.sm),
                   _buildSignaturePad(),
                 ],
@@ -64,12 +66,20 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: _hasSigned ? AppColors.primary : AppColors.border, width: 2),
+          border: Border.all(
+              color: _hasSigned ? AppColors.primary : AppColors.border,
+              width: 2),
         ),
         child: Center(
           child: _hasSigned
-              ? const Text('Signed', style: TextStyle(fontFamily: 'cursive', fontSize: 32, color: AppColors.textPrimary))
-              : Text('Draw your signature here', style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textTertiary)),
+              ? const Text('Signed',
+                  style: TextStyle(
+                      fontFamily: 'cursive',
+                      fontSize: 32,
+                      color: AppColors.textPrimary))
+              : Text('Draw your signature here',
+                  style: AppTypography.textTheme.bodyMedium
+                      ?.copyWith(color: AppColors.textTertiary)),
         ),
       ),
     );

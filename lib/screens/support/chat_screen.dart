@@ -16,7 +16,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, dynamic>> _messages = [
     {
       'isMe': false,
-      'text': 'Hi there! I am your DriveEase support assistant. How can I help you today?',
+      'text':
+          'Hi there! I am your DriveEase support assistant. How can I help you today?',
       'time': '10:00 AM',
     },
   ];
@@ -40,7 +41,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _messages.add({
             'isMe': false,
-            'text': 'I understand. An agent will be with you shortly to assist with that.',
+            'text':
+                'I understand. An agent will be with you shortly to assist with that.',
             'time': 'Now',
           });
         });
@@ -57,7 +59,8 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Support Chat'),
-            Text('Typically responds in 5 mins', style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
+            Text('Typically responds in 5 mins',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
           ],
         ),
       ),
@@ -83,12 +86,14 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble({required String text, required bool isMe, required String time}) {
+  Widget _buildMessageBubble(
+      {required String text, required bool isMe, required String time}) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
           color: isMe ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.only(
@@ -150,7 +155,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   decoration: const InputDecoration(
                     hintText: 'Type a message...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: 12),
                   ),
                   onSubmitted: (_) => _sendMessage(),
                 ),
@@ -160,7 +166,8 @@ class _ChatScreenState extends State<ChatScreen> {
             CircleAvatar(
               backgroundColor: AppColors.primary,
               child: IconButton(
-                icon: const Icon(LucideIcons.send, color: AppColors.surface, size: 20),
+                icon: const Icon(LucideIcons.send,
+                    color: AppColors.surface, size: 20),
                 onPressed: _sendMessage,
               ),
             ),

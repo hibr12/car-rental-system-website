@@ -34,7 +34,8 @@ class InspectionSummaryScreen extends StatelessWidget {
                       color: AppColors.success.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(LucideIcons.checkCircle, size: 64, color: AppColors.success),
+                    child: const Icon(LucideIcons.checkCircle,
+                        size: 64, color: AppColors.success),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   Text(
@@ -43,9 +44,9 @@ class InspectionSummaryScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    isReturn 
-                      ? 'The vehicle has been successfully returned. We will process any final charges or refunds shortly.'
-                      : 'The inspection is complete. Here are the keys, enjoy your trip!',
+                    isReturn
+                        ? 'The vehicle has been successfully returned. We will process any final charges or refunds shortly.'
+                        : 'The inspection is complete. Here are the keys, enjoy your trip!',
                     style: AppTypography.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),

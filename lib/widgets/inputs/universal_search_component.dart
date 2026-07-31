@@ -44,7 +44,8 @@ class UniversalSearchComponent extends StatelessWidget {
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: AppSpacing.md),
               ),
             ),
           ),
@@ -56,7 +57,8 @@ class UniversalSearchComponent extends StatelessWidget {
                 decoration: const BoxDecoration(
                   border: Border(left: BorderSide(color: AppColors.border)),
                 ),
-                child: const Icon(LucideIcons.slidersHorizontal, color: AppColors.primary),
+                child: const Icon(LucideIcons.slidersHorizontal,
+                    color: AppColors.primary),
               ),
             ),
         ],

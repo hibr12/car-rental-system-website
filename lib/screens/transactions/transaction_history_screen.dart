@@ -6,46 +6,93 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
-import '../../mock_data/mock_data.dart';
 import '../../models/transaction_model.dart';
+import '../../widgets/states/empty_state_widget.dart';
+import '../../widgets/states/error_state_widget.dart';
 
-class TransactionHistoryScreen extends StatelessWidget {
+import '../../data/repositories/transaction_repository.dart';
+
+class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
+
+  @override
+  State<TransactionHistoryScreen> createState() =>
+      _TransactionHistoryScreenState();
+}
+
+class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
+  List<Transaction> _transactions = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTransactions();
+  }
+
+  Future<void> _fetchTransactions() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final res = await TransactionRepository.instance.getUserTransactions();
+    if (mounted) {
+      setState(() {
+        if (res.success) {
+          _transactions = res.data ?? [];
+          _errorMessage = null;
+        } else {
+          _transactions = [];
+          _errorMessage =
+              res.error?.friendlyMessage ?? 'Failed to load transactions';
+        }
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Transaction History')),
-      body: mockTransactions.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(LucideIcons.receipt, size: 64, color: AppColors.textTertiary),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('No transactions yet', style: AppTypography.textTheme.titleLarge),
-                ],
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.pagePadding),
-              itemCount: mockTransactions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) {
-                final txn = mockTransactions[index];
-                return _buildTransactionCard(context, txn);
-              },
-            ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? ErrorStateWidget(
+                  message: _errorMessage!,
+                  onRetry: _fetchTransactions,
+                )
+              : _transactions.isEmpty
+                  ? EmptyStateWidget(
+                      icon: LucideIcons.receipt,
+                      title: 'No Transactions Yet',
+                      message:
+                          'Your payment history will appear here once you make a booking.',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchTransactions,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+                        itemCount: _transactions.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: AppSpacing.md),
+                        itemBuilder: (context, index) {
+                          final txn = _transactions[index];
+                          return _buildTransactionCard(context, txn);
+                        },
+                      ),
+                    ),
     );
   }
 
   Widget _buildTransactionCard(BuildContext context, Transaction txn) {
     final dateFormat = DateFormat('MMM d, yyyy');
-    
+
     IconData icon;
     Color iconColor;
-    
+
     switch (txn.type) {
       case TransactionType.payment:
         icon = LucideIcons.arrowUpRight;
@@ -90,9 +137,15 @@ class TransactionHistoryScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(txn.vehicleName, style: AppTypography.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(txn.vehicleName,
+                      style: AppTypography.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                   const SizedBox(height: AppSpacing.xs),
-                  Text('${txn.typeLabel} • ${dateFormat.format(txn.date)}', style: AppTypography.textTheme.bodySmall),
+                  Text(
+                    '${txn.typeLabel} • ${dateFormat.format(txn.date)}',
+                    style: AppTypography.textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),
@@ -102,14 +155,18 @@ class TransactionHistoryScreen extends StatelessWidget {
                 Text(
                   '${txn.type == TransactionType.refund ? '+' : '-'}\$${txn.amount.toStringAsFixed(2)}',
                   style: AppTypography.textTheme.titleMedium?.copyWith(
-                    color: txn.type == TransactionType.refund ? AppColors.success : AppColors.textPrimary,
+                    color: txn.type == TransactionType.refund
+                        ? AppColors.success
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   txn.statusLabel,
                   style: AppTypography.textTheme.labelSmall?.copyWith(
-                    color: txn.status == TransactionStatus.successful ? AppColors.success : AppColors.textSecondary,
+                    color: txn.status == TransactionStatus.successful
+                        ? AppColors.success
+                        : AppColors.textSecondary,
                   ),
                 ),
               ],

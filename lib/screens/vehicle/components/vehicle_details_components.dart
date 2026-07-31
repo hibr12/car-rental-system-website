@@ -33,10 +33,12 @@ class VehicleTitleSection extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.star, color: AppColors.warning, size: 20),
+                    const Icon(LucideIcons.star,
+                        color: AppColors.warning, size: 20),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
                       vehicle.rating.toString(),
@@ -47,7 +49,8 @@ class VehicleTitleSection extends StatelessWidget {
                       style: AppTypography.textTheme.bodyMedium,
                     ),
                     const SizedBox(width: AppSpacing.xs),
-                    const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.textTertiary),
+                    const Icon(LucideIcons.chevronRight,
+                        size: 16, color: AppColors.textTertiary),
                   ],
                 ),
               ),
@@ -57,7 +60,8 @@ class VehicleTitleSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
-            const Icon(LucideIcons.mapPin, size: 16, color: AppColors.textTertiary),
+            const Icon(LucideIcons.mapPin,
+                size: 16, color: AppColors.textTertiary),
             const SizedBox(width: AppSpacing.xs),
             Text(
               vehicle.location,
@@ -195,13 +199,15 @@ class VehicleBottomBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total Price', style: AppTypography.textTheme.bodyMedium),
+                  Text('Total Price',
+                      style: AppTypography.textTheme.bodyMedium),
                   RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
                           text: '\$${vehicle.pricePerDay.toInt()}',
-                          style: AppTypography.textTheme.displaySmall?.copyWith(color: AppColors.primary),
+                          style: AppTypography.textTheme.displaySmall
+                              ?.copyWith(color: AppColors.primary),
                         ),
                         TextSpan(
                           text: ' /day',

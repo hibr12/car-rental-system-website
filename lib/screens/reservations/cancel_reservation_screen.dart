@@ -5,18 +5,21 @@ import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../widgets/buttons/app_buttons.dart';
 import '../../models/booking_model.dart';
+import '../../data/repositories/booking_repository.dart';
 
 class CancelReservationScreen extends StatefulWidget {
   final Booking booking;
   const CancelReservationScreen({super.key, required this.booking});
 
   @override
-  State<CancelReservationScreen> createState() => _CancelReservationScreenState();
+  State<CancelReservationScreen> createState() =>
+      _CancelReservationScreenState();
 }
 
 class _CancelReservationScreenState extends State<CancelReservationScreen> {
   String? _selectedReason;
   final TextEditingController _detailsController = TextEditingController();
+  bool _isCancelling = false;
 
   final List<String> _reasons = [
     'My plans changed',
@@ -35,7 +38,8 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
   void _confirmCancel() {
     if (_selectedReason == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a reason for cancellation.')),
+        const SnackBar(
+            content: Text('Please select a reason for cancellation.')),
       );
       return;
     }
@@ -44,22 +48,54 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Reservation?'),
-        content: const Text('Are you sure you want to cancel this reservation? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to cancel this reservation? This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Keep Reservation')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Keep Reservation')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Go back to reservation details
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reservation cancelled successfully'), backgroundColor: AppColors.success),
-              );
+              _performCancel();
             },
-            child: const Text('Yes, Cancel', style: TextStyle(color: AppColors.error)),
+            child: const Text('Yes, Cancel',
+                style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _performCancel() async {
+    setState(() => _isCancelling = true);
+
+    final res =
+        await BookingRepository.instance.cancelBooking(widget.booking.id);
+
+    if (!mounted) return;
+    setState(() => _isCancelling = false);
+
+    if (res.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reservation cancelled successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      // Pop with true so the reservations list refreshes
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            res.error?.friendlyMessage ??
+                'Failed to cancel reservation. Please try again.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -72,7 +108,8 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Why are you cancelling?', style: AppTypography.textTheme.headlineMedium),
+            Text('Why are you cancelling?',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
             ..._reasons.map((reason) {
               return RadioListTile<String>(
@@ -84,7 +121,6 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
                 onChanged: (val) => setState(() => _selectedReason = val),
               );
             }),
-            
             if (_selectedReason == 'Other') ...[
               const SizedBox(height: AppSpacing.md),
               TextField(
@@ -101,7 +137,6 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
                 ),
               ),
             ],
-            
             const SizedBox(height: AppSpacing.xxxl),
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -117,17 +152,18 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
                   Expanded(
                     child: Text(
                       'Since you are cancelling more than 24 hours before your trip, you will receive a full refund.',
-                      style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.textTheme.bodyMedium
+                          ?.copyWith(color: AppColors.textPrimary),
                     ),
                   ),
                 ],
               ),
             ),
-            
             const SizedBox(height: AppSpacing.xxxl),
             PrimaryButton(
               text: 'Review Cancellation',
-              onPressed: _confirmCancel,
+              isLoading: _isCancelling,
+              onPressed: _isCancelling ? null : _confirmCancel,
             ),
           ],
         ),

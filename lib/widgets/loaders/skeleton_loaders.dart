@@ -32,7 +32,8 @@ class VehicleSkeleton extends StatelessWidget {
               height: 160,
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+                borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppSpacing.radiusLg)),
               ),
             ),
           ),
@@ -49,7 +50,10 @@ class VehicleSkeleton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSkeletonBox(width: 80, height: 24),
-                    _buildSkeletonBox(width: 80, height: 32, borderRadius: AppSpacing.radiusSm),
+                    _buildSkeletonBox(
+                        width: 80,
+                        height: 32,
+                        borderRadius: AppSpacing.radiusSm),
                   ],
                 ),
               ],
@@ -78,7 +82,8 @@ class VehicleSkeleton extends StatelessWidget {
               width: 140,
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.horizontal(left: Radius.circular(AppSpacing.radiusLg)),
+                borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(AppSpacing.radiusLg)),
               ),
             ),
           ),
@@ -107,7 +112,10 @@ class VehicleSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeletonBox({required double width, required double height, double borderRadius = 4.0}) {
+  Widget _buildSkeletonBox(
+      {required double width,
+      required double height,
+      double borderRadius = 4.0}) {
     return Shimmer.fromColors(
       baseColor: AppColors.textTertiary,
       highlightColor: AppColors.textTertiary,

@@ -21,19 +21,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<_OnboardingPage> _pages = [
     _OnboardingPage(
       title: 'Find Your Perfect Ride',
-      description: 'Explore the world\'s largest car sharing marketplace and find the perfect vehicle for your next adventure.',
+      description:
+          'Explore the world\'s largest car sharing marketplace and find the perfect vehicle for your next adventure.',
       icon: Icons.search_rounded,
       color: const Color(0xFFE0E7FF),
     ),
     _OnboardingPage(
       title: 'Book with Confidence',
-      description: 'Enjoy free cancellation up to 24 hours before your trip and comprehensive insurance on every booking.',
+      description:
+          'Enjoy free cancellation up to 24 hours before your trip and comprehensive insurance on every booking.',
       icon: Icons.shield_rounded,
       color: const Color(0xFFDCFCE7),
     ),
     _OnboardingPage(
       title: 'Hit the Road',
-      description: 'Unlock your car with your phone, grab the keys, and you\'re ready to go. No lines, no paperwork.',
+      description:
+          'Unlock your car with your phone, grab the keys, and you\'re ready to go. No lines, no paperwork.',
       icon: Icons.directions_car_filled_rounded,
       color: const Color(0xFFFEF3C7),
     ),
@@ -120,7 +123,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   PrimaryButton(
-                    text: _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
+                    text: _currentPage == _pages.length - 1
+                        ? 'Get Started'
+                        : 'Next',
                     onPressed: () {
                       if (_currentPage == _pages.length - 1) {
                         context.go(AppRoutes.login);

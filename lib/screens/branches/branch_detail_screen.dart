@@ -37,48 +37,56 @@ class BranchDetailScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(branch.name, style: AppTypography.textTheme.displaySmall),
+                        child: Text(branch.name,
+                            style: AppTypography.textTheme.displaySmall),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: branch.isOpen ? AppColors.success.withOpacity(0.1) : AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          color: branch.isOpen
+                              ? AppColors.success.withOpacity(0.1)
+                              : AppColors.error.withOpacity(0.1),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
                           branch.isOpen ? 'Open Now' : 'Closed',
                           style: AppTypography.textTheme.titleSmall?.copyWith(
-                            color: branch.isOpen ? AppColors.success : AppColors.error,
+                            color: branch.isOpen
+                                ? AppColors.success
+                                : AppColors.error,
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  
                   _buildInfoRow(LucideIcons.mapPin, branch.address),
                   _buildInfoRow(LucideIcons.phone, branch.phone),
                   _buildInfoRow(LucideIcons.mail, branch.email),
-                  
                   const SizedBox(height: AppSpacing.xxxl),
-                  Text('Opening Hours', style: AppTypography.textTheme.headlineMedium),
+                  Text('Opening Hours',
+                      style: AppTypography.textTheme.headlineMedium),
                   const SizedBox(height: AppSpacing.md),
-                  Text(branch.openingHours, style: AppTypography.textTheme.bodyLarge),
-                  
+                  Text(branch.openingHours,
+                      style: AppTypography.textTheme.bodyLarge),
                   const SizedBox(height: AppSpacing.xxxl),
-                  Text('Available Services', style: AppTypography.textTheme.headlineMedium),
+                  Text('Available Services',
+                      style: AppTypography.textTheme.headlineMedium),
                   const SizedBox(height: AppSpacing.md),
                   _buildServiceChip('24/7 Drop-off'),
                   _buildServiceChip('Luxury Vehicles Available'),
                   _buildServiceChip('Free Wi-Fi'),
-                  
                   const SizedBox(height: AppSpacing.xxxl),
                   PrimaryButton(
                     text: 'Get Directions',
                     icon: LucideIcons.navigation,
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Opening maps...')),
+                        const SnackBar(
+                            content:
+                                Text('Opening maps... (Not implemented yet)')),
                       );
                     },
                   ),
@@ -86,7 +94,8 @@ class BranchDetailScreen extends StatelessWidget {
                   SecondaryButton(
                     text: 'View Cars at this Branch',
                     onPressed: () {
-                      Navigator.pop(context); // Go back and maybe select this branch in search
+                      Navigator.pop(
+                          context); // Go back and maybe select this branch in search
                     },
                   ),
                 ],
@@ -123,7 +132,8 @@ class BranchDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          const Icon(LucideIcons.checkCircle, color: AppColors.success, size: 20),
+          const Icon(LucideIcons.checkCircle,
+              color: AppColors.success, size: 20),
           const SizedBox(width: AppSpacing.sm),
           Text(text, style: AppTypography.textTheme.bodyLarge),
         ],

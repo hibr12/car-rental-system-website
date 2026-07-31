@@ -2,39 +2,95 @@ import 'package:flutter/material.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/spacing/app_spacing.dart';
-import '../../mock_data/mock_data.dart';
-
 import '../../widgets/inputs/app_text_field.dart';
 import '../../widgets/cards/vehicle_card.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routes/app_routes.dart';
 import '../../models/vehicle_model.dart';
-import '../../widgets/bottom_sheets/filter_bottom_sheet.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../../data/repositories/user_repository.dart';
+import '../../data/repositories/vehicle_repository.dart';
+import '../../models/category_model.dart';
+import '../../models/user_model.dart';
+import '../../data/models/api_models.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isLoading = true;
+  User? _currentUser;
+  List<Vehicle> _featuredCars = [];
+  List<Vehicle> _popularCars = [];
+  List<VehicleCategory> _apiCategories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+
+    final results = await Future.wait([
+      UserRepository.instance.getCurrentUser(),
+      VehicleRepository.instance.getFeaturedVehicles(),
+      VehicleRepository.instance.getPopularVehicles(),
+      VehicleRepository.instance.getCategories(),
+    ]);
+
+    final userRes = results[0] as ApiResponse<User>;
+    final featuredRes = results[1] as ApiResponse<List<Vehicle>>;
+    final popularRes = results[2] as ApiResponse<List<Vehicle>>;
+    final categoriesRes = results[3] as ApiResponse<List<VehicleCategory>>;
+
+    if (mounted) {
+      setState(() {
+        _currentUser = userRes.data;
+        _featuredCars = featuredRes.data ?? [];
+        _popularCars = popularRes.data ?? [];
+        _apiCategories = categoriesRes.data ?? [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final featuredCars = mockVehicles.where((v) => v.isFeatured).take(5).toList();
-    final popularCars = mockVehicles.where((v) => v.rating >= 4.8).take(10).toList();
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              _buildSearchBar(context),
-              _buildCategories(),
-              _buildSectionTitle('Featured Cars', onSeeAll: () {}),
-              _buildHorizontalCarList(featuredCars),
-              _buildSectionTitle('Popular Rentals', onSeeAll: () {}),
-              _buildHorizontalCarList(popularCars),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _fetchData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                _buildSearchBar(context),
+                _buildCategories(),
+                _buildSectionTitle('Featured Cars',
+                    onSeeAll: () => context.push(AppRoutes.browse)),
+                _buildHorizontalCarList(_featuredCars),
+                _buildSectionTitle('Popular Rentals',
+                    onSeeAll: () => context.push(AppRoutes.browse)),
+                _buildHorizontalCarList(_popularCars),
+                const SizedBox(height: AppSpacing.xxl),
+              ],
+            ),
           ),
         ),
       ),
@@ -42,6 +98,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
+    final firstName = _currentUser?.fullName.split(' ').first ?? 'Guest';
+    final profileImage = _currentUser?.profileImageUrl;
+
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Row(
@@ -55,14 +114,19 @@ class HomeScreen extends StatelessWidget {
                 style: AppTypography.textTheme.bodyLarge,
               ),
               Text(
-                mockCurrentUser.fullName.split(' ').first,
+                firstName,
                 style: AppTypography.textTheme.displaySmall,
               ),
             ],
           ),
           CircleAvatar(
             radius: 24,
-            backgroundImage: NetworkImage(mockCurrentUser.profileImageUrl),
+            backgroundImage: profileImage != null && profileImage.isNotEmpty
+                ? NetworkImage(profileImage)
+                : null,
+            child: profileImage == null || profileImage.isEmpty
+                ? const Icon(Icons.person)
+                : null,
           ),
         ],
       ),
@@ -73,26 +137,35 @@ class HomeScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       child: SearchBarWidget(
-        onFilterTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const FilterBottomSheet(),
-          );
-        },
+        readOnly: true,
+        onTap: () => context.push(AppRoutes.browse),
+        onFilterTap: () => context.push(AppRoutes.browse),
       ),
     );
   }
 
   Widget _buildCategories() {
-    final categories = [
-      {'name': 'All', 'icon': Icons.apps},
-      {'name': 'Luxury', 'icon': Icons.diamond},
-      {'name': 'SUV', 'icon': Icons.airport_shuttle},
-      {'name': 'Electric', 'icon': Icons.electric_car},
-      {'name': 'Economy', 'icon': Icons.directions_car},
-    ];
+    // Real categories from the API, with sensible fallback icons per slug.
+    // Falls back to a short hardcoded list when categories haven't loaded.
+    final List<({String name, String slug, IconData icon})> categories;
+    if (_apiCategories.isEmpty) {
+      categories = [
+        (name: 'All', slug: '', icon: Icons.apps),
+        (name: 'Luxury', slug: 'luxury', icon: Icons.diamond),
+        (name: 'SUV', slug: 'suv', icon: Icons.airport_shuttle),
+        (name: 'Electric', slug: 'electric', icon: Icons.electric_car),
+        (name: 'Economy', slug: 'economy', icon: Icons.directions_car),
+      ];
+    } else {
+      categories = [
+        (name: 'All', slug: '', icon: Icons.apps),
+        ..._apiCategories.map((c) => (
+              name: c.name,
+              slug: c.slug,
+              icon: _iconFor(c.slug),
+            )),
+      ];
+    }
 
     return Container(
       height: 100,
@@ -104,37 +177,71 @@ class HomeScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final cat = categories[index];
           final isSelected = index == 0;
-          
-          return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: Column(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    border: isSelected ? null : Border.all(color: AppColors.border),
+
+          return GestureDetector(
+            onTap: () => context.push(
+              AppRoutes.browse,
+              extra: cat.slug.isNotEmpty ? cat.slug : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      border: isSelected
+                          ? null
+                          : Border.all(color: AppColors.border),
+                    ),
+                    child: Icon(
+                      cat.icon,
+                      color: isSelected
+                          ? AppColors.surface
+                          : AppColors.textPrimary,
+                    ),
                   ),
-                  child: Icon(
-                    cat['icon'] as IconData,
-                    color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    cat.name,
+                    style: AppTypography.textTheme.labelLarge?.copyWith(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  cat['name'] as String,
-                  style: AppTypography.textTheme.labelLarge?.copyWith(
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
       ),
     );
+  }
+
+  /// Pick a representative icon for a category slug.
+  IconData _iconFor(String slug) {
+    switch (slug.toLowerCase()) {
+      case 'luxury':
+        return Icons.diamond;
+      case 'suv':
+        return Icons.airport_shuttle;
+      case 'electric':
+        return Icons.electric_car;
+      case 'economy':
+        return Icons.directions_car;
+      case 'sedan':
+        return Icons.directions_car;
+      case 'sports':
+        return Icons.local_taxi;
+      case 'van':
+        return Icons.airport_shuttle;
+      default:
+        return Icons.directions_car;
+    }
   }
 
   Widget _buildSectionTitle(String title, {required VoidCallback onSeeAll}) {
@@ -160,6 +267,12 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHorizontalCarList(List<Vehicle> cars) {
+    if (cars.isEmpty) {
+      return const SizedBox(
+        height: 260,
+        child: Center(child: Text('No vehicles found')),
+      );
+    }
     return SizedBox(
       height: 260,
       child: ListView.builder(

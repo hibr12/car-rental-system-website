@@ -1,38 +1,36 @@
-import '../../core/config/app_config.dart';
-import '../../models/transaction_model.dart';
-import '../../mock_data/mock_data.dart';
+import '../../core/config/api_endpoints.dart';
 import '../models/api_models.dart';
+import '../api/api_client.dart';
+import '../../models/transaction_model.dart';
 
 class TransactionRepository {
-  static final TransactionRepository instance = TransactionRepository._internal();
+  static final TransactionRepository instance =
+      TransactionRepository._internal();
   TransactionRepository._internal();
 
-  Future<void> _simulateNetworkDelay() async {
-    await Future.delayed(const Duration(milliseconds: 800));
-  }
+  final ApiClient _api = ApiClient.instance;
 
   Future<ApiResponse<List<Transaction>>> getUserTransactions() async {
-    if (AppConfig.useMockData) {
-      await _simulateNetworkDelay();
-      return ApiResponse.success(mockTransactions);
-    } else {
-      // TODO: Implement Laravel API call
-      throw UnimplementedError('API call not implemented');
+    try {
+      final json = await _api.get(ApiEndpoints.payments);
+      final dataList = json['data'] as List? ?? [];
+      final transactions = dataList
+          .map((item) => Transaction.fromJson(item as Map<String, dynamic>))
+          .toList();
+      return ApiResponse.success(transactions);
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.error);
     }
   }
 
   Future<ApiResponse<Transaction>> getTransactionById(String id) async {
-    if (AppConfig.useMockData) {
-      await _simulateNetworkDelay();
-      try {
-        final transaction = mockTransactions.firstWhere((t) => t.id == id);
-        return ApiResponse.success(transaction);
-      } catch (e) {
-        return ApiResponse.error(ApiError(statusCode: 404, message: 'Transaction not found'));
-      }
-    } else {
-      // TODO: Implement Laravel API call
-      throw UnimplementedError('API call not implemented');
+    try {
+      final json = await _api.get(ApiEndpoints.payment(int.tryParse(id) ?? 0));
+      final transactionData = json['data'] as Map<String, dynamic>;
+      final transaction = Transaction.fromJson(transactionData);
+      return ApiResponse.success(transaction);
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.error);
     }
   }
 }

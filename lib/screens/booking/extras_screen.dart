@@ -5,12 +5,14 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../models/booking_draft.dart';
 import '../../models/vehicle_model.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
 class ExtrasScreen extends StatefulWidget {
   final Vehicle vehicle;
-  const ExtrasScreen({super.key, required this.vehicle});
+  final BookingDraft? draft;
+  const ExtrasScreen({super.key, required this.vehicle, this.draft});
 
   @override
   State<ExtrasScreen> createState() => _ExtrasScreenState();
@@ -38,14 +40,14 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Enhance Your Trip', style: AppTypography.textTheme.displaySmall),
+                    Text('Enhance Your Trip',
+                        style: AppTypography.textTheme.displaySmall),
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       'Add optional extras to make your journey more comfortable.',
                       style: AppTypography.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    
                     _buildExtraItem(
                       id: 'child_seat',
                       icon: LucideIcons.baby,
@@ -64,7 +66,8 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
                       id: 'prepaid_fuel',
                       icon: LucideIcons.fuel,
                       title: 'Prepaid Fuel',
-                      description: 'Return the car at any fuel level. Price based on current market rates.',
+                      description:
+                          'Return the car at any fuel level. Price based on current market rates.',
                       price: 65.0,
                     ),
                     _buildExtraItem(
@@ -100,7 +103,9 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
       decoration: BoxDecoration(
         color: isSelected ? AppColors.primaryLight : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: isSelected ? AppColors.primary : AppColors.border, width: isSelected ? 1.5 : 1.0),
+        border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1.0),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +116,8 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
               color: isSelected ? AppColors.primary : AppColors.background,
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
-            child: Icon(icon, color: isSelected ? AppColors.surface : AppColors.primary),
+            child: Icon(icon,
+                color: isSelected ? AppColors.surface : AppColors.primary),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -122,7 +128,9 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 Text(description, style: AppTypography.textTheme.bodyMedium),
                 const SizedBox(height: AppSpacing.sm),
-                Text('+\$${price.toStringAsFixed(2)} / trip', style: AppTypography.textTheme.titleSmall?.copyWith(color: AppColors.textSecondary)),
+                Text('+\$${price.toStringAsFixed(2)} / trip',
+                    style: AppTypography.textTheme.titleSmall
+                        ?.copyWith(color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -166,8 +174,10 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Extras Total', style: AppTypography.textTheme.titleMedium),
-                Text('\$${totalExtras.toStringAsFixed(2)}', style: AppTypography.textTheme.headlineMedium),
+                Text('Extras Total',
+                    style: AppTypography.textTheme.titleMedium),
+                Text('\$${totalExtras.toStringAsFixed(2)}',
+                    style: AppTypography.textTheme.headlineMedium),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -175,7 +185,9 @@ class _ExtrasScreenState extends State<ExtrasScreen> {
           PrimaryButton(
             text: 'Continue to Checkout',
             onPressed: () {
-              context.push(AppRoutes.bookingSummary, extra: widget.vehicle);
+              // Forward the draft (if present) to the summary screen.
+              context.push(AppRoutes.bookingSummary,
+                  extra: widget.draft ?? widget.vehicle);
             },
           ),
         ],

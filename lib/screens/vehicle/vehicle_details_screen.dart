@@ -7,6 +7,7 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../models/vehicle_model.dart';
 import '../../widgets/buttons/app_buttons.dart';
+import '../../data/local/local_storage_service.dart';
 import 'components/vehicle_details_components.dart';
 
 class VehicleDetailsScreen extends StatefulWidget {
@@ -21,6 +22,41 @@ class VehicleDetailsScreen extends StatefulWidget {
 class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
   final PageController _pageController = PageController();
   bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavoriteStatus();
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final isFav =
+        await LocalStorageService.instance.isFavorite(widget.vehicle.id);
+    if (mounted) {
+      setState(() => _isFavorite = isFav);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final currentStatus = _isFavorite;
+    setState(() => _isFavorite = !currentStatus);
+
+    if (currentStatus) {
+      await LocalStorageService.instance.removeFavorite(widget.vehicle.id);
+    } else {
+      await LocalStorageService.instance.addFavorite(widget.vehicle.id);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              !currentStatus ? 'Added to favorites' : 'Removed from favorites'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,15 +107,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
           child: AppIconButton(
             icon: _isFavorite ? LucideIcons.heart : LucideIcons.heart,
             iconColor: _isFavorite ? AppColors.error : AppColors.textPrimary,
-            onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
+            onPressed: _toggleFavorite,
           ),
         ),
       ],
@@ -95,6 +123,13 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                   child: CachedNetworkImage(
                     imageUrl: widget.vehicle.imageUrls[index],
                     fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: AppColors.textTertiary,
+                      child: const Center(
+                        child: Icon(LucideIcons.imageOff,
+                            size: 48, color: AppColors.surface),
+                      ),
+                    ),
                   ),
                 );
               },

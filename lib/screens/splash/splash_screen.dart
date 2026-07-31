@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/config/auth_state.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,7 +13,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -35,9 +37,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        context.go(AppRoutes.onboarding);
+        // Auto-login: if a token was persisted, go straight to home.
+        // The router's redirect guard handles the case where the token
+        // has expired server-side (the first API call will 401 → clear
+        // token → router redirects to login).
+        final destination =
+            AuthState.isAuthenticated ? AppRoutes.home : AppRoutes.onboarding;
+        context.go(destination);
       }
     });
   }

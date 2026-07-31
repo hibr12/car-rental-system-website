@@ -1,6 +1,3 @@
-
-
-
 class AppSpacing {
   AppSpacing._();
 
@@ -18,7 +15,7 @@ class AppSpacing {
   static const double cardPadding = 16.0;
   static const double elementSpacing = 16.0;
   static const double sectionSpacing = 32.0;
-  
+
   // Border radius
   static const double radiusSm = 8.0;
   static const double radiusMd = 12.0;

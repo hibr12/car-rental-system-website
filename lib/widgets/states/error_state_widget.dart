@@ -13,7 +13,8 @@ class ErrorStateWidget extends StatelessWidget {
   const ErrorStateWidget({
     super.key,
     this.title = 'Oops! Something went wrong',
-    this.message = 'We encountered an error while processing your request. Please check your connection and try again.',
+    this.message =
+        'We encountered an error while processing your request. Please check your connection and try again.',
     required this.onRetry,
   });
 

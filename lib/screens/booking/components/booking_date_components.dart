@@ -36,9 +36,12 @@ class VehicleSummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(vehicle.fullName, style: AppTypography.textTheme.titleLarge),
+                Text(vehicle.fullName,
+                    style: AppTypography.textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.xs),
-                Text('\$${vehicle.pricePerDay.toInt()} / day', style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.primary)),
+                Text('\$${vehicle.pricePerDay.toInt()} / day',
+                    style: AppTypography.textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.primary)),
               ],
             ),
           ),
@@ -90,7 +93,8 @@ class DateSelectorCard extends StatelessWidget {
                   ),
                   if (startDate != null && endDate != null) ...[
                     const SizedBox(height: AppSpacing.xs),
-                    Text('${endDate!.difference(startDate!).inDays} days total', style: AppTypography.textTheme.bodySmall),
+                    Text('${endDate!.difference(startDate!).inDays} days total',
+                        style: AppTypography.textTheme.bodySmall),
                   ]
                 ],
               ),
@@ -130,13 +134,16 @@ class TimeSelectorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isStart ? 'Pickup Time' : 'Return Time', style: AppTypography.textTheme.bodySmall),
+            Text(isStart ? 'Pickup Time' : 'Return Time',
+                style: AppTypography.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.xs),
             Row(
               children: [
-                const Icon(LucideIcons.clock, size: 16, color: AppColors.textSecondary),
+                const Icon(LucideIcons.clock,
+                    size: 16, color: AppColors.textSecondary),
                 const SizedBox(width: AppSpacing.sm),
-                Text(time?.format(context) ?? '10:00 AM', style: AppTypography.textTheme.titleMedium),
+                Text(time?.format(context) ?? '10:00 AM',
+                    style: AppTypography.textTheme.titleMedium),
               ],
             ),
           ],
@@ -156,7 +163,8 @@ class LocationInfoCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Pickup & Return Location', style: AppTypography.textTheme.headlineMedium),
+        Text('Pickup & Return Location',
+            style: AppTypography.textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.md),
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -182,7 +190,8 @@ class LocationInfoCard extends StatelessWidget {
                   children: [
                     Text(location, style: AppTypography.textTheme.titleLarge),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Exact address provided after booking', style: AppTypography.textTheme.bodySmall),
+                    Text('Exact address provided after booking',
+                        style: AppTypography.textTheme.bodySmall),
                   ],
                 ),
               ),

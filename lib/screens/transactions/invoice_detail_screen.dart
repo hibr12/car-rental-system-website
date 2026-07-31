@@ -33,13 +33,16 @@ class InvoiceDetailScreen extends StatelessWidget {
                 color: AppColors.success.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(LucideIcons.checkCircle, size: 48, color: AppColors.success),
+              child: const Icon(LucideIcons.checkCircle,
+                  size: 48, color: AppColors.success),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('\$${transaction.amount.toStringAsFixed(2)}', style: AppTypography.textTheme.displayMedium),
+            Text('\$${transaction.amount.toStringAsFixed(2)}',
+                style: AppTypography.textTheme.displayMedium),
             const SizedBox(height: AppSpacing.xs),
-            Text(transaction.statusLabel, style: AppTypography.textTheme.titleMedium?.copyWith(color: AppColors.success)),
-            
+            Text(transaction.statusLabel,
+                style: AppTypography.textTheme.titleMedium
+                    ?.copyWith(color: AppColors.success)),
             const SizedBox(height: AppSpacing.xxxl),
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -64,14 +67,15 @@ class InvoiceDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
             const SizedBox(height: AppSpacing.xxxl),
             PrimaryButton(
               text: 'Download PDF Receipt',
               icon: LucideIcons.download,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Downloading receipt...')),
+                  const SnackBar(
+                      content:
+                          Text('Downloading receipt... (Not implemented yet)')),
                 );
               },
             ),
@@ -92,11 +96,13 @@ class InvoiceDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTypography.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+        Text(label,
+            style: AppTypography.textTheme.bodyLarge
+                ?.copyWith(color: AppColors.textSecondary)),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Text(
-            value, 
+            value,
             style: AppTypography.textTheme.titleMedium,
             textAlign: TextAlign.end,
           ),

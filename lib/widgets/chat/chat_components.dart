@@ -45,7 +45,8 @@ class ChatBubbleWidget extends StatelessWidget {
           children: [
             if (attachmentUrl != null)
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSpacing.radiusLg)),
                 child: AppNetworkImage(
                   imageUrl: attachmentUrl!,
                   width: double.infinity,
@@ -71,7 +72,9 @@ class ChatBubbleWidget extends StatelessWidget {
                         Text(
                           time!,
                           style: AppTypography.textTheme.labelSmall?.copyWith(
-                            color: isMe ? AppColors.textSecondary : AppColors.textTertiary,
+                            color: isMe
+                                ? AppColors.textSecondary
+                                : AppColors.textTertiary,
                             fontSize: 10,
                           ),
                         ),
@@ -93,7 +96,7 @@ class ChatBubbleWidget extends StatelessWidget {
   Widget _buildStatusIcon() {
     IconData icon;
     Color color = AppColors.textSecondary;
-    
+
     switch (status!) {
       case MessageStatus.sending:
         icon = LucideIcons.clock;
@@ -113,7 +116,7 @@ class ChatBubbleWidget extends StatelessWidget {
         color = AppColors.error;
         break;
     }
-    
+
     return Icon(icon, size: 12, color: color);
   }
 }
@@ -127,13 +130,16 @@ class TypingIndicatorWidget extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(color: AppColors.border),
         ),
-        child: const Text('Typing...', style: TextStyle(fontStyle: FontStyle.italic, color: AppColors.textTertiary)),
+        child: const Text('Typing...',
+            style: TextStyle(
+                fontStyle: FontStyle.italic, color: AppColors.textTertiary)),
       ),
     );
   }

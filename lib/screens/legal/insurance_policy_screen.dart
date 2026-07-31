@@ -23,7 +23,6 @@ class InsurancePolicyScreen extends StatelessWidget {
               style: AppTypography.textTheme.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.xl),
-            
             _buildPlanCard(
               title: 'Minimum Protection',
               price: 'Included',
@@ -57,9 +56,9 @@ class InsurancePolicyScreen extends StatelessWidget {
               ],
               isPopular: false,
             ),
-            
             const SizedBox(height: AppSpacing.xxxl),
-            Text('What is not covered?', style: AppTypography.textTheme.headlineMedium),
+            Text('What is not covered?',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
             Text(
               '• Damage caused by prohibited use of the vehicle (e.g., off-roading, racing)\n'
@@ -76,13 +75,19 @@ class InsurancePolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPlanCard({required String title, required String price, required List<String> features, required bool isPopular}) {
+  Widget _buildPlanCard(
+      {required String title,
+      required String price,
+      required List<String> features,
+      required bool isPopular}) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: isPopular ? AppColors.primaryLight : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: isPopular ? AppColors.primary : AppColors.border, width: isPopular ? 2 : 1),
+        border: Border.all(
+            color: isPopular ? AppColors.primary : AppColors.border,
+            width: isPopular ? 2 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +99,9 @@ class InsurancePolicyScreen extends StatelessWidget {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
               ),
-              child: Text('Most Popular', style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.surface)),
+              child: Text('Most Popular',
+                  style: AppTypography.textTheme.labelSmall
+                      ?.copyWith(color: AppColors.surface)),
             ),
             const SizedBox(height: AppSpacing.md),
           ],
@@ -102,20 +109,25 @@ class InsurancePolicyScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: AppTypography.textTheme.titleLarge),
-              Text(price, style: AppTypography.textTheme.titleMedium?.copyWith(color: AppColors.primary)),
+              Text(price,
+                  style: AppTypography.textTheme.titleMedium
+                      ?.copyWith(color: AppColors.primary)),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           ...features.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, size: 16, color: AppColors.success),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(child: Text(f, style: AppTypography.textTheme.bodyMedium)),
-              ],
-            ),
-          )),
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        size: 16, color: AppColors.success),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                        child:
+                            Text(f, style: AppTypography.textTheme.bodyMedium)),
+                  ],
+                ),
+              )),
         ],
       ),
     );

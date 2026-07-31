@@ -13,23 +13,26 @@ class VehicleInspectionScreen extends StatefulWidget {
   const VehicleInspectionScreen({super.key, this.isReturn = false});
 
   @override
-  State<VehicleInspectionScreen> createState() => _VehicleInspectionScreenState();
+  State<VehicleInspectionScreen> createState() =>
+      _VehicleInspectionScreenState();
 }
 
 class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final int _totalPages = 4;
-  
+
   double _fuelLevel = 1.0; // 100%
   String _mileage = '45,200';
   bool _hasDamage = false;
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
-      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      _pageController.nextPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
-      context.pushReplacement(AppRoutes.inspectionSummary, extra: widget.isReturn);
+      context.pushReplacement(AppRoutes.inspectionSummary,
+          extra: widget.isReturn);
     }
   }
 
@@ -38,7 +41,8 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(widget.isReturn ? 'Return Inspection' : 'Pickup Inspection'),
+        title:
+            Text(widget.isReturn ? 'Return Inspection' : 'Pickup Inspection'),
         leading: IconButton(
           icon: const Icon(LucideIcons.x),
           onPressed: () => _showCancelDialog(context),
@@ -103,13 +107,15 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
       ),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening camera...')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Opening camera... (Not implemented yet)')));
         },
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(LucideIcons.camera, size: 32, color: AppColors.textTertiary),
+            const Icon(LucideIcons.camera,
+                size: 32, color: AppColors.textTertiary),
             const SizedBox(height: AppSpacing.sm),
             Text(label, style: AppTypography.textTheme.bodyMedium),
           ],
@@ -142,7 +148,8 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
             ],
           ),
           const SizedBox(height: AppSpacing.xxxl),
-          Text('Odometer Reading (mi)', style: AppTypography.textTheme.titleMedium),
+          Text('Odometer Reading (mi)',
+              style: AppTypography.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
           TextField(
             controller: TextEditingController(text: _mileage),
@@ -153,7 +160,8 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
-              suffixIcon: const Icon(LucideIcons.gauge, color: AppColors.textTertiary),
+              suffixIcon:
+                  const Icon(LucideIcons.gauge, color: AppColors.textTertiary),
             ),
             keyboardType: TextInputType.number,
             onChanged: (val) => _mileage = val,
@@ -170,8 +178,10 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
       child: Column(
         children: [
           SwitchListTile(
-            title: Text('Report Damage', style: AppTypography.textTheme.titleMedium),
-            subtitle: Text('Scratches, dents, interior stains', style: AppTypography.textTheme.bodyMedium),
+            title: Text('Report Damage',
+                style: AppTypography.textTheme.titleMedium),
+            subtitle: Text('Scratches, dents, interior stains',
+                style: AppTypography.textTheme.bodyMedium),
             value: _hasDamage,
             onChanged: (val) => setState(() => _hasDamage = val),
             activeColor: AppColors.primary,
@@ -194,7 +204,8 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
             const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening camera...')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Opening camera... (Not implemented yet)')));
               },
               icon: const Icon(LucideIcons.camera),
               label: const Text('Add Damage Photos'),
@@ -220,13 +231,15 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
               border: Border.all(color: AppColors.border),
             ),
             child: const Center(
-              child: Text('Sign Here (Mock Canvas)', style: TextStyle(color: AppColors.textTertiary)),
+              child: Text('Sign Here (Mock Canvas)',
+                  style: TextStyle(color: AppColors.textTertiary)),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           TextButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signature cleared')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Signature cleared')));
             },
             child: const Text('Clear Signature'),
           ),
@@ -235,7 +248,10 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
     );
   }
 
-  Widget _buildStepContainer({required String title, required String subtitle, required Widget child}) {
+  Widget _buildStepContainer(
+      {required String title,
+      required String subtitle,
+      required Widget child}) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Column(
@@ -266,7 +282,9 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
                 child: SecondaryButton(
                   text: 'Back',
                   onPressed: () {
-                    _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut);
                   },
                 ),
               ),
@@ -275,7 +293,9 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
             Expanded(
               flex: 2,
               child: PrimaryButton(
-                text: _currentPage == _totalPages - 1 ? 'Complete Inspection' : 'Next Step',
+                text: _currentPage == _totalPages - 1
+                    ? 'Complete Inspection'
+                    : 'Next Step',
                 onPressed: _nextPage,
               ),
             ),
@@ -292,13 +312,15 @@ class _VehicleInspectionScreenState extends State<VehicleInspectionScreen> {
         title: const Text('Cancel Inspection?'),
         content: const Text('Your progress will be lost. Are you sure?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Resume')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Resume')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.pop();
             },
-            child: const Text('Cancel', style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Cancel', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

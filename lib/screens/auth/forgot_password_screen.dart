@@ -20,17 +20,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isSent = false;
 
   void _handleReset() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _isSent = true;
-          });
-        }
-      });
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:
+            Text('Password reset requires backend support (Not implemented).'),
+        backgroundColor: AppColors.warning,
+      ),
+    );
   }
 
   @override
@@ -68,8 +64,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             'Enter your email address and we will send you a link to reset your password.',
             style: AppTypography.textTheme.bodyLarge,
           ),
-          const SizedBox(height: AppSpacing.xxl),
-          
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.info, color: AppColors.warning),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Password reset is currently unavailable because the backend endpoint does not exist yet.',
+                    style: AppTypography.textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+          ),
           AppTextField(
             label: 'Email',
             hint: 'Enter your email',
@@ -80,7 +97,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               return null;
             },
           ),
-          
           const SizedBox(height: AppSpacing.xxl),
           PrimaryButton(
             text: 'Send Reset Link',

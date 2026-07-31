@@ -56,7 +56,8 @@ class VehicleCard extends StatelessWidget {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppSpacing.radiusLg)),
                   child: Hero(
                     tag: 'vehicle_image_${vehicle.id}',
                     child: isCompact
@@ -72,7 +73,8 @@ class VehicleCard extends StatelessWidget {
                               ),
                               errorWidget: (context, url, error) => Container(
                                 color: AppColors.textTertiary,
-                                child: const Icon(LucideIcons.imageOff, color: AppColors.textTertiary),
+                                child: const Icon(LucideIcons.imageOff,
+                                    color: AppColors.textTertiary),
                               ),
                             ),
                           )
@@ -84,12 +86,14 @@ class VehicleCard extends StatelessWidget {
                             placeholder: (context, url) => Shimmer.fromColors(
                               baseColor: AppColors.textTertiary,
                               highlightColor: AppColors.textTertiary,
-                              child: Container(color: AppColors.surface, height: 120),
+                              child: Container(
+                                  color: AppColors.surface, height: 120),
                             ),
                             errorWidget: (context, url, error) => Container(
                               height: 120,
                               color: AppColors.textTertiary,
-                              child: const Icon(LucideIcons.imageOff, color: AppColors.textTertiary),
+                              child: const Icon(LucideIcons.imageOff,
+                                  color: AppColors.textTertiary),
                             ),
                           ),
                   ),
@@ -103,7 +107,8 @@ class VehicleCard extends StatelessWidget {
                       color: AppColors.surface,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(LucideIcons.heart, size: 18, color: AppColors.textSecondary),
+                    child: const Icon(LucideIcons.heart,
+                        size: 18, color: AppColors.textSecondary),
                   ),
                 ),
                 if (vehicle.category == 'Electric')
@@ -111,27 +116,34 @@ class VehicleCard extends StatelessWidget {
                     top: AppSpacing.sm,
                     left: AppSpacing.sm,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusSm),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(LucideIcons.zap, size: 12, color: AppColors.surface),
+                          const Icon(LucideIcons.zap,
+                              size: 12, color: AppColors.surface),
                           const SizedBox(width: AppSpacing.xs),
-                          Text('EV', style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.surface, fontSize: 10)),
+                          Text('EV',
+                              style: AppTypography.textTheme.labelSmall
+                                  ?.copyWith(
+                                      color: AppColors.surface, fontSize: 10)),
                         ],
                       ),
                     ),
                   ),
               ],
             ),
-            
+
             // Details Section
             Padding(
-              padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
+              padding:
+                  EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -142,7 +154,9 @@ class VehicleCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           vehicle.fullName,
-                          style: isCompact ? AppTypography.textTheme.titleMedium : AppTypography.textTheme.titleLarge,
+                          style: isCompact
+                              ? AppTypography.textTheme.titleMedium
+                              : AppTypography.textTheme.titleLarge,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -151,11 +165,13 @@ class VehicleCard extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(LucideIcons.star, size: 14, color: AppColors.warning),
+                          const Icon(LucideIcons.star,
+                              size: 14, color: AppColors.warning),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
                             vehicle.rating.toString(),
-                            style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.textPrimary),
+                            style: AppTypography.textTheme.labelSmall
+                                ?.copyWith(color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -179,7 +195,11 @@ class VehicleCard extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: '\$${vehicle.pricePerDay.toInt()}',
-                                style: (isCompact ? AppTypography.textTheme.titleLarge : AppTypography.textTheme.headlineMedium)?.copyWith(color: AppColors.primary),
+                                style: (isCompact
+                                        ? AppTypography.textTheme.titleLarge
+                                        : AppTypography
+                                            .textTheme.headlineMedium)
+                                    ?.copyWith(color: AppColors.primary),
                               ),
                               TextSpan(
                                 text: ' /d',
@@ -197,11 +217,13 @@ class VehicleCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
                           'Book',
-                          style: AppTypography.textTheme.labelMedium?.copyWith(color: AppColors.primary),
+                          style: AppTypography.textTheme.labelMedium
+                              ?.copyWith(color: AppColors.primary),
                         ),
                       ),
                     ],
@@ -230,7 +252,8 @@ class VehicleCard extends StatelessWidget {
           children: [
             // Image
             ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(AppSpacing.radiusLg)),
+              borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(AppSpacing.radiusLg)),
               child: Hero(
                 tag: 'vehicle_image_${vehicle.id}',
                 child: CachedNetworkImage(
@@ -243,10 +266,16 @@ class VehicleCard extends StatelessWidget {
                     highlightColor: AppColors.textTertiary,
                     child: Container(color: AppColors.surface, width: 125),
                   ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 125,
+                    color: AppColors.textTertiary,
+                    child: const Icon(LucideIcons.imageOff,
+                        color: AppColors.surface),
+                  ),
                 ),
               ),
             ),
-            
+
             // Details
             Expanded(
               child: Padding(
@@ -268,7 +297,8 @@ class VehicleCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
-                        const Icon(LucideIcons.heart, size: 18, color: AppColors.textTertiary),
+                        const Icon(LucideIcons.heart,
+                            size: 18, color: AppColors.textTertiary),
                       ],
                     ),
                     Text(
@@ -287,7 +317,8 @@ class VehicleCard extends StatelessWidget {
                               children: [
                                 TextSpan(
                                   text: '\$${vehicle.pricePerDay.toInt()}',
-                                  style: AppTypography.textTheme.titleLarge?.copyWith(color: AppColors.primary),
+                                  style: AppTypography.textTheme.titleLarge
+                                      ?.copyWith(color: AppColors.primary),
                                 ),
                                 TextSpan(
                                   text: '/day',
@@ -300,11 +331,13 @@ class VehicleCard extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(LucideIcons.star, size: 14, color: AppColors.warning),
+                            const Icon(LucideIcons.star,
+                                size: 14, color: AppColors.warning),
                             const SizedBox(width: AppSpacing.xs),
                             Text(
                               vehicle.rating.toString(),
-                              style: AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.textPrimary),
+                              style: AppTypography.textTheme.labelSmall
+                                  ?.copyWith(color: AppColors.textPrimary),
                             ),
                           ],
                         ),

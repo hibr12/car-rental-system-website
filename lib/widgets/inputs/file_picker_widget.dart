@@ -41,7 +41,7 @@ class _FilePickerWidgetState extends State<FilePickerWidget> {
 
     // Simulate file picker delay
     await Future.delayed(const Duration(seconds: 1));
-    
+
     // Simulate upload delay
     await Future.delayed(const Duration(seconds: 1));
 
@@ -93,7 +93,8 @@ class _FilePickerWidgetState extends State<FilePickerWidget> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 widget.subtitle,
-                style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -127,11 +128,13 @@ class _FilePickerWidgetState extends State<FilePickerWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Uploaded successfully', style: AppTypography.textTheme.titleSmall),
+                Text('Uploaded successfully',
+                    style: AppTypography.textTheme.titleSmall),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   _selectedFilePath!.split('/').last,
-                  style: AppTypography.textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textTertiary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

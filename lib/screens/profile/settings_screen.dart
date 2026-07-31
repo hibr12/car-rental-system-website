@@ -37,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (val) => setState(() => _darkMode = val),
           ),
           const Divider(height: AppSpacing.xxl),
-          
           _buildSectionTitle('Notifications'),
           _buildSwitchTile(
             icon: LucideIcons.bell,
@@ -58,7 +57,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (val) => setState(() => _smsNotifications = val),
           ),
           const Divider(height: AppSpacing.xxl),
-          
           _buildSectionTitle('Language & Region'),
           _buildListTile(
             icon: LucideIcons.globe,
@@ -78,39 +76,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguagePicker() {
-    final languages = ['English (US)', 'English (UK)', 'Spanish', 'French', 'German'];
+    final languages = [
+      'English (US)',
+      'English (UK)',
+      'Spanish',
+      'French',
+      'German'
+    ];
     _showSelectionSheet('Select Language', languages, _selectedLanguage, (val) {
       setState(() => _selectedLanguage = val);
     });
   }
 
   void _showRegionPicker() {
-    final regions = ['United States', 'Canada', 'United Kingdom', 'Australia', 'Europe'];
+    final regions = [
+      'United States',
+      'Canada',
+      'United Kingdom',
+      'Australia',
+      'Europe'
+    ];
     _showSelectionSheet('Select Region', regions, _selectedRegion, (val) {
       setState(() => _selectedRegion = val);
     });
   }
 
-  void _showSelectionSheet(String title, List<String> options, String currentSelection, ValueChanged<String> onSelected) {
+  void _showSelectionSheet(String title, List<String> options,
+      String currentSelection, ValueChanged<String> onSelected) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           decoration: const BoxDecoration(
             color: AppColors.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppSpacing.radiusXl)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-                child: Text(title, style: AppTypography.textTheme.headlineMedium),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pagePadding),
+                child:
+                    Text(title, style: AppTypography.textTheme.headlineMedium),
               ),
               const SizedBox(height: AppSpacing.md),
               ...options.map((option) {
@@ -119,11 +134,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: Text(
                     option,
                     style: AppTypography.textTheme.titleMedium?.copyWith(
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textPrimary,
                     ),
                   ),
-                  trailing: isSelected ? const Icon(LucideIcons.check, color: AppColors.primary) : null,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                  trailing: isSelected
+                      ? const Icon(LucideIcons.check, color: AppColors.primary)
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.pagePadding),
                   onTap: () {
                     onSelected(option);
                     Navigator.pop(context);
@@ -140,7 +160,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pagePadding, vertical: AppSpacing.sm),
       child: Text(
         title,
         style: AppTypography.textTheme.headlineMedium,
@@ -162,7 +183,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         value: value,
         onChanged: onChanged,
         activeColor: AppColors.primary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       ),
     );
   }
@@ -179,9 +201,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         leading: Icon(icon, color: AppColors.primary),
         title: Text(title, style: AppTypography.textTheme.titleMedium),
         subtitle: Text(subtitle, style: AppTypography.textTheme.bodyMedium),
-        trailing: const Icon(LucideIcons.chevronRight, size: 20, color: AppColors.textTertiary),
+        trailing: const Icon(LucideIcons.chevronRight,
+            size: 20, color: AppColors.textTertiary),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       ),
     );
   }

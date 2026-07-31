@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
+import '../../core/typography/app_typography.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -30,12 +31,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _savePassword() {
-    if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated successfully'), backgroundColor: AppColors.success),
-      );
-      Navigator.pop(context);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+            'Changing password requires backend support (Not implemented).'),
+        backgroundColor: AppColors.warning,
+      ),
+    );
   }
 
   @override
@@ -49,30 +51,59 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           key: _formKey,
           child: Column(
             children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.info, color: AppColors.warning),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        'Password change is currently unavailable because the backend endpoint does not exist yet.',
+                        style: AppTypography.textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               _buildPasswordField(
                 label: 'Current Password',
                 controller: _currentController,
                 obscureText: _obscureCurrent,
-                onToggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                onToggleObscure: () =>
+                    setState(() => _obscureCurrent = !_obscureCurrent),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: AppSpacing.md),
               _buildPasswordField(
                 label: 'New Password',
                 controller: _newController,
                 obscureText: _obscureNew,
-                onToggleObscure: () => setState(() => _obscureNew = !_obscureNew),
-                validator: (val) => val != null && val.length < 8 ? 'Must be at least 8 characters' : null,
+                onToggleObscure: () =>
+                    setState(() => _obscureNew = !_obscureNew),
+                validator: (val) => val != null && val.length < 8
+                    ? 'Must be at least 8 characters'
+                    : null,
               ),
               const SizedBox(height: AppSpacing.md),
               _buildPasswordField(
                 label: 'Confirm New Password',
                 controller: _confirmController,
                 obscureText: _obscureConfirm,
-                onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                onToggleObscure: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Required';
-                  if (val != _newController.text) return 'Passwords do not match';
+                  if (val != _newController.text)
+                    return 'Passwords do not match';
                   return null;
                 },
               ),

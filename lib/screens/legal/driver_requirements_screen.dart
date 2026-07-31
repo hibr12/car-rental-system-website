@@ -24,31 +24,33 @@ class DriverRequirementsScreen extends StatelessWidget {
               style: AppTypography.textTheme.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.xxl),
-            
             _buildRequirement(
               icon: LucideIcons.userCheck,
               title: 'Age Requirement',
-              description: 'You must be at least 21 years old to rent standard vehicles. For luxury and performance vehicles, the minimum age is 25.',
+              description:
+                  'You must be at least 21 years old to rent standard vehicles. For luxury and performance vehicles, the minimum age is 25.',
             ),
             const SizedBox(height: AppSpacing.xl),
             _buildRequirement(
               icon: LucideIcons.fileBadge,
               title: 'Valid Driver\'s License',
-              description: 'You must possess a valid driver\'s license that is not suspended, confiscated, or expired. Temporary licenses are not accepted.',
+              description:
+                  'You must possess a valid driver\'s license that is not suspended, confiscated, or expired. Temporary licenses are not accepted.',
             ),
             const SizedBox(height: AppSpacing.xl),
             _buildRequirement(
               icon: LucideIcons.creditCard,
               title: 'Payment Method',
-              description: 'A major credit card in your name must be provided for the reservation and security deposit. Debit cards may have additional restrictions.',
+              description:
+                  'A major credit card in your name must be provided for the reservation and security deposit. Debit cards may have additional restrictions.',
             ),
             const SizedBox(height: AppSpacing.xl),
             _buildRequirement(
               icon: LucideIcons.shieldCheck,
               title: 'Clean Driving Record',
-              description: 'You must not have any major moving violations, DUIs, or reckless driving incidents within the past 3 years.',
+              description:
+                  'You must not have any major moving violations, DUIs, or reckless driving incidents within the past 3 years.',
             ),
-            
             const SizedBox(height: AppSpacing.xxxl),
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -65,7 +67,8 @@ class DriverRequirementsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Identity Verification', style: AppTypography.textTheme.titleMedium),
+                        Text('Identity Verification',
+                            style: AppTypography.textTheme.titleMedium),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           'Before your first trip, you may be asked to upload a photo of your license and a selfie for identity verification.',
@@ -83,7 +86,10 @@ class DriverRequirementsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRequirement({required IconData icon, required String title, required String description}) {
+  Widget _buildRequirement(
+      {required IconData icon,
+      required String title,
+      required String description}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -14,7 +14,8 @@ class DriverLicenseScreen extends StatefulWidget {
 }
 
 class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
-  final BadgeStatus _status = BadgeStatus.pending; // Using pending to show the state
+  final BadgeStatus _status =
+      BadgeStatus.pending; // Using pending to show the state
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,8 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
           children: [
             _buildStatusCard(),
             const SizedBox(height: AppSpacing.xxl),
-            Text('License Details', style: AppTypography.textTheme.headlineMedium),
+            Text('License Details',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
             _buildDetailRow('State/Country', 'California, USA'),
             const Divider(height: AppSpacing.lg),
@@ -36,18 +38,20 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
             const Divider(height: AppSpacing.lg),
             _buildDetailRow('Expiration Date', '10/24/2028'),
             const SizedBox(height: AppSpacing.xxxl),
-            
-            Text('Update License', style: AppTypography.textTheme.headlineMedium),
+            Text('Update License',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.sm),
-            Text('If your license has expired or you moved, please upload a new one.', style: AppTypography.textTheme.bodyMedium),
+            Text(
+                'If your license has expired or you moved, please upload a new one.',
+                style: AppTypography.textTheme.bodyMedium),
             const SizedBox(height: AppSpacing.lg),
-            
             SecondaryButton(
               text: 'Upload New License',
               icon: LucideIcons.uploadCloud,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Camera/Gallery picker would open here')),
+                  const SnackBar(
+                      content: Text('Camera/Gallery picker would open here')),
                 );
               },
             ),
@@ -60,13 +64,21 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
   Widget _buildStatusCard() {
     final isVerified = _status == BadgeStatus.approved;
     final isRejected = _status == BadgeStatus.rejected;
-    
-    Color color = isVerified ? AppColors.success : (isRejected ? AppColors.error : AppColors.warning);
-    IconData icon = isVerified ? LucideIcons.checkCircle : (isRejected ? LucideIcons.xCircle : LucideIcons.clock);
-    String title = isVerified ? 'License Verified' : (isRejected ? 'Verification Rejected' : 'Verification Pending');
-    String msg = isVerified 
+
+    Color color = isVerified
+        ? AppColors.success
+        : (isRejected ? AppColors.error : AppColors.warning);
+    IconData icon = isVerified
+        ? LucideIcons.checkCircle
+        : (isRejected ? LucideIcons.xCircle : LucideIcons.clock);
+    String title = isVerified
+        ? 'License Verified'
+        : (isRejected ? 'Verification Rejected' : 'Verification Pending');
+    String msg = isVerified
         ? 'You are approved to drive all vehicles.'
-        : (isRejected ? 'Please upload a clear, valid license.' : 'We are reviewing your document.');
+        : (isRejected
+            ? 'Please upload a clear, valid license.'
+            : 'We are reviewing your document.');
 
     return Container(
       width: double.infinity,
@@ -106,7 +118,9 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTypography.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+          Text(label,
+              style: AppTypography.textTheme.bodyLarge
+                  ?.copyWith(color: AppColors.textSecondary)),
           Text(value, style: AppTypography.textTheme.titleMedium),
         ],
       ),

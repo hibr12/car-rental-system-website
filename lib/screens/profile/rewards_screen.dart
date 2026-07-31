@@ -4,7 +4,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
-import '../../mock_data/mock_data.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
 class RewardsScreen extends StatelessWidget {
@@ -24,13 +23,13 @@ class RewardsScreen extends StatelessWidget {
           children: [
             _buildPointsHeader(),
             const SizedBox(height: AppSpacing.xxxl),
-            
-            Text('Available Coupons', style: AppTypography.textTheme.headlineMedium),
+            Text('Available Coupons',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
-            ...mockCoupons.map((c) => _buildCouponCard(c)),
-            
+            ...[].map((c) => _buildCouponCard(c)),
             const SizedBox(height: AppSpacing.xxl),
-            Text('Refer a Friend', style: AppTypography.textTheme.headlineMedium),
+            Text('Refer a Friend',
+                style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
             _buildReferralCard(context),
           ],
@@ -62,9 +61,13 @@ class RewardsScreen extends StatelessWidget {
         children: [
           const Icon(LucideIcons.award, color: AppColors.surface, size: 48),
           const SizedBox(height: AppSpacing.md),
-          Text('DriveEase Points', style: AppTypography.textTheme.titleLarge?.copyWith(color: AppColors.textSecondary)),
+          Text('DriveEase Points',
+              style: AppTypography.textTheme.titleLarge
+                  ?.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.xs),
-          Text('${mockCurrentUser.rewardPoints}', style: AppTypography.textTheme.displayLarge?.copyWith(color: AppColors.surface)),
+          Text('0',
+              style: AppTypography.textTheme.displayLarge
+                  ?.copyWith(color: AppColors.surface)),
           const SizedBox(height: AppSpacing.lg),
           LinearProgressIndicator(
             value: 0.65,
@@ -74,7 +77,9 @@ class RewardsScreen extends StatelessWidget {
             minHeight: 8,
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text('350 points to Gold Tier', style: AppTypography.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+          Text('350 points to Gold Tier',
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -106,7 +111,8 @@ class RewardsScreen extends StatelessWidget {
               children: [
                 Text(coupon.code, style: AppTypography.textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.xs),
-                Text(coupon.description, style: AppTypography.textTheme.bodyMedium),
+                Text(coupon.description,
+                    style: AppTypography.textTheme.bodyMedium),
               ],
             ),
           ),
@@ -139,7 +145,8 @@ class RewardsScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -148,13 +155,16 @@ class RewardsScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(referralCode, style: AppTypography.textTheme.headlineMedium?.copyWith(letterSpacing: 2.0)),
+                Text(referralCode,
+                    style: AppTypography.textTheme.headlineMedium
+                        ?.copyWith(letterSpacing: 2.0)),
                 IconButton(
                   icon: const Icon(LucideIcons.copy, color: AppColors.primary),
                   onPressed: () {
                     Clipboard.setData(const ClipboardData(text: referralCode));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Code copied to clipboard!')),
+                      const SnackBar(
+                          content: Text('Code copied to clipboard!')),
                     );
                   },
                 ),
