@@ -72,6 +72,8 @@ class Booking extends Model
             'additional_charges' => 'decimal:2',
             'discount' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'user_id' => 'integer',
+            'vehicle_id' => 'integer',
         ];
     }
 

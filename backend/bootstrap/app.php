@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
+
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+            return '/';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->renderable(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

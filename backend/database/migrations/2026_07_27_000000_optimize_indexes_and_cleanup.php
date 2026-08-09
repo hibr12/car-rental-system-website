@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->dropIndex(['booking_reference']);
             $table->index('payment_status');
         });
     }
@@ -17,7 +16,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->index('booking_reference');
             $table->dropIndex(['payment_status']);
         });
     }
