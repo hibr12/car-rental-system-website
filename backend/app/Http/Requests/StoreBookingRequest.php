@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Booking;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreBookingRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('create', Booking::class);
     }
 
     public function rules(): array
@@ -26,9 +28,15 @@ class StoreBookingRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'pickup_date.after_or_equal' => 'Pickup date must be today or later.',
-            'return_date.after' => 'Return date must be after pickup date.',
+            'vehicle_id.required' => 'Vehicle is required.',
             'vehicle_id.exists' => 'The selected vehicle does not exist.',
+            'pickup_location.required' => 'Pickup location is required.',
+            'return_location.required' => 'Return location is required.',
+            'pickup_date.required' => 'Pickup date is required.',
+            'pickup_date.after_or_equal' => 'Pickup date must be today or later.',
+            'return_date.required' => 'Return date is required.',
+            'return_date.after' => 'Return date must be after pickup date.',
+            'notes.max' => 'Notes must not exceed 1000 characters.',
         ];
     }
 }

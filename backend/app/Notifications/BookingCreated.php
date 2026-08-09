@@ -43,8 +43,10 @@ class BookingCreated extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
+            'title' => 'Booking Created',
             'message' => 'Booking ' . $this->booking->booking_reference . ' created successfully.',
             'type' => 'booking_created',
+            'created_at' => now()->toISOString(),
         ];
     }
 }

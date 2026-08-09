@@ -12,6 +12,7 @@ class ReviewResource extends JsonResource
         return [
             'id' => $this->id,
             'user' => new UserResource($this->whenLoaded('user')),
+            'vehicle' => new VehicleResource($this->whenLoaded('vehicle')),
             'vehicle_id' => $this->vehicle_id,
             'booking_id' => $this->booking_id,
             'rating' => $this->rating,

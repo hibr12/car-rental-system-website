@@ -47,8 +47,10 @@ class PaymentSuccess extends Notification
             'payment_id' => $this->payment->id,
             'booking_reference' => $this->booking->booking_reference,
             'amount' => $this->payment->amount,
+            'title' => 'Payment Successful',
             'message' => 'Payment of $' . number_format($this->payment->amount, 2) . ' for booking ' . $this->booking->booking_reference . ' was successful.',
             'type' => 'payment_success',
+            'created_at' => now()->toISOString(),
         ];
     }
 }

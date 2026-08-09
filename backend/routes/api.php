@@ -6,6 +6,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\VehicleController;
@@ -37,15 +38,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
+    Route::get('/bookings/price-estimate', [BookingController::class, 'priceEstimate']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::put('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
 
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::post('/payments/initialize', [PaymentController::class, 'initialize']);
+    Route::get('/payments/verify/{tx_ref}', [PaymentController::class, 'verify'])->name('payments.verify');
     Route::get('/payments/{payment}', [PaymentController::class, 'show']);
 
+    Route::post('/payments/callback', [PaymentController::class, 'callback'])->name('payments.callback')->withoutMiddleware('auth:sanctum');
+
+    Route::get('/reviews', [ReviewController::class, 'userReviews']);
     Route::post('/vehicles/{vehicle}/reviews', [ReviewController::class, 'store']);
+    Route::put('/reviews/{review}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::get('/notifications/{notification}', [NotificationController::class, 'show']);
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
     Route::middleware('role:admin,fleet_manager,staff')->group(function () {
         Route::get('/maintenance', [MaintenanceController::class, 'index']);
@@ -67,6 +82,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::put('/bookings/{booking}/pickup', [BookingController::class, 'pickup']);
         Route::put('/bookings/{booking}/return', [BookingController::class, 'returnVehicle']);
+
+        Route::put('/payments/{payment}/fail', [PaymentController::class, 'markAsFailed']);
+        Route::put('/payments/{payment}/refund', [PaymentController::class, 'refund']);
     });
 
     Route::prefix('admin')->middleware('role:admin')->group(function () {

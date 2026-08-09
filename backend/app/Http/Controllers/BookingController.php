@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CancelBookingRequest;
+use App\Http\Requests\CheckAvailabilityRequest;
+use App\Http\Requests\PriceEstimateRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
+use App\Models\Vehicle;
 use App\Services\BookingService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,18 +23,15 @@ class BookingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->isAdmin() || $user->isStaff() || $user->isFleetManager()) {
-            $bookings = Booking::with(['vehicle', 'user'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
-        } else {
-            $bookings = Booking::with(['vehicle', 'user'])
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
-        }
+        $bookings = Booking::with([
+                'vehicle.category',
+                'vehicle.images',
+                'vehicle.primaryImage',
+                'user',
+            ])
+            ->where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         return response()->json([
             'success' => true,
@@ -46,14 +48,14 @@ class BookingController extends Controller
 
     public function show(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('view', $booking)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('view', $booking);
 
-        $booking->load(['vehicle', 'user']);
+        $booking->load([
+            'vehicle.category',
+            'vehicle.images',
+            'vehicle.primaryImage',
+            'user',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -83,14 +85,9 @@ class BookingController extends Controller
         }
     }
 
-    public function cancel(Request $request, Booking $booking): JsonResponse
+    public function cancel(CancelBookingRequest $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('cancel', $booking)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('cancel', $booking);
 
         try {
             $booking = $this->bookingService->cancelBooking($booking);
@@ -110,12 +107,7 @@ class BookingController extends Controller
 
     public function confirm(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('confirm', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('confirm', Booking::class);
 
         try {
             $booking = $this->bookingService->confirmBooking($booking);
@@ -135,12 +127,7 @@ class BookingController extends Controller
 
     public function reject(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('reject', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('reject', Booking::class);
 
         try {
             $booking = $this->bookingService->rejectBooking($booking, $request->input('reason'));
@@ -160,12 +147,7 @@ class BookingController extends Controller
 
     public function pickup(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('pickup', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('pickup', Booking::class);
 
         try {
             $booking = $this->bookingService->markAsPickedUp($booking);
@@ -185,12 +167,7 @@ class BookingController extends Controller
 
     public function returnVehicle(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('returnVehicle', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('returnVehicle', Booking::class);
 
         try {
             $booking = $this->bookingService->markAsReturned($booking);
@@ -210,14 +187,14 @@ class BookingController extends Controller
 
     public function adminIndex(Request $request): JsonResponse
     {
-        if (!Gate::allows('manageAll', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
+        Gate::authorize('manageAll', Booking::class);
 
-        $bookings = Booking::with(['vehicle', 'user'])
+        $bookings = Booking::with([
+                'vehicle.category',
+                'vehicle.images',
+                'vehicle.primaryImage',
+                'user',
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -230,6 +207,66 @@ class BookingController extends Controller
                 'last_page' => $bookings->lastPage(),
                 'per_page' => $bookings->perPage(),
                 'total' => $bookings->total(),
+            ],
+        ]);
+    }
+
+    public function checkAvailability(CheckAvailabilityRequest $request): JsonResponse
+    {
+        $vehicle = Vehicle::find($request->vehicle_id);
+
+        if (!$vehicle || $vehicle->status !== 'available') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vehicle is not available.',
+                'data' => ['available' => false],
+            ]);
+        }
+
+        $pickupDate = Carbon::parse($request->pickup_date);
+        $returnDate = Carbon::parse($request->return_date);
+        $hasOverlap = $this->bookingService->hasOverlap($vehicle->id, $pickupDate, $returnDate);
+
+        return response()->json([
+            'success' => true,
+            'message' => $hasOverlap ? 'Vehicle is not available for the selected dates.' : 'Vehicle is available.',
+            'data' => ['available' => !$hasOverlap],
+        ]);
+    }
+
+    public function priceEstimate(PriceEstimateRequest $request): JsonResponse
+    {
+        $vehicle = Vehicle::find($request->vehicle_id);
+
+        if (!$vehicle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vehicle not found.',
+            ], 404);
+        }
+
+        $pickupDate = Carbon::parse($request->pickup_date);
+        $returnDate = Carbon::parse($request->return_date);
+
+        $breakdown = $this->bookingService->calculatePriceBreakdown(
+            $vehicle,
+            $pickupDate,
+            $returnDate,
+            (float) ($request->additional_charges ?? 0),
+            (float) ($request->discount ?? 0)
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Price estimate calculated successfully.',
+            'data' => [
+                'vehicle_id' => $breakdown['vehicle_id'],
+                'price_per_day' => number_format($breakdown['price_per_day'], 2),
+                'number_of_days' => $breakdown['number_of_days'],
+                'subtotal' => number_format($breakdown['subtotal'], 2),
+                'additional_charges' => number_format($breakdown['additional_charges'], 2),
+                'discount' => number_format($breakdown['discount'], 2),
+                'total_price' => number_format($breakdown['total_price'], 2),
             ],
         ]);
     }

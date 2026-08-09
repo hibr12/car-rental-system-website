@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
             $table->unsignedTinyInteger('rating');
             $table->text('comment')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('approved');
+            $table->string('status')->default('approved');
             $table->timestamps();
 
             $table->unique(['booking_id', 'user_id']);

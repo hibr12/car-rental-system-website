@@ -36,4 +36,33 @@ class StoreVehicleRequest extends FormRequest
             'images.*.is_primary' => ['sometimes', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'category_id.required' => 'Category is required.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'brand.required' => 'Brand is required.',
+            'model.required' => 'Model is required.',
+            'year.required' => 'Year is required.',
+            'year.min' => 'Year must be 1900 or later.',
+            'year.max' => 'Year cannot be in the future.',
+            'registration_number.required' => 'Registration number is required.',
+            'registration_number.unique' => 'A vehicle with this registration number already exists.',
+            'vin_number.unique' => 'A vehicle with this VIN number already exists.',
+            'vin_number.max' => 'VIN number must not exceed 17 characters.',
+            'fuel_type.required' => 'Fuel type is required.',
+            'fuel_type.in' => 'Fuel type must be one of: petrol, diesel, electric, hybrid.',
+            'transmission.required' => 'Transmission is required.',
+            'transmission.in' => 'Transmission must be one of: automatic, manual.',
+            'seats.required' => 'Number of seats is required.',
+            'seats.min' => 'Vehicle must have at least 1 seat.',
+            'seats.max' => 'Vehicle cannot have more than 50 seats.',
+            'rental_price_per_day.required' => 'Rental price per day is required.',
+            'rental_price_per_day.min' => 'Rental price per day cannot be negative.',
+            'images.max' => 'Vehicle cannot have more than 10 images.',
+            'images.*.image_url.required' => 'Image URL is required.',
+            'images.*.image_url.max' => 'Image URL must not exceed 500 characters.',
+        ];
+    }
 }

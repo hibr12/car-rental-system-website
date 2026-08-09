@@ -41,8 +41,10 @@ class BookingConfirmed extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
+            'title' => 'Booking Confirmed',
             'message' => 'Booking ' . $this->booking->booking_reference . ' has been confirmed.',
             'type' => 'booking_confirmed',
+            'created_at' => now()->toISOString(),
         ];
     }
 }

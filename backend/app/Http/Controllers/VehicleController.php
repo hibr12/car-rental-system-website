@@ -55,6 +55,26 @@ class VehicleController extends Controller
             $query->where('featured', filter_var($request->input('featured'), FILTER_VALIDATE_BOOLEAN));
         }
 
+        if ($request->has('min_year')) {
+            $query->where('year', '>=', $request->input('min_year'));
+        }
+
+        if ($request->has('max_year')) {
+            $query->where('year', '<=', $request->input('max_year'));
+        }
+
+        if ($request->has('min_seats')) {
+            $query->where('seats', '>=', $request->input('min_seats'));
+        }
+
+        if ($request->has('max_seats')) {
+            $query->where('seats', '<=', $request->input('max_seats'));
+        }
+
+        if ($location = $request->input('location')) {
+            $query->whereRaw('LOWER(location) LIKE ?', ["%" . strtolower($location) . "%"]);
+        }
+
         if ($sort = $request->input('sort')) {
             match ($sort) {
                 'price_asc' => $query->orderBy('rental_price_per_day', 'asc'),

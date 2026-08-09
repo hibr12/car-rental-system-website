@@ -39,8 +39,10 @@ class BookingCancelled extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
+            'title' => 'Booking Cancelled',
             'message' => 'Booking ' . $this->booking->booking_reference . ' has been cancelled.',
             'type' => 'booking_cancelled',
+            'created_at' => now()->toISOString(),
         ];
     }
 }

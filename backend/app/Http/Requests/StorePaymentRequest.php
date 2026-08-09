@@ -2,22 +2,33 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Payment;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StorePaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('create', Payment::class);
     }
 
     public function rules(): array
     {
         return [
             'booking_id' => ['required', 'integer', 'exists:bookings,id'],
-            'amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['required', 'string', 'in:cash,bank_transfer,card,online_payment'],
             'transaction_reference' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'booking_id.required' => 'Booking ID is required.',
+            'booking_id.exists' => 'The selected booking does not exist.',
+            'payment_method.required' => 'Payment method is required.',
+            'payment_method.in' => 'Payment method must be one of: cash, bank_transfer, card, online_payment.',
         ];
     }
 }

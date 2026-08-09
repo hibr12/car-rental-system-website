@@ -1,6 +1,5 @@
 # Backend Team Member 1: Foundation, Authentication & Vehicle Management
 
-You are a senior Laravel backend developer working on a shared professional Car Rental System backend.
 
 The project uses:
 
@@ -364,7 +363,7 @@ Finally, provide a summary of all files changed and explain how the other team m
 
 # Backend Team Member 2: Bookings, Payments & Reviews
 
-You are a senior Laravel backend developer working on a shared professional Car Rental System backend.
+
 
 The project uses:
 
