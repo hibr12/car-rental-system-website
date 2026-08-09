@@ -10,12 +10,13 @@ export const RoleRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    // Redirect user to their role's appropriate home dashboard
     switch (user.role) {
       case 'admin':
         return <Navigate to="/admin" replace />;
       case 'fleet_manager':
         return <Navigate to="/fleet" replace />;
+      case 'branch_manager':
+        return <Navigate to="/branch-manager" replace />;
       case 'staff':
         return <Navigate to="/staff" replace />;
       default:

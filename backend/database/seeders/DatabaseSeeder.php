@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\ContactMessage;
 use App\Models\Maintenance;
@@ -22,6 +23,7 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        $this->seedBranches();
         $this->seedUsers();
         $this->seedCategories();
         $this->seedVehicles();
@@ -32,8 +34,29 @@ class DatabaseSeeder extends Seeder
         $this->seedContactMessages();
     }
 
+    private function seedBranches(): void
+    {
+        $branches = [
+            ['name' => 'Main Branch', 'address' => '123 Main Street', 'city' => 'Addis Ababa', 'phone' => '+251-11-123-4567', 'email' => 'main@carrental.com', 'status' => 'active'],
+            ['name' => 'Airport Branch', 'address' => 'Bole International Airport', 'city' => 'Addis Ababa', 'phone' => '+251-11-234-5678', 'email' => 'airport@carrental.com', 'status' => 'active'],
+            ['name' => 'Downtown Branch', 'address' => '456owntown Avenue', 'city' => 'Addis Ababa', 'phone' => '+251-11-345-6789', 'email' => 'downtown@carrental.com', 'status' => 'active'],
+            ['name' => 'Shopping Mall Branch', 'address' => 'Edna Mall, Kirkos', 'city' => 'Addis Ababa', 'phone' => '+251-11-456-7890', 'email' => 'mall@carrental.com', 'status' => 'active'],
+        ];
+
+        foreach ($branches as $branch) {
+            Branch::updateOrCreate(
+                ['name' => $branch['name']],
+                $branch
+            );
+        }
+    }
+
     private function seedUsers(): void
     {
+        $mainBranch = Branch::where('name', 'Main Branch')->first();
+        $airportBranch = Branch::where('name', 'Airport Branch')->first();
+        $downtownBranch = Branch::where('name', 'Downtown Branch')->first();
+
         User::factory()->admin()->create([
             'name' => 'Admin User',
             'email' => 'admin@carrental.com',
@@ -46,10 +69,25 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
         ]);
 
+        User::factory()->branchManager()->create([
+            'name' => 'Branch Manager Main',
+            'email' => 'branchmanager@carrental.com',
+            'password' => 'password',
+            'branch_id' => $mainBranch?->id,
+        ]);
+
         User::factory()->staff()->create([
             'name' => 'Staff User',
             'email' => 'staff@carrental.com',
             'password' => 'password',
+            'branch_id' => $mainBranch?->id,
+        ]);
+
+        User::factory()->staff()->create([
+            'name' => 'Staff Airport',
+            'email' => 'staffairport@carrental.com',
+            'password' => 'password',
+            'branch_id' => $airportBranch?->id,
         ]);
 
         User::factory()->count(5)->customer()->create();
@@ -79,6 +117,17 @@ class DatabaseSeeder extends Seeder
     {
         $categories = Category::all()->keyBy('slug');
         $admin = User::where('email', 'admin@carrental.com')->first();
+        $mainBranch = Branch::where('name', 'Main Branch')->first();
+        $airportBranch = Branch::where('name', 'Airport Branch')->first();
+        $downtownBranch = Branch::where('name', 'Downtown Branch')->first();
+        $mallBranch = Branch::where('name', 'Shopping Mall Branch')->first();
+
+        $branchMap = [
+            'Main Branch' => $mainBranch?->id,
+            'Airport Branch' => $airportBranch?->id,
+            'Downtown Branch' => $downtownBranch?->id,
+            'Shopping Mall Branch' => $mallBranch?->id,
+        ];
 
         $vehicles = [
             ['category_slug' => 'economy', 'brand' => 'Toyota', 'model' => 'Yaris', 'year' => 2024, 'registration_number' => 'ECO-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 35, 'status' => 'available', 'featured' => false, 'location' => 'Main Branch', 'description' => 'Compact and fuel-efficient, perfect for city driving and daily commutes.'],
@@ -105,12 +154,15 @@ class DatabaseSeeder extends Seeder
 
         foreach ($vehicles as $vehicleData) {
             $category = $categories[$vehicleData['category_slug']] ?? $categories->first();
+            $branchLocation = $vehicleData['location'] ?? 'Main Branch';
+            $branchId = $branchMap[$branchLocation] ?? $mainBranch?->id;
             unset($vehicleData['category_slug']);
 
             $vehicle = Vehicle::updateOrCreate(
                 ['registration_number' => $vehicleData['registration_number']],
                 array_merge($vehicleData, [
                     'category_id' => $category->id,
+                    'branch_id' => $branchId,
                     'created_by' => $admin?->id,
                 ])
             );
@@ -240,6 +292,7 @@ class DatabaseSeeder extends Seeder
                 'booking_reference' => 'BK-' . $pickupDate->format('Ymd') . '-' . strtoupper(Str::random(6)),
                 'user_id' => $customer->id,
                 'vehicle_id' => $vehicle->id,
+                'branch_id' => $vehicle->branch_id,
                 'pickup_location' => $data['pickup_location'],
                 'return_location' => $data['return_location'],
                 'pickup_date' => $pickupDate,

@@ -27,6 +27,8 @@ class VehicleResource extends JsonResource
             'status' => $this->status,
             'featured' => $this->featured,
             'location' => $this->location,
+            'branch_id' => $this->branch_id,
+            'branch' => new BranchResource($this->whenLoaded('branch')),
             'category' => new CategoryResource($this->whenLoaded('category')),
             'images' => VehicleImageResource::collection($this->whenLoaded('images')),
             'primary_image' => new VehicleImageResource($this->whenLoaded('primaryImage')),

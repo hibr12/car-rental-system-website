@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\CustomNotification;
 use App\Models\Vehicle;
 use App\Notifications\BookingCancelled;
 use App\Notifications\BookingConfirmed;
@@ -44,6 +45,7 @@ class BookingService
                 'booking_reference' => $this->generateReference(),
                 'user_id' => $userId,
                 'vehicle_id' => $vehicle->id,
+                'branch_id' => $vehicle->branch_id,
                 'pickup_location' => $data['pickup_location'],
                 'return_location' => $data['return_location'],
                 'pickup_date' => $pickupDate,
@@ -62,6 +64,17 @@ class BookingService
             $booking->load('vehicle', 'user');
             $booking->user->notify(new BookingCreated($booking));
 
+            $this->createNotification(
+                $booking->user_id,
+                'reservation_created',
+                'New Reservation Created',
+                "Your reservation for {$vehicle->brand} {$vehicle->model} has been created.",
+                Booking::class,
+                $booking->id
+            );
+
+            $this->notifyBranchStaff($booking->branch_id, 'reservation_created', 'New Reservation', "New reservation #{$booking->booking_reference} requires processing.", Booking::class, $booking->id);
+
             return $booking;
         });
     }
@@ -79,7 +92,15 @@ class BookingService
             ]);
 
             $booking->vehicle->update(['status' => 'reserved']);
-            $booking->user->notify(new BookingConfirmed($booking));
+
+            $this->createNotification(
+                $booking->user_id,
+                'booking_confirmed',
+                'Reservation Confirmed',
+                "Your reservation #{$booking->booking_reference} has been confirmed.",
+                Booking::class,
+                $booking->id
+            );
 
             return $booking->fresh()->load('vehicle', 'user');
         });
@@ -97,7 +118,14 @@ class BookingService
                 'notes' => $reason ? ($booking->notes ? $booking->notes . "\nRejection: " . $reason : 'Rejection: ' . $reason) : $booking->notes,
             ]);
 
-            $booking->user->notify(new BookingCancelled($booking));
+            $this->createNotification(
+                $booking->user_id,
+                'booking_cancelled',
+                'Reservation Rejected',
+                "Your reservation #{$booking->booking_reference} has been rejected." . ($reason ? " Reason: {$reason}" : ''),
+                Booking::class,
+                $booking->id
+            );
 
             return $booking->fresh()->load('vehicle', 'user');
         });
@@ -116,7 +144,14 @@ class BookingService
                 $booking->vehicle->update(['status' => 'available']);
             }
 
-            $booking->user->notify(new BookingCancelled($booking));
+            $this->createNotification(
+                $booking->user_id,
+                'booking_cancelled',
+                'Reservation Cancelled',
+                "Your reservation #{$booking->booking_reference} has been cancelled.",
+                Booking::class,
+                $booking->id
+            );
 
             return $booking->fresh()->load('vehicle', 'user');
         });
@@ -131,6 +166,15 @@ class BookingService
 
             $booking->update(['status' => 'active']);
             $booking->vehicle->update(['status' => 'rented']);
+
+            $this->createNotification(
+                $booking->user_id,
+                'pickup_completed',
+                'Vehicle Picked Up',
+                "You have picked up {$booking->vehicle->brand} {$booking->vehicle->model} for reservation #{$booking->booking_reference}.",
+                Booking::class,
+                $booking->id
+            );
 
             return $booking->fresh()->load('vehicle', 'user');
         });
@@ -149,6 +193,37 @@ class BookingService
             ]);
 
             $booking->vehicle->update(['status' => 'available']);
+
+            $this->createNotification(
+                $booking->user_id,
+                'booking_completed',
+                'Rental Completed',
+                "Your rental for {$booking->vehicle->brand} {$booking->vehicle->model} has been completed. Thank you!",
+                Booking::class,
+                $booking->id
+            );
+
+            return $booking->fresh()->load('vehicle', 'user');
+        });
+    }
+
+    public function approveBooking(Booking $booking): Booking
+    {
+        return DB::transaction(function () use ($booking) {
+            if ($booking->status !== 'pending') {
+                throw new \InvalidArgumentException('Only pending bookings can be approved.');
+            }
+
+            $booking->update(['status' => 'confirmed']);
+
+            $this->createNotification(
+                $booking->user_id,
+                'booking_confirmed',
+                'Reservation Approved',
+                "Your reservation #{$booking->booking_reference} has been approved.",
+                Booking::class,
+                $booking->id
+            );
 
             return $booking->fresh()->load('vehicle', 'user');
         });
@@ -171,5 +246,35 @@ class BookingService
         $random = strtoupper(Str::random(6));
 
         return $prefix . '-' . $random;
+    }
+
+    private function createNotification(int $userId, string $type, string $title, string $message, ?string $relatedType = null, ?int $relatedId = null): void
+    {
+        CustomNotification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'related_type' => $relatedType,
+            'related_id' => $relatedId,
+            'notifiable_type' => \App\Models\User::class,
+            'notifiable_id' => $userId,
+            'data' => json_encode([]),
+        ]);
+    }
+
+    private function notifyBranchStaff(?int $branchId, string $type, string $title, string $message, ?string $relatedType = null, ?int $relatedId = null): void
+    {
+        if (!$branchId) {
+            return;
+        }
+
+        $staffUsers = \App\Models\User::where('branch_id', $branchId)
+            ->whereIn('role', ['staff', 'branch_manager'])
+            ->get();
+
+        foreach ($staffUsers as $staff) {
+            $this->createNotification($staff->id, $type, $title, $message, $relatedType, $relatedId);
+        }
     }
 }

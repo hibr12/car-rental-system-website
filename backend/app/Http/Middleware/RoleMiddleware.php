@@ -8,11 +8,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    public function handle(Request $request, Closure $next, string $roles): Response
     {
         $user = $request->user();
 
-        if (!$user || !in_array($user->role, $roles)) {
+        $allowedRoles = array_map('trim', explode('|', $roles));
+
+        if (!$user || !in_array($user->role, $allowedRoles)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Insufficient permissions.',

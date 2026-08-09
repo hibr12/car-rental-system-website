@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -20,6 +21,11 @@ class User extends Authenticatable
         'phone',
         'profile_photo',
         'role',
+        'branch_id',
+        'license_number',
+        'license_image',
+        'license_status',
+        'license_verified_at',
     ];
 
     protected $hidden = [
@@ -31,8 +37,14 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'license_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function vehicles(): HasMany
@@ -55,6 +67,11 @@ class User extends Authenticatable
         return $this->hasMany(Review::class);
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(\App\Models\CustomNotification::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -73,6 +90,21 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
+    }
+
+    public function isBranchManager(): bool
+    {
+        return $this->role === 'branch_manager';
+    }
+
+    public function hasVerifiedLicense(): bool
+    {
+        return $this->license_status === 'verified';
+    }
+
+    public function hasBranch(): bool
+    {
+        return $this->branch_id !== null;
     }
 
     public static function factory(): UserFactory

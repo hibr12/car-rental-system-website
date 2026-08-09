@@ -38,6 +38,11 @@ class Payment extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function invoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
     public function scopePaid($query)
     {
         return $query->where('status', 'paid');

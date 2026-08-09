@@ -13,6 +13,8 @@ import {
   MessageSquare,
   LogOut,
   ChevronRight,
+  Building2,
+  FileText,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -40,6 +42,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
               { name: 'Vehicles', path: '/admin/vehicles', icon: Car },
               { name: 'Categories', path: '/admin/categories', icon: FolderTree },
               { name: 'User Management', path: '/admin/users', icon: Users },
+              { name: 'Branches', path: '/admin/branches', icon: Building2 },
               { name: 'All Bookings', path: '/admin/bookings', icon: CalendarCheck },
             ],
           },
@@ -47,8 +50,26 @@ export const Sidebar = ({ isOpen, onClose }) => {
             title: 'Operations',
             items: [
               { name: 'Payments', path: '/admin/payments', icon: CreditCard },
+              { name: 'Invoices', path: '/admin/invoices', icon: FileText },
               { name: 'Maintenance', path: '/admin/maintenance', icon: Wrench },
               { name: 'Contact Messages', path: '/admin/messages', icon: MessageSquare },
+            ],
+          },
+        ];
+
+      case 'branch_manager':
+        return [
+          {
+            title: 'Branch Overview',
+            items: [{ name: 'Branch Dashboard', path: '/branch-manager', icon: LayoutDashboard }],
+          },
+          {
+            title: 'Branch Operations',
+            items: [
+              { name: 'Reservations', path: '/branch-manager/bookings', icon: CalendarCheck },
+              { name: 'Vehicles', path: '/branch-manager/vehicles', icon: Car },
+              { name: 'Staff', path: '/branch-manager/staff', icon: Users },
+              { name: 'Reports', path: '/branch-manager/reports', icon: FileText },
             ],
           },
         ];

@@ -34,6 +34,7 @@ export const LoginPage = () => {
       let targetPath = '/dashboard';
       if (userRole === 'admin') targetPath = '/admin';
       else if (userRole === 'fleet_manager') targetPath = '/fleet';
+      else if (userRole === 'branch_manager') targetPath = '/branch-manager';
       else if (userRole === 'staff') targetPath = '/staff';
 
       navigate(from !== '/dashboard' ? from : targetPath, { replace: true });

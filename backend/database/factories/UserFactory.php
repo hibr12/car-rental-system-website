@@ -56,4 +56,11 @@ class UserFactory extends Factory
             'role' => 'customer',
         ]);
     }
+
+    public function branchManager(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'branch_manager',
+        ]);
+    }
 }

@@ -20,16 +20,17 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isAdmin() || $user->isStaff() || $user->isFleetManager()) {
-            $bookings = Booking::with(['vehicle', 'user'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
+        $query = Booking::with(['vehicle', 'user']);
+
+        if ($user->isAdmin() || $user->isFleetManager()) {
+            // Admin and Fleet Manager see all bookings
+        } elseif ($user->isBranchManager() || $user->isStaff()) {
+            $query->where('branch_id', $user->branch_id);
         } else {
-            $bookings = Booking::with(['vehicle', 'user'])
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
+            $query->where('user_id', $user->id);
         }
+
+        $bookings = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
             'success' => true,
@@ -110,13 +111,6 @@ class BookingController extends Controller
 
     public function confirm(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('confirm', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
-
         try {
             $booking = $this->bookingService->confirmBooking($booking);
 
@@ -135,13 +129,6 @@ class BookingController extends Controller
 
     public function reject(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('reject', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
-
         try {
             $booking = $this->bookingService->rejectBooking($booking, $request->input('reason'));
 
@@ -160,13 +147,6 @@ class BookingController extends Controller
 
     public function pickup(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('pickup', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
-
         try {
             $booking = $this->bookingService->markAsPickedUp($booking);
 
@@ -185,13 +165,6 @@ class BookingController extends Controller
 
     public function returnVehicle(Request $request, Booking $booking): JsonResponse
     {
-        if (!Gate::allows('returnVehicle', Booking::class)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
-
         try {
             $booking = $this->bookingService->markAsReturned($booking);
 
@@ -217,9 +190,14 @@ class BookingController extends Controller
             ], 403);
         }
 
-        $bookings = Booking::with(['vehicle', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $user = $request->user();
+        $query = Booking::with(['vehicle', 'user']);
+
+        if ($user->isBranchManager() || $user->isStaff()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $bookings = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
             'success' => true,

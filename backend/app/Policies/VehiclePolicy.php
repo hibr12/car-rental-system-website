@@ -24,11 +24,24 @@ class VehiclePolicy
 
     public function update(User $user, Vehicle $vehicle): bool
     {
-        return in_array($user->role, ['admin', 'fleet_manager']);
+        if (in_array($user->role, ['admin', 'fleet_manager'])) {
+            return true;
+        }
+
+        if ($user->isBranchManager()) {
+            return $user->branch_id === $vehicle->branch_id;
+        }
+
+        return false;
     }
 
     public function delete(User $user, Vehicle $vehicle): bool
     {
         return $user->role === 'admin';
+    }
+
+    public function manageAvailability(User $user): bool
+    {
+        return in_array($user->role, ['admin', 'fleet_manager', 'branch_manager']);
     }
 }

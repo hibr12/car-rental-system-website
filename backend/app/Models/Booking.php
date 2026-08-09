@@ -16,6 +16,7 @@ class Booking extends Model
         'booking_reference',
         'user_id',
         'vehicle_id',
+        'branch_id',
         'pickup_location',
         'return_location',
         'pickup_date',
@@ -55,6 +56,11 @@ class Booking extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
@@ -63,6 +69,21 @@ class Booking extends Model
     public function review(): HasOne
     {
         return $this->hasOne(Review::class);
+    }
+
+    public function pickupInspection(): HasOne
+    {
+        return $this->hasOne(Inspection::class)->where('inspection_type', 'pickup');
+    }
+
+    public function returnInspection(): HasOne
+    {
+        return $this->hasOne(Inspection::class)->where('inspection_type', 'return');
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
     }
 
     public function scopePending($query)

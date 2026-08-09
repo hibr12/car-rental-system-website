@@ -37,6 +37,7 @@ import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CustomerBookings from "./pages/customer/CustomerBookings";
 import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerReviews from "./pages/customer/CustomerReviews";
+import LicensePage from "./pages/customer/LicensePage";
 
 // Import Fleet Page
 import FleetDashboard from "./pages/fleet/FleetDashboard";
@@ -44,6 +45,9 @@ import FleetDashboard from "./pages/fleet/FleetDashboard";
 // Import Staff Pages
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffBookings from "./pages/staff/StaffBookings";
+
+// Import Branch Manager Pages
+import BranchManagerDashboard from "./pages/branch-manager/BranchManagerDashboard";
 
 // Import Auth Store
 import useAuthStore from "./store/authStore";
@@ -127,6 +131,23 @@ function App() {
           <Route path="bookings" element={<CustomerBookings />} />
           <Route path="reviews" element={<CustomerReviews />} />
           <Route path="profile" element={<CustomerProfile />} />
+          <Route path="license" element={<LicensePage />} />
+        </Route>
+
+        {/* ================= PROTECTED BRANCH MANAGER ROUTES ================= */}
+        <Route
+          path="/branch-manager"
+          element={
+            <ProtectedRoute>
+              <RoleRoute allowedRoles={["branch_manager"]}>
+                <DashboardLayout />
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<BranchManagerDashboard />} />
+          <Route path="bookings" element={<AdminBookings />} />
+          <Route path="vehicles" element={<VehicleManagement />} />
         </Route>
 
         {/* ================= PROTECTED STAFF ROUTES ================= */}

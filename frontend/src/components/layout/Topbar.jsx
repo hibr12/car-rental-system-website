@@ -4,6 +4,7 @@ import { Menu, ExternalLink } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
 import { getRoleBadgeStyle, formatStatus } from '../../utils/formatters';
+import NotificationCenter from '../common/NotificationCenter';
 
 export const Topbar = ({ onToggleSidebar }) => {
   const { user } = useAuthStore();
@@ -27,6 +28,9 @@ export const Topbar = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Notification Center */}
+        <NotificationCenter />
+
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}

@@ -17,6 +17,7 @@ class UpdateVehicleRequest extends FormRequest
 
         return [
             'category_id' => ['sometimes', 'exists:categories,id'],
+            'branch_id' => ['sometimes', 'nullable', 'exists:branches,id'],
             'brand' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'string', 'max:255'],
             'year' => ['sometimes', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],

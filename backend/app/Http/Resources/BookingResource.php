@@ -12,8 +12,10 @@ class BookingResource extends JsonResource
         return [
             'id' => $this->id,
             'booking_reference' => $this->booking_reference,
+            'vehicle_id' => $this->vehicle_id,
             'user' => new UserResource($this->whenLoaded('user')),
             'vehicle' => new VehicleResource($this->whenLoaded('vehicle')),
+            'branch' => new BranchResource($this->whenLoaded('branch')),
             'pickup_location' => $this->pickup_location,
             'return_location' => $this->return_location,
             'pickup_date' => $this->pickup_date->toISOString(),
@@ -27,6 +29,9 @@ class BookingResource extends JsonResource
             'status' => $this->status,
             'payment_status' => $this->payment_status,
             'notes' => $this->notes,
+            'pickup_inspection' => new InspectionResource($this->whenLoaded('pickupInspection')),
+            'return_inspection' => new InspectionResource($this->whenLoaded('returnInspection')),
+            'invoice' => new InvoiceResource($this->whenLoaded('invoice')),
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
         ];

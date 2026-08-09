@@ -13,6 +13,7 @@ class Vehicle extends Model
 
     protected $fillable = [
         'category_id',
+        'branch_id',
         'brand',
         'model',
         'year',
@@ -47,6 +48,11 @@ class Vehicle extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function images(): HasMany
