@@ -9,7 +9,7 @@ export const ProtectedRoute = ({ children }) => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400">
+      <div className="min-h-screen bg-theme-primary flex flex-col items-center justify-center text-theme-muted transition-colors duration-200">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
         <p className="text-sm font-medium">Verifying authentication...</p>
       </div>

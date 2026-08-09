@@ -16,6 +16,13 @@ export const useAuthStore = create((set, get) => ({
       return;
     }
 
+    // If already authenticated with valid state, skip re-fetch
+    const currentState = get();
+    if (currentState.isAuthenticated && currentState.user && currentState.token === token) {
+      set({ isInitializing: false });
+      return;
+    }
+
     try {
       set({ isLoading: true });
       const response = await authApi.me();
@@ -61,6 +68,7 @@ export const useAuthStore = create((set, get) => ({
         token,
         isAuthenticated: true,
         isLoading: false,
+        isInitializing: false,
         error: null,
       });
       return response;
@@ -87,6 +95,7 @@ export const useAuthStore = create((set, get) => ({
         token,
         isAuthenticated: true,
         isLoading: false,
+        isInitializing: false,
         error: null,
       });
       return response;

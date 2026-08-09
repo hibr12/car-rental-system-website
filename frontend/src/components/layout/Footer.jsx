@@ -4,23 +4,23 @@ import { Car, Phone, Mail, MapPin, ShieldCheck, Clock, Award, CreditCard } from 
 
 export const Footer = () => {
   return (
-    <footer className="bg-slate-950 border-t border-slate-800/80 text-slate-400 pt-16 pb-12">
+    <footer className="bg-theme-secondary border-t border-theme text-theme-muted pt-16 pb-12 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800/80">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-theme">
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Car className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-white">
+              <span className="text-xl font-bold tracking-tight text-theme-primary">
                 Apex<span className="text-blue-400">Rentals</span>
               </span>
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+            <p className="text-sm text-theme-muted leading-relaxed max-w-sm">
               Experience unparalleled luxury and performance. Book your dream vehicle with our premium fleet management and zero-hassle online rental process.
             </p>
-            <div className="flex items-center gap-6 pt-2 text-xs font-semibold text-slate-300">
+            <div className="flex items-center gap-6 pt-2 text-xs font-semibold text-theme-secondary">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>Fully Insured</span>
@@ -38,7 +38,7 @@ export const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-4">
               Quick Links
             </h4>
             <ul className="space-y-2.5 text-sm">
@@ -67,7 +67,7 @@ export const Footer = () => {
 
           {/* Categories */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-4">
               Vehicle Categories
             </h4>
             <ul className="space-y-2.5 text-sm">
@@ -96,7 +96,7 @@ export const Footer = () => {
 
           {/* Contact Details */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-4">
               Get In Touch
             </h4>
             <ul className="space-y-3 text-sm">
@@ -119,7 +119,7 @@ export const Footer = () => {
         {/* Bottom copyright & payment methods */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <p>© {new Date().getFullYear()} ApexRentals Inc. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-slate-500">
+          <div className="flex items-center gap-4 text-theme-muted">
             <span className="flex items-center gap-1.5">
               <CreditCard className="w-4 h-4" /> Secure Payment Encryption
             </span>

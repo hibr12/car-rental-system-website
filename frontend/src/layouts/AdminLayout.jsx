@@ -7,7 +7,7 @@ export const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans">
+    <div className="min-h-screen bg-theme-primary text-theme-primary flex font-sans transition-colors duration-200">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         <Topbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />

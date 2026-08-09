@@ -44,17 +44,17 @@ export const LoginPage = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-slate-900 border border-slate-800 p-8 sm:p-10 rounded-3xl shadow-2xl">
+      <div className="max-w-md w-full space-y-8 bg-theme-card border border-theme p-8 sm:p-10 rounded-3xl shadow-2xl transition-colors duration-200">
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <Car className="w-6 h-6 text-white" />
             </div>
           </Link>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-theme-primary tracking-tight">
             Sign In To Your Account
           </h2>
-          <p className="text-xs text-slate-400">Enter your credentials to access your rental dashboard.</p>
+          <p className="text-xs text-theme-muted">Enter your credentials to access your rental dashboard.</p>
         </div>
 
         {errorMessage && (
@@ -66,41 +66,41 @@ export const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+            <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 placeholder="customer@carrental.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-300">Password</label>
+              <label className="text-xs font-semibold text-theme-secondary">Password</label>
               <Link to="/forgot-password" className="text-xs text-blue-400 hover:underline">
                 Forgot password?
               </Link>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-10 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-theme-muted hover:text-theme-primary p-1"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -118,8 +118,8 @@ export const LoginPage = () => {
         </form>
 
         {/* Demo Credentials Info Box */}
-        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-[11px] space-y-1.5 text-slate-400">
-          <p className="font-semibold text-slate-200 uppercase tracking-wider text-[10px]">Sample Backend Roles for Testing:</p>
+        <div className="bg-theme-input p-4 rounded-2xl border border-theme text-[11px] space-y-1.5 text-theme-muted transition-colors duration-200">
+          <p className="font-semibold text-theme-secondary uppercase tracking-wider text-[10px]">Sample Backend Roles for Testing:</p>
           <div className="grid grid-cols-2 gap-1 text-[10px] font-mono">
             <div>Customer: customer@carrental.com</div>
             <div>Admin: admin@carrental.com</div>
@@ -128,7 +128,7 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        <div className="text-center text-xs text-slate-400 pt-2">
+        <div className="text-center text-xs text-theme-muted pt-2">
           Don't have an account?{' '}
           <Link to="/register" className="font-bold text-blue-400 hover:underline">
             Register Now

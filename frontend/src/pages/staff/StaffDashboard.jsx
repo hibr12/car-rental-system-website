@@ -1,52 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarCheck, Clock, CheckCircle2, Car, ArrowRight } from 'lucide-react';
+import {
+  CalendarCheck,
+  Car,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+  UserCheck,
+  RotateCcw
+} from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import useAuthStore from '../../store/authStore';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { StatCardSkeleton } from '../../components/common/Skeleton';
 
-export const CustomerDashboard = () => {
+export const StaffDashboard = () => {
   const { user } = useAuthStore();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     bookingApi
-      .getUserBookings({ per_page: 5 })
+      .getAdminBookings({ per_page: 10 })
       .then((res) => {
         setBookings(res.data || []);
       })
-      .catch((err) => console.error('Failed to load user bookings:', err))
+      .catch((err) => console.error('Failed to load bookings:', err))
       .finally(() => setLoading(false));
   }, []);
 
   const totalBookings = bookings.length;
+  const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
   const activeBookings = bookings.filter((b) => b.status === 'active' || b.status === 'confirmed').length;
   const completedBookings = bookings.filter((b) => b.status === 'completed').length;
-  const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
+  const needsAction = bookings.filter((b) => b.status === 'pending' || b.status === 'confirmed').length;
 
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-900/60 via-theme-secondary to-theme-secondary border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
+      <div className="bg-gradient-to-r from-cyan-900/60 via-theme-secondary to-theme-secondary border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
         <div className="space-y-2">
-          <span className="text-xs uppercase font-extrabold tracking-wider text-blue-400">
-            Customer Dashboard
+          <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-400">
+            Staff Workstation
           </span>
           <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">
-            Hello, {user?.name || 'Valued Client'}!
+            Welcome, {user?.name || 'Staff Member'}!
           </h1>
           <p className="text-sm text-theme-muted max-w-xl">
-            Track active vehicle rentals, manage reservation dates, and review completed trips from your personal workstation.
+            Manage bookings, process vehicle pickups and returns, and assist customers with their reservations.
           </p>
         </div>
         <Link
-          to="/vehicles"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all self-start md:self-auto"
+          to="/staff/bookings"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/25 transition-all self-start md:self-auto"
         >
-          <Car className="w-4 h-4" />
-          <span>Book New Vehicle</span>
+          <CalendarCheck className="w-4 h-4" />
+          <span>View All Bookings</span>
         </Link>
       </div>
 
@@ -71,8 +82,16 @@ export const CustomerDashboard = () => {
 
             <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
               <div className="flex items-center justify-between text-theme-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider">Needs Action</span>
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+              </div>
+              <p className="text-3xl font-extrabold text-amber-400">{needsAction}</p>
+            </div>
+
+            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
+              <div className="flex items-center justify-between text-theme-muted">
                 <span className="text-xs font-semibold uppercase tracking-wider">Active Rentals</span>
-                <Clock className="w-5 h-5 text-emerald-400" />
+                <Car className="w-5 h-5 text-emerald-400" />
               </div>
               <p className="text-3xl font-extrabold text-emerald-400">{activeBookings}</p>
             </div>
@@ -84,28 +103,59 @@ export const CustomerDashboard = () => {
               </div>
               <p className="text-3xl font-extrabold text-purple-400">{completedBookings}</p>
             </div>
-
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
-              <div className="flex items-center justify-between text-theme-muted">
-                <span className="text-xs font-semibold uppercase tracking-wider">Pending</span>
-                <Clock className="w-5 h-5 text-amber-400" />
-              </div>
-              <p className="text-3xl font-extrabold text-amber-400">{pendingBookings}</p>
-            </div>
           </>
         )}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <Link
+          to="/staff/bookings"
+          className="bg-theme-card border border-theme p-6 rounded-2xl hover:border-cyan-500/50 transition-all duration-200 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-theme-primary">Process Bookings</h3>
+                <p className="text-xs text-theme-muted">Confirm pickups and process returns</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-theme-muted group-hover:text-cyan-400 transition-colors" />
+          </div>
+        </Link>
+
+        <Link
+          to="/vehicles"
+          className="bg-theme-card border border-theme p-6 rounded-2xl hover:border-blue-500/50 transition-all duration-200 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                <Car className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-theme-primary">Browse Vehicles</h3>
+                <p className="text-xs text-theme-muted">View available fleet inventory</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-theme-muted group-hover:text-blue-400 transition-colors" />
+          </div>
+        </Link>
       </div>
 
       {/* Recent Bookings Table */}
       <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-colors duration-200">
         <div className="flex items-center justify-between pb-4 border-b border-theme">
           <div>
-            <h3 className="text-lg font-bold text-theme-primary">Recent Booking Activity</h3>
-            <p className="text-xs text-theme-muted">Your recent vehicle reservations</p>
+            <h3 className="text-lg font-bold text-theme-primary">Recent Bookings</h3>
+            <p className="text-xs text-theme-muted">Latest reservation activity requiring attention</p>
           </div>
           <Link
-            to="/dashboard/bookings"
-            className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+            to="/staff/bookings"
+            className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
           >
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -120,17 +170,11 @@ export const CustomerDashboard = () => {
           </div>
         ) : bookings.length === 0 ? (
           <div className="text-center py-12 space-y-3">
-            <Car className="w-12 h-12 text-theme-muted mx-auto" />
-            <p className="text-sm font-semibold text-theme-secondary">No Reservations Yet</p>
+            <CalendarCheck className="w-12 h-12 text-theme-muted mx-auto" />
+            <p className="text-sm font-semibold text-theme-secondary">No Bookings Found</p>
             <p className="text-xs text-theme-muted max-w-xs mx-auto">
-              Ready for a trip? Browse our catalog and book your first vehicle today.
+              There are no bookings in the system yet.
             </p>
-            <Link
-              to="/vehicles"
-              className="inline-block px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold"
-            >
-              Browse Vehicles
-            </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -138,20 +182,24 @@ export const CustomerDashboard = () => {
               <thead className="text-xs uppercase bg-theme-hover text-theme-muted border-b border-theme">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Reference</th>
+                  <th className="py-3.5 px-4 font-semibold">Customer</th>
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
-                  <th className="py-3.5 px-4 font-semibold">Pickup Date</th>
-                  <th className="py-3.5 px-4 font-semibold">Return Date</th>
+                  <th className="py-3.5 px-4 font-semibold">Pickup</th>
+                  <th className="py-3.5 px-4 font-semibold">Return</th>
                   <th className="py-3.5 px-4 font-semibold">Total</th>
                   <th className="py-3.5 px-4 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
-                {bookings.map((booking) => (
+                {bookings.slice(0, 8).map((booking) => (
                   <tr key={booking.id} className="hover:bg-theme-hover transition-colors">
-                    <td className="py-4 px-4 font-mono text-xs text-blue-400 font-bold">
+                    <td className="py-4 px-4 font-mono text-xs text-cyan-400 font-bold">
                       {booking.booking_reference}
                     </td>
                     <td className="py-4 px-4 font-medium text-theme-primary">
+                      {booking.user?.name || `User #${booking.user_id}`}
+                    </td>
+                    <td className="py-4 px-4 text-theme-secondary">
                       {booking.vehicle
                         ? `${booking.vehicle.brand} ${booking.vehicle.model}`
                         : `Vehicle #${booking.vehicle_id}`}
@@ -181,4 +229,4 @@ export const CustomerDashboard = () => {
   );
 };
 
-export default CustomerDashboard;
+export default StaffDashboard;

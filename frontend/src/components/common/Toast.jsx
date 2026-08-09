@@ -66,13 +66,13 @@ const ToastItem = ({ toast, onClose }) => {
   const getBorderColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'border-emerald-500/30 bg-slate-900/90 text-emerald-100';
+        return 'border-emerald-500/30 bg-theme-card/90 text-emerald-100';
       case 'error':
-        return 'border-rose-500/30 bg-slate-900/90 text-rose-100';
+        return 'border-rose-500/30 bg-theme-card/90 text-rose-100';
       case 'warning':
-        return 'border-amber-500/30 bg-slate-900/90 text-amber-100';
+        return 'border-amber-500/30 bg-theme-card/90 text-amber-100';
       default:
-        return 'border-sky-500/30 bg-slate-900/90 text-sky-100';
+        return 'border-sky-500/30 bg-theme-card/90 text-sky-100';
     }
   };
 
@@ -87,7 +87,7 @@ const ToastItem = ({ toast, onClose }) => {
       <div className="flex-1 text-sm font-medium pr-2">{toast.message}</div>
       <button
         onClick={onClose}
-        className="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-white/10"
+        className="text-theme-muted hover:text-theme-primary transition-colors p-1 rounded-lg hover:bg-white/10"
       >
         <X className="w-4 h-4" />
       </button>

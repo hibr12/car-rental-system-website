@@ -13,9 +13,6 @@ import {
   MessageSquare,
   LogOut,
   ChevronRight,
-  Shield,
-  UserCheck,
-  BarChart3
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -74,7 +71,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             title: 'Staff Workstation',
             items: [
               { name: 'Workstation Overview', path: '/staff', icon: LayoutDashboard },
-              { name: 'Bookings & Returns', path: '/staff/bookings', icon: UserCheck },
+              { name: 'Bookings & Returns', path: '/staff/bookings', icon: CalendarCheck },
             ],
           },
         ];
@@ -102,23 +99,23 @@ export const Sidebar = ({ isOpen, onClose }) => {
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-theme-card border-r border-theme flex flex-col justify-between transition-transform duration-300 md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
           {/* Logo Header */}
-          <div className="h-20 flex items-center px-6 border-b border-slate-800 justify-between">
+          <div className="h-20 flex items-center px-6 border-b border-theme justify-between">
             <Link to="/" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
                 <Car className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold tracking-tight text-white">
+              <span className="text-lg font-bold tracking-tight text-theme-primary">
                 Apex<span className="text-blue-400">Rentals</span>
               </span>
             </Link>
@@ -128,7 +125,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <div className="py-6 px-4 space-y-6 overflow-y-auto max-h-[calc(100vh-160px)]">
             {menuGroups.map((group, idx) => (
               <div key={idx} className="space-y-2">
-                <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-theme-muted">
                   {group.title}
                 </p>
                 <div className="space-y-1">
@@ -143,11 +140,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
                         className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                           isActive
                             ? 'bg-blue-600 text-white font-semibold shadow-lg shadow-blue-600/20'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                            : 'text-theme-muted hover:text-theme-primary hover:bg-theme-hover'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-theme-muted'}`} />
                           <span>{item.name}</span>
                         </div>
                         {isActive && <ChevronRight className="w-4 h-4 text-white/70" />}
@@ -161,7 +158,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* User Info & Logout Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+        <div className="p-4 border-t border-theme bg-theme-card/50">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"

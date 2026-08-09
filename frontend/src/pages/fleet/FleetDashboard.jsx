@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Wrench, Plus, CheckCircle2, Clock, ShieldAlert } from 'lucide-react';
+import { Car, Wrench, Plus, Loader2 } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import maintenanceApi from '../../api/maintenanceApi';
 import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 
 export const FleetDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
-  const [maintenance, setMaintenance] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([vehicleApi.getAll({ per_page: 10 }), maintenanceApi.getAll({ per_page: 5 })])
-      .then(([vehRes, mainRes]) => {
+      .then(([vehRes]) => {
         setVehicles(vehRes.data || []);
-        setMaintenance(mainRes.data || []);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -25,16 +23,25 @@ export const FleetDashboard = () => {
   const maintenanceCount = vehicles.filter((v) => v.status === 'maintenance').length;
   const rentedCount = vehicles.filter((v) => v.status === 'rented').length;
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-theme-muted">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+        <p className="text-sm font-medium">Loading fleet data...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-900/60 via-slate-900 to-slate-900 border border-slate-800 p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+      <div className="bg-gradient-to-r from-indigo-900/60 via-theme-secondary to-theme-secondary border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
         <div className="space-y-2">
           <span className="text-xs uppercase font-extrabold tracking-wider text-indigo-400">
             Fleet Operations Control
           </span>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Fleet Manager Workstation</h1>
-          <p className="text-sm text-slate-400 max-w-xl">
+          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Fleet Manager Workstation</h1>
+          <p className="text-sm text-theme-muted max-w-xl">
             Monitor vehicle availability, schedule preventative maintenance, and register new fleet additions.
           </p>
         </div>
@@ -48,7 +55,7 @@ export const FleetDashboard = () => {
           </Link>
           <Link
             to="/fleet/maintenance"
-            className="px-5 py-3 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+            className="px-5 py-3 rounded-2xl bg-theme-secondary border border-theme hover:bg-theme-hover text-theme-secondary font-bold text-xs flex items-center gap-2 transition-colors"
           >
             <Wrench className="w-4 h-4 text-indigo-400" />
             <span>Schedule Maintenance</span>
@@ -58,45 +65,45 @@ export const FleetDashboard = () => {
 
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Fleet</span>
-          <p className="text-3xl font-extrabold text-white">{totalCount}</p>
+        <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Total Fleet</span>
+          <p className="text-3xl font-extrabold text-theme-primary">{totalCount}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ready & Available</span>
+        <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Ready & Available</span>
           <p className="text-3xl font-extrabold text-emerald-400">{availableCount}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Currently Rented</span>
+        <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Currently Rented</span>
           <p className="text-3xl font-extrabold text-blue-400">{rentedCount}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Under Maintenance</span>
+        <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Under Maintenance</span>
           <p className="text-3xl font-extrabold text-rose-400">{maintenanceCount}</p>
         </div>
       </div>
 
       {/* Recent Vehicles Grid */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white">Active Fleet Inventory</h3>
+      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-colors duration-200">
+        <div className="flex justify-between items-center pb-4 border-b border-theme">
+          <h3 className="text-lg font-bold text-theme-primary">Active Fleet Inventory</h3>
           <Link to="/fleet/vehicles" className="text-xs text-blue-400 hover:underline">
             Manage Fleet
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vehicles.slice(0, 6).map((v) => (
-            <div key={v.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div key={v.id} className="bg-theme-input p-5 rounded-2xl border border-theme space-y-3 transition-colors duration-200">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-bold text-white text-base">{v.brand} {v.model}</h4>
-                  <p className="text-xs text-slate-500">{v.registration_number}</p>
+                  <h4 className="font-bold text-theme-primary text-base">{v.brand} {v.model}</h4>
+                  <p className="text-xs text-theme-muted">{v.registration_number}</p>
                 </div>
                 <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(v.status)}`}>
                   {formatStatus(v.status)}
                 </span>
               </div>
-              <div className="flex justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+              <div className="flex justify-between text-xs text-theme-muted pt-2 border-t border-theme">
                 <span>Daily Rate: {formatCurrency(v.rental_price_per_day)}</span>
                 <span className="capitalize">{v.transmission}</span>
               </div>
