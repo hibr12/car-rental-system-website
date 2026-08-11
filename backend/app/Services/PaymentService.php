@@ -22,9 +22,15 @@ class PaymentService
 
     public function getPaymentsForUser(User $user): LengthAwarePaginator
     {
-        $query = Payment::with(['booking']);
+        $query = Payment::with(['booking', 'user', 'branch']);
 
-        if (!in_array($user->role, ['admin', 'staff', 'fleet_manager'])) {
+        if ($user->isAdmin()) {
+            // Admin sees everything — no scope
+        } elseif ($user->isBranchManager() || $user->isStaff() || $user->isFleetManager()) {
+            // Branch-scoped staff see only their branch
+            $query->where('branch_id', $user->branch_id);
+        } else {
+            // Customers see only their own payments
             $query->where('user_id', $user->id);
         }
 
@@ -49,12 +55,14 @@ class PaymentService
 
         $payment = DB::transaction(function () use ($booking, $userId, $txRef) {
             $payment = Payment::create([
-                'booking_id' => $booking->id,
-                'user_id' => $userId,
-                'amount' => $booking->total_price,
-                'payment_method' => Payment::METHOD_ONLINE_PAYMENT,
+                'booking_id'            => $booking->id,
+                'user_id'               => $userId,
+                'branch_id'             => $booking->branch_id,
+                'amount'                => $booking->total_price,
+                'currency'              => 'ETB',
+                'payment_method'        => Payment::METHOD_ONLINE_PAYMENT,
                 'transaction_reference' => $txRef,
-                'status' => Payment::STATUS_PENDING,
+                'status'                => Payment::STATUS_PENDING,
             ]);
 
             $booking->update([
@@ -179,13 +187,15 @@ class PaymentService
             $this->validatePaymentAmount($data, $booking);
 
             $payment = Payment::create([
-                'booking_id' => $booking->id,
-                'user_id' => $userId,
-                'amount' => $booking->total_price,
-                'payment_method' => $data['payment_method'],
+                'booking_id'            => $booking->id,
+                'user_id'               => $userId,
+                'branch_id'             => $booking->branch_id,
+                'amount'                => $booking->total_price,
+                'currency'              => 'ETB',
+                'payment_method'        => $data['payment_method'],
                 'transaction_reference' => $data['transaction_reference'] ?? $this->generateTransactionRef(),
-                'status' => Payment::STATUS_PAID,
-                'paid_at' => now(),
+                'status'                => Payment::STATUS_PAID,
+                'paid_at'               => now(),
             ]);
 
             $booking->update([

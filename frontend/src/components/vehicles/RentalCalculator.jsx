@@ -107,7 +107,7 @@ export const RentalCalculator = ({ vehicle }) => {
         <div className="pt-2 flex flex-col gap-3">
           <button
             onClick={() => navigate(`/checkout?booking_id=${bookingSuccess.id}`)}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm transition-all shadow-lg shadow-blue-600/25"
+            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm transition-all shadow-lg"
           >
             Proceed to Payment
           </button>
@@ -247,7 +247,7 @@ export const RentalCalculator = ({ vehicle }) => {
         <button
           type="submit"
           disabled={loading || vehicle.status !== 'available'}
-          className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-base transition-all shadow-xl shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-base transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

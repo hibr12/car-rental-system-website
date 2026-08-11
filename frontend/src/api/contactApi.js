@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const contactApi = {
   submit: (payload) => apiClient.post('/contact-messages', payload),

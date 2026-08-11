@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const maintenanceApi = {
   getAll: (params = {}) => apiClient.get('/maintenance', { params }),

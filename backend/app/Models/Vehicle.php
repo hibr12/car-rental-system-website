@@ -11,8 +11,25 @@ class Vehicle extends Model
 {
     use HasFactory;
 
+    public const STATUS_AVAILABLE = 'available';
+    public const STATUS_RESERVED = 'reserved';
+    public const STATUS_RENTED = 'rented';
+    public const STATUS_MAINTENANCE = 'maintenance';
+    public const STATUS_UNAVAILABLE = 'unavailable';
+    public const STATUS_TRANSFERRED = 'transferred';
+
+    public const STATUSES = [
+        self::STATUS_AVAILABLE,
+        self::STATUS_RESERVED,
+        self::STATUS_RENTED,
+        self::STATUS_MAINTENANCE,
+        self::STATUS_UNAVAILABLE,
+        self::STATUS_TRANSFERRED,
+    ];
+
     protected $fillable = [
         'category_id',
+        'branch_id',
         'brand',
         'model',
         'year',
@@ -49,6 +66,11 @@ class Vehicle extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(VehicleImage::class);
@@ -66,12 +88,17 @@ class Vehicle extends Model
 
     public function scopeAvailable($query)
     {
-        return $query->where('status', 'available');
+        return $query->where('status', self::STATUS_AVAILABLE);
     }
 
     public function scopeFeatured($query)
     {
         return $query->where('featured', true);
+    }
+
+    public function scopeInBranch($query, $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 
     public function bookings(): HasMany
@@ -84,8 +111,38 @@ class Vehicle extends Model
         return $this->hasMany(Review::class);
     }
 
+    public function maintenances(): HasMany
+    {
+        return $this->hasMany(Maintenance::class);
+    }
+
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(VehicleTransfer::class);
+    }
+
     public function averageRating()
     {
         return $this->reviews()->approved()->avg('rating');
+    }
+
+    public function canBeBooked(): bool
+    {
+        return in_array($this->status, [self::STATUS_AVAILABLE, self::STATUS_RESERVED]);
+    }
+
+    public function isAvailable(): bool
+    {
+        return $this->status === self::STATUS_AVAILABLE;
+    }
+
+    public function isRented(): bool
+    {
+        return $this->status === self::STATUS_RENTED;
+    }
+
+    public function isUnderMaintenance(): bool
+    {
+        return $this->status === self::STATUS_MAINTENANCE;
     }
 }

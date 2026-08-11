@@ -32,9 +32,10 @@ export const LoginPage = () => {
       
       const userRole = response.data?.user?.role;
       let targetPath = '/dashboard';
-      if (userRole === 'admin') targetPath = '/admin';
+      if (userRole === 'admin' || userRole === 'super_admin') targetPath = '/admin';
+      else if (userRole === 'branch_manager') targetPath = '/branch';
       else if (userRole === 'fleet_manager') targetPath = '/fleet';
-      else if (userRole === 'staff') targetPath = '/staff';
+      else if (['staff', 'rental_agent', 'inspection_staff', 'maintenance_staff', 'finance_staff'].includes(userRole)) targetPath = '/staff';
 
       navigate(from !== '/dashboard' ? from : targetPath, { replace: true });
     } catch (err) {
@@ -110,7 +111,7 @@ export const LoginPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <LogIn className="w-4 h-4" />
             <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>

@@ -18,6 +18,7 @@ class Booking extends Model
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_REJECTED = 'rejected';
+    public const STATUS_EXPIRED = 'expired';
 
     public const PAYMENT_STATUS_UNPAID = 'unpaid';
     public const PAYMENT_STATUS_PENDING = 'pending';
@@ -32,6 +33,7 @@ class Booking extends Model
         self::STATUS_COMPLETED,
         self::STATUS_CANCELLED,
         self::STATUS_REJECTED,
+        self::STATUS_EXPIRED,
     ];
 
     public const PAYMENT_STATUSES = [
@@ -46,6 +48,7 @@ class Booking extends Model
         'booking_reference',
         'user_id',
         'vehicle_id',
+        'branch_id',
         'pickup_location',
         'return_location',
         'pickup_date',
@@ -74,6 +77,7 @@ class Booking extends Model
             'total_price' => 'decimal:2',
             'user_id' => 'integer',
             'vehicle_id' => 'integer',
+            'branch_id' => 'integer',
         ];
     }
 
@@ -85,6 +89,11 @@ class Booking extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function payments(): HasMany
@@ -120,6 +129,11 @@ class Booking extends Model
     public function scopeCancelled($query)
     {
         return $query->where('status', self::STATUS_CANCELLED);
+    }
+
+    public function scopeInBranch($query, $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 
     public function scopeOverlapping($query, $vehicleId, $pickupDate, $returnDate)

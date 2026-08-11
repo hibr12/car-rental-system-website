@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const reviewApi = {
   getByVehicle: (vehicleId) => apiClient.get(`/vehicles/${vehicleId}/reviews`),

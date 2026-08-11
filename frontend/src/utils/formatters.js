@@ -63,14 +63,28 @@ export const getStatusBadgeStyle = (status) => {
 export const getRoleBadgeStyle = (role) => {
   switch (role?.toLowerCase()) {
     case 'admin':
+    case 'super_admin':
       return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    case 'branch_manager':
+      return 'bg-green-500/10 text-green-400 border-green-500/20';
     case 'fleet_manager':
-      return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+      return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
     case 'staff':
       return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
     case 'customer':
       return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
     default:
       return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+  }
+};
+
+export const getTransferStatusStyle = (status) => {
+  switch (status?.toLowerCase()) {
+    case 'requested':   return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'approved':    return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'in_transit':  return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+    case 'completed':   return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+    case 'cancelled':   return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    default:            return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
   }
 };

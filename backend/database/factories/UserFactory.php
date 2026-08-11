@@ -29,31 +29,45 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function admin(): static
+    public function superAdmin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'admin',
+            'role' => User::ROLE_SUPER_ADMIN,
         ]);
     }
 
-    public function fleetManager(): static
+    public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'fleet_manager',
+            'role' => User::ROLE_COMPANY_ADMIN,
+        ]);
+    }
+
+    public function branchManager(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_BRANCH_MANAGER,
         ]);
     }
 
     public function staff(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'staff',
+            'role' => User::ROLE_BRANCH_STAFF,
         ]);
     }
 
     public function customer(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'customer',
+            'role' => User::ROLE_CUSTOMER,
+        ]);
+    }
+
+    public function fleetManager(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_COMPANY_ADMIN,
         ]);
     }
 }

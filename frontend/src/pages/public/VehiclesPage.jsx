@@ -151,7 +151,7 @@ export const VehiclesPage = () => {
               <p className="text-xs text-theme-muted max-w-md mx-auto">{error}</p>
               <button
                 onClick={fetchVehicles}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-theme-primary font-semibold text-xs shadow-md shadow-blue-600/20"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-theme-primary font-semibold text-xs shadow-md"
               >
                 Try Again
               </button>

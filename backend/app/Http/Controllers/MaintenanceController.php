@@ -15,7 +15,15 @@ class MaintenanceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Maintenance::with(['vehicle', 'creator'])->latest();
+        $user  = $request->user();
+        $query = Maintenance::with(['vehicle.branch', 'creator'])->latest();
+
+        // Scope branch managers/staff to their branch only
+        if (!$user->isAdmin()) {
+            $query->where('branch_id', $user->branch_id);
+        } elseif ($request->has('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
 
         if ($request->has('status')) {
             $query->where('status', $request->status);

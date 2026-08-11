@@ -45,14 +45,14 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = User::with('branch')->where('email', $request->email)->firstOrFail();
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user' => new UserResource($user),
+                'user'  => new UserResource($user),
                 'token' => $token,
             ],
         ]);
@@ -70,11 +70,13 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user()->load('branch');
+
         return response()->json([
             'success' => true,
             'message' => 'User retrieved successfully',
             'data' => [
-                'user' => new UserResource($request->user()),
+                'user' => new UserResource($user),
             ],
         ]);
     }

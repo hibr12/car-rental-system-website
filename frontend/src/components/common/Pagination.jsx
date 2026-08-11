@@ -53,7 +53,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
             onClick={() => onPageChange(page)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               currentPage === page
-                ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20'
+                ? 'bg-blue-600 text-white font-semibold shadow-md'
                 : 'border border-theme bg-slate-900/60 text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
             }`}
           >

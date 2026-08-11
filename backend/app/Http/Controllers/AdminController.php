@@ -72,7 +72,8 @@ class AdminController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'role' => ['sometimes', 'string', 'in:customer,admin,fleet_manager,staff'],
+            'role'      => ['sometimes', 'string', 'in:customer,admin,branch_manager,fleet_manager,staff'],
+            'branch_id' => ['sometimes', 'nullable', 'exists:branches,id'],
         ]);
 
         $user->update($data);

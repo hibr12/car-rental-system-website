@@ -90,7 +90,7 @@ export const VehicleCard = ({ vehicle }) => {
 
         <Link
           to={`/vehicles/${vehicle.id}`}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/20 group-hover:gap-2.5"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md group-hover:gap-2.5"
         >
           <span>View Details</span>
           <ArrowRight className="w-3.5 h-3.5" />

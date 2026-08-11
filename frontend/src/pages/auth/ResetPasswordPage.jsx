@@ -65,7 +65,7 @@ export const ResetPasswordPage = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/25"
+            className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg"
           >
             Update Password
           </button>

@@ -165,7 +165,7 @@ export const ContactPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm shadow-xl shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

@@ -62,22 +62,23 @@ class BookingService
             $discount, $totalPrice
         ) {
             $booking = Booking::create([
-                'booking_reference' => $bookingReference,
-                'user_id' => $userId,
-                'vehicle_id' => $vehicle->id,
-                'pickup_location' => $data['pickup_location'],
-                'return_location' => $data['return_location'],
-                'pickup_date' => $pickupDate,
-                'return_date' => $returnDate,
-                'number_of_days' => $numberOfDays,
-                'price_per_day' => $pricePerDay,
-                'subtotal' => $subtotal,
+                'booking_reference'  => $bookingReference,
+                'user_id'            => $userId,
+                'vehicle_id'         => $vehicle->id,
+                'branch_id'          => $vehicle->branch_id,
+                'pickup_location'    => $data['pickup_location'],
+                'return_location'    => $data['return_location'],
+                'pickup_date'        => $pickupDate,
+                'return_date'        => $returnDate,
+                'number_of_days'     => $numberOfDays,
+                'price_per_day'      => $pricePerDay,
+                'subtotal'           => $subtotal,
                 'additional_charges' => $additionalCharges,
-                'discount' => $discount,
-                'total_price' => $totalPrice,
-                'status' => Booking::STATUS_PENDING,
-                'payment_status' => Booking::PAYMENT_STATUS_UNPAID,
-                'notes' => $data['notes'] ?? null,
+                'discount'           => $discount,
+                'total_price'        => $totalPrice,
+                'status'             => Booking::STATUS_PENDING,
+                'payment_status'     => Booking::PAYMENT_STATUS_UNPAID,
+                'notes'              => $data['notes'] ?? null,
             ]);
 
             $booking->load('vehicle', 'user');

@@ -53,20 +53,18 @@ export const HomePage = () => {
     <div className="space-y-24 pb-20">
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-12 pb-20 overflow-hidden">
-        {/* Background Gradients & Glow */}
-        <div className="absolute inset-0 bg-blue-900/5 via-theme-primary to-theme-primary pointer-events-none transition-colors duration-200" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/15 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute inset-0 bg-theme-secondary pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full text-center space-y-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
             <Zap className="w-3.5 h-3.5" />
-            <span>Next-Generation Luxury & Performance Rentals</span>
+            <span>Professional Multi-Branch Car Rental</span>
           </div>
 
           <div className="space-y-4 max-w-4xl mx-auto">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-theme-primary tracking-tight leading-tight">
               Drive Your Journey <br />
-              <span className="gradient-text">With Absolute Confidence</span>
+              <span className="text-blue-600">With Absolute Confidence</span>
             </h1>
             <p className="text-base sm:text-xl text-theme-muted max-w-2xl mx-auto font-normal leading-relaxed">
               Unlock extraordinary driving experiences with our handpicked fleet of premium sedans, high-performance SUVs, and eco-friendly electric vehicles.
@@ -104,7 +102,7 @@ export const HomePage = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
               >
                 <Search className="w-4 h-4" />
                 <span>Search Vehicles</span>
@@ -203,12 +201,12 @@ export const HomePage = () => {
               return (
                 <div
                   key={index}
-                  className="bg-theme-card border border-theme p-6 rounded-2xl relative group hover:border-blue-500/50 transition-colors duration-200"
+                  className="bg-theme-card border border-theme p-6 rounded-2xl relative group hover:border-slate-300 dark:hover:border-slate-500 transition-colors duration-200"
                 >
-                  <span className="text-4xl font-black text-theme-muted/20 group-hover:text-blue-500/20 transition-colors absolute top-4 right-4">
+                  <span className="text-4xl font-black text-theme-muted/10 absolute top-4 right-4">
                     {item.step}
                   </span>
-                  <div className="w-12 h-12 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center mb-4 border border-blue-500/20">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6" />
                   </div>
                   <h3 className="text-lg font-bold text-theme-primary mb-2">{item.title}</h3>
@@ -251,7 +249,7 @@ export const HomePage = () => {
             <div className="pt-4">
               <Link
                 to="/vehicles"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 hover:scale-105 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors"
               >
                 <span>Find Your Ideal Vehicle</span>
                 <ChevronRight className="w-4 h-4" />
@@ -334,7 +332,7 @@ export const HomePage = () => {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
               <Link
                 to="/vehicles"
-                className="px-8 py-4 rounded-2xl bg-white text-slate-950 font-bold text-sm shadow-xl hover:bg-slate-100 transition-transform hover:scale-105"
+                className="px-8 py-4 rounded-2xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 transition-colors"
               >
                 Browse All Vehicles
               </Link>

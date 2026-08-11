@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const paymentApi = {
   getAll: (params = {}) => apiClient.get('/payments', { params }),

@@ -10,7 +10,7 @@ export const Footer = () => {
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
                 <Car className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold tracking-tight text-theme-primary">

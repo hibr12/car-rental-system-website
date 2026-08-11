@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const bookingApi = {
   getUserBookings: (params = {}) => apiClient.get('/bookings', { params }),

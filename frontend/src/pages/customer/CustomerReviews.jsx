@@ -127,7 +127,7 @@ export const CustomerReviews = () => {
           onClick={() => setActiveTab('write')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${
             activeTab === 'write'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+              ? 'bg-blue-600 text-white shadow-md'
               : 'text-theme-muted hover:bg-theme-hover'
           }`}
         >
@@ -137,7 +137,7 @@ export const CustomerReviews = () => {
           onClick={() => setActiveTab('myreviews')}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${
             activeTab === 'myreviews'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+              ? 'bg-blue-600 text-white shadow-md'
               : 'text-theme-muted hover:bg-theme-hover'
           }`}
         >
@@ -185,7 +185,7 @@ export const CustomerReviews = () => {
                       setSelectedBooking(b);
                       setReviewModalOpen(true);
                     }}
-                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-md flex items-center justify-center gap-2"
                   >
                     <Star className="w-3.5 h-3.5" />
                     <span>Leave Review & Rating</span>
@@ -322,7 +322,7 @@ export const CustomerReviews = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 disabled:opacity-50"
+              className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : 'Post Vehicle Review'}
             </button>
@@ -360,7 +360,7 @@ export const CustomerReviews = () => {
             <button
               type="submit"
               disabled={updating}
-              className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 disabled:opacity-50"
+              className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg disabled:opacity-50"
             >
               {updating ? 'Updating...' : 'Update Review'}
             </button>

@@ -89,7 +89,7 @@ export const CustomerProfile = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               <span>{isLoading ? 'Saving Changes...' : 'Save Profile Changes'}</span>

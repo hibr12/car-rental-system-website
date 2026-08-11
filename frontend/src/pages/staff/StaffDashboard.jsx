@@ -23,7 +23,7 @@ export const StaffDashboard = () => {
 
   useEffect(() => {
     bookingApi
-      .getAdminBookings({ per_page: 10 })
+      .getAdminBookings({ per_page: 20 })
       .then((res) => {
         setBookings(res.data || []);
       })
@@ -31,16 +31,22 @@ export const StaffDashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const today = new Date().toISOString().split('T')[0];
   const totalBookings = bookings.length;
   const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
   const activeBookings = bookings.filter((b) => b.status === 'active' || b.status === 'confirmed').length;
   const completedBookings = bookings.filter((b) => b.status === 'completed').length;
-  const needsAction = bookings.filter((b) => b.status === 'pending' || b.status === 'confirmed').length;
+  const todayPickups = bookings.filter(
+    (b) => b.pickup_date && b.pickup_date.startsWith(today) && (b.status === 'confirmed' || b.status === 'active')
+  ).length;
+  const todayReturns = bookings.filter(
+    (b) => b.return_date && b.return_date.startsWith(today) && b.status === 'active'
+  ).length;
 
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-cyan-900/60 border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
+      <div className="bg-theme-card border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
         <div className="space-y-2">
           <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-400">
             Staff Workstation
@@ -61,7 +67,7 @@ export const StaffDashboard = () => {
         </Link>
       </div>
 
-      {/* Metrics Row */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           <>
@@ -72,36 +78,48 @@ export const StaffDashboard = () => {
           </>
         ) : (
           <>
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
-              <div className="flex items-center justify-between text-theme-muted">
-                <span className="text-xs font-semibold uppercase tracking-wider">Total Bookings</span>
-                <CalendarCheck className="w-5 h-5 text-blue-400" />
+            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Today's Pickups</span>
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                  <Car className="w-5 h-5" />
+                </div>
               </div>
-              <p className="text-3xl font-extrabold text-theme-primary">{totalBookings}</p>
+              <p className="text-3xl font-extrabold text-blue-400">{todayPickups}</p>
+              <p className="text-[11px] text-theme-muted">Vehicles to be picked up today</p>
             </div>
 
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
-              <div className="flex items-center justify-between text-theme-muted">
-                <span className="text-xs font-semibold uppercase tracking-wider">Needs Action</span>
-                <AlertCircle className="w-5 h-5 text-amber-400" />
+            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Today's Returns</span>
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
               </div>
-              <p className="text-3xl font-extrabold text-amber-400">{needsAction}</p>
+              <p className="text-3xl font-extrabold text-purple-400">{todayReturns}</p>
+              <p className="text-[11px] text-theme-muted">Vehicles to be returned today</p>
             </div>
 
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
-              <div className="flex items-center justify-between text-theme-muted">
-                <span className="text-xs font-semibold uppercase tracking-wider">Active Rentals</span>
-                <Car className="w-5 h-5 text-emerald-400" />
+            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Pending Confirmations</span>
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold text-amber-400">{pendingBookings}</p>
+              <p className="text-[11px] text-theme-muted">Awaiting staff approval</p>
+            </div>
+
+            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Active Rentals</span>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
               </div>
               <p className="text-3xl font-extrabold text-emerald-400">{activeBookings}</p>
-            </div>
-
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-2 transition-colors duration-200">
-              <div className="flex items-center justify-between text-theme-muted">
-                <span className="text-xs font-semibold uppercase tracking-wider">Completed</span>
-                <CheckCircle2 className="w-5 h-5 text-purple-400" />
-              </div>
-              <p className="text-3xl font-extrabold text-purple-400">{completedBookings}</p>
+              <p className="text-[11px] text-theme-muted">Currently checked out</p>
             </div>
           </>
         )}
@@ -128,7 +146,7 @@ export const StaffDashboard = () => {
         </Link>
 
         <Link
-          to="/vehicles"
+          to="/fleet/vehicles"
           className="bg-theme-card border border-theme p-6 rounded-2xl hover:border-blue-500/50 transition-all duration-200 group"
         >
           <div className="flex items-center justify-between">

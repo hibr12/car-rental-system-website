@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\Booking;
 use App\Models\Category;
+use App\Models\Company;
 use App\Models\ContactMessage;
 use App\Models\Maintenance;
 use App\Models\Payment;
@@ -22,7 +24,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        $this->seedCompany();
         $this->seedUsers();
+        $this->seedBranches();
         $this->seedCategories();
         $this->seedVehicles();
         $this->seedBookings();
@@ -32,39 +36,196 @@ class DatabaseSeeder extends Seeder
         $this->seedContactMessages();
     }
 
+    private function seedCompany(): void
+    {
+        $company = Company::updateOrCreate(
+            ['code' => 'APEX'],
+            [
+                'name' => 'Apex Rentals',
+                'address' => '123 Main Street, Addis Ababa, Ethiopia',
+                'phone' => '+251 11 123 4567',
+                'email' => 'info@apexrentals.com',
+                'is_active' => true,
+            ]
+        );
+
+        config(['app.company_id' => $company->id]);
+    }
+
+    private function seedBranches(): void
+    {
+        $company = Company::where('code', 'APEX')->first();
+
+        $branchesData = [
+            [
+                'name' => 'Bole Branch',
+                'code' => 'BOLE',
+                'address' => 'Bole Subcity, Addis Ababa',
+                'city' => 'Addis Ababa',
+                'phone' => '+251 11 111 1111',
+                'email' => 'bole@apexrentals.com',
+                'latitude' => 9.0320,
+                'longitude' => 38.7529,
+                'opening_time' => '08:00:00',
+                'closing_time' => '18:00:00',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'CMC Branch',
+                'code' => 'CMC',
+                'address' => 'CMC Circle, Addis Ababa',
+                'city' => 'Addis Ababa',
+                'phone' => '+251 11 222 2222',
+                'email' => 'cmc@apexrentals.com',
+                'latitude' => 9.0350,
+                'longitude' => 38.7667,
+                'opening_time' => '08:00:00',
+                'closing_time' => '18:00:00',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'Airport Branch',
+                'code' => 'AIRPORT',
+                'address' => 'Bole International Airport, Addis Ababa',
+                'city' => 'Addis Ababa',
+                'phone' => '+251 11 333 3333',
+                'email' => 'airport@apexrentals.com',
+                'latitude' => 8.9711,
+                'longitude' => 38.7826,
+                'opening_time' => '06:00:00',
+                'closing_time' => '22:00:00',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'Kazanchis Branch',
+                'code' => 'KAZANCHIS',
+                'address' => 'Kazanchis, Addis Ababa',
+                'city' => 'Addis Ababa',
+                'phone' => '+251 11 444 4444',
+                'email' => 'kazanchis@apexrentals.com',
+                'latitude' => 9.0107,
+                'longitude' => 38.7766,
+                'opening_time' => '08:00:00',
+                'closing_time' => '18:00:00',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'Piassa Branch',
+                'code' => 'PIASSA',
+                'address' => 'Piassa, Addis Ababa',
+                'city' => 'Addis Ababa',
+                'phone' => '+251 11 555 5555',
+                'email' => 'piassa@apexrentals.com',
+                'latitude' => 9.0333,
+                'longitude' => 38.7500,
+                'opening_time' => '08:00:00',
+                'closing_time' => '18:00:00',
+                'status' => 'active',
+            ],
+        ];
+
+        foreach ($branchesData as $branchData) {
+            Branch::updateOrCreate(
+                ['code' => $branchData['code']],
+                array_merge($branchData, ['company_id' => $company->id])
+            );
+        }
+
+        $admin = User::where('email', 'admin@carrental.com')->first();
+        $boleBranch = Branch::where('code', 'BOLE')->first();
+        $cmcBranch = Branch::where('code', 'CMC')->first();
+        $airportBranch = Branch::where('code', 'AIRPORT')->first();
+
+        if ($boleBranch && $admin) {
+            $boleBranch->update(['manager_id' => $admin->id]);
+        }
+
+        if ($cmcBranch) {
+            $cmcBranch->update([
+                'manager_id' => User::updateOrCreate(
+                    ['email' => 'cmc.manager@apexrentals.com'],
+                    [
+                        'name' => 'CMC Branch Manager',
+                        'password' => 'password',
+                        'phone' => '+251 11 222 0000',
+                        'role' => User::ROLE_BRANCH_MANAGER,
+                        'branch_id' => $cmcBranch->id,
+                    ]
+                )->id,
+            ]);
+        }
+
+        if ($airportBranch) {
+            $airportBranch->update([
+                'manager_id' => User::updateOrCreate(
+                    ['email' => 'airport.manager@apexrentals.com'],
+                    [
+                        'name' => 'Airport Branch Manager',
+                        'password' => 'password',
+                        'phone' => '+251 11 333 0000',
+                        'role' => User::ROLE_BRANCH_MANAGER,
+                        'branch_id' => $airportBranch->id,
+                    ]
+                )->id,
+            ]);
+        }
+    }
+
     private function seedUsers(): void
     {
-        User::factory()->admin()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@carrental.com',
-            'password' => 'password',
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@carrental.com'],
+            [
+                'name' => 'Admin User',
+                'password' => 'password',
+                'phone' => '+251 11 123 4567',
+                'role' => User::ROLE_COMPANY_ADMIN,
+            ]
+        );
 
-        User::factory()->fleetManager()->create([
-            'name' => 'Fleet Manager',
-            'email' => 'fleet@carrental.com',
-            'password' => 'password',
-        ]);
+        $fleetManager = User::updateOrCreate(
+            ['email' => 'fleet@carrental.com'],
+            [
+                'name' => 'Fleet Manager',
+                'password' => 'password',
+                'phone' => '+251 11 123 4568',
+                'role' => User::ROLE_COMPANY_ADMIN,
+            ]
+        );
 
-        User::factory()->staff()->create([
-            'name' => 'Staff User',
-            'email' => 'staff@carrental.com',
-            'password' => 'password',
-        ]);
+        $boleBranch = Branch::where('code', 'BOLE')->first();
+        $cmcBranch = Branch::where('code', 'CMC')->first();
 
-        User::factory()->count(5)->customer()->create();
+        $staff = User::updateOrCreate(
+            ['email' => 'staff@carrental.com'],
+            [
+                'name' => 'Branch Staff',
+                'password' => 'password',
+                'phone' => '+251 11 123 4569',
+                'role' => User::ROLE_BRANCH_STAFF,
+                'branch_id' => $boleBranch?->id,
+            ]
+        );
+
+        if (User::where('role', User::ROLE_CUSTOMER)->count() < 5) {
+            User::factory()->count(5)->customer()->create();
+        }
     }
 
     private function seedCategories(): void
     {
         $categories = [
             ['name' => 'Economy', 'slug' => 'economy', 'description' => 'Affordable and fuel-efficient vehicles for daily commuting'],
+            ['name' => 'Compact', 'slug' => 'compact', 'description' => 'Compact cars perfect for city driving'],
             ['name' => 'Sedan', 'slug' => 'sedan', 'description' => 'Comfortable mid-size cars perfect for business and family travel'],
             ['name' => 'SUV', 'slug' => 'suv', 'description' => 'Spacious sport utility vehicles for all terrain and family adventures'],
             ['name' => 'Luxury', 'slug' => 'luxury', 'description' => 'Premium high-end vehicles for an exceptional driving experience'],
             ['name' => 'Sports', 'slug' => 'sports', 'description' => 'High-performance vehicles for speed enthusiasts'],
             ['name' => 'Electric', 'slug' => 'electric', 'description' => 'Eco-friendly electric vehicles for sustainable transportation'],
             ['name' => 'Van', 'slug' => 'van', 'description' => 'Spacious vans for group travel and cargo transport'],
+            ['name' => 'Pickup', 'slug' => 'pickup', 'description' => 'Versatile pickup trucks for work and adventure'],
+            ['name' => '4x4', 'slug' => '4x4', 'description' => 'Four-wheel drive vehicles for off-road capability'],
+            ['name' => 'Minibus', 'slug' => 'minibus', 'description' => 'Large capacity vehicles for group transportation'],
         ];
 
         foreach ($categories as $category) {
@@ -79,38 +240,49 @@ class DatabaseSeeder extends Seeder
     {
         $categories = Category::all()->keyBy('slug');
         $admin = User::where('email', 'admin@carrental.com')->first();
+        $branches = Branch::all();
+        $branchMap = [];
+        foreach ($branches as $branch) {
+            $branchMap[strtolower($branch->name)] = $branch->id;
+        }
 
         $vehicles = [
-            ['category_slug' => 'economy', 'brand' => 'Toyota', 'model' => 'Yaris', 'year' => 2024, 'registration_number' => 'ECO-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 35, 'status' => 'available', 'featured' => false, 'location' => 'Main Branch', 'description' => 'Compact and fuel-efficient, perfect for city driving and daily commutes.'],
-            ['category_slug' => 'economy', 'brand' => 'Honda', 'model' => 'Fit', 'year' => 2023, 'registration_number' => 'ECO-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Silver', 'rental_price_per_day' => 38, 'status' => 'available', 'featured' => false, 'location' => 'Airport Branch', 'description' => 'Versatile hatchback with excellent fuel economy and spacious interior.'],
-            ['category_slug' => 'sedan', 'brand' => 'Toyota', 'model' => 'Camry', 'year' => 2024, 'registration_number' => 'SED-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 65, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'Elegant mid-size sedan with premium comfort and advanced safety features.'],
-            ['category_slug' => 'sedan', 'brand' => 'Honda', 'model' => 'Accord', 'year' => 2023, 'registration_number' => 'SED-002', 'fuel_type' => 'hybrid', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Blue', 'rental_price_per_day' => 70, 'status' => 'available', 'featured' => true, 'location' => 'Downtown Branch', 'description' => 'Hybrid sedan combining efficiency with a refined driving experience.'],
-            ['category_slug' => 'suv', 'brand' => 'Ford', 'model' => 'Explorer', 'year' => 2024, 'registration_number' => 'SUV-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 7, 'color' => 'Gray', 'rental_price_per_day' => 95, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'Full-size SUV with three-row seating, ideal for family adventures.'],
+            ['category_slug' => 'economy', 'brand' => 'Toyota', 'model' => 'Yaris', 'year' => 2024, 'registration_number' => 'ECO-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 35, 'status' => 'available', 'featured' => false, 'location' => 'Bole Branch', 'description' => 'Compact and fuel-efficient, perfect for city driving and daily commutes.'],
+            ['category_slug' => 'economy', 'brand' => 'Honda', 'model' => 'Fit', 'year' => 2023, 'registration_number' => 'ECO-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Silver', 'rental_price_per_day' => 38, 'status' => 'available', 'featured' => false, 'location' => 'CMC Branch', 'description' => 'Versatile hatchback with excellent fuel economy and spacious interior.'],
+            ['category_slug' => 'sedan', 'brand' => 'Toyota', 'model' => 'Camry', 'year' => 2024, 'registration_number' => 'SED-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 65, 'status' => 'available', 'featured' => true, 'location' => 'Bole Branch', 'description' => 'Elegant mid-size sedan with premium comfort and advanced safety features.'],
+            ['category_slug' => 'sedan', 'brand' => 'Honda', 'model' => 'Accord', 'year' => 2023, 'registration_number' => 'SED-002', 'fuel_type' => 'hybrid', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Blue', 'rental_price_per_day' => 70, 'status' => 'available', 'featured' => true, 'location' => 'Airport Branch', 'description' => 'Hybrid sedan combining efficiency with a refined driving experience.'],
+            ['category_slug' => 'suv', 'brand' => 'Ford', 'model' => 'Explorer', 'year' => 2024, 'registration_number' => 'SUV-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 7, 'color' => 'Gray', 'rental_price_per_day' => 95, 'status' => 'available', 'featured' => true, 'location' => 'Bole Branch', 'description' => 'Full-size SUV with three-row seating, ideal for family adventures.'],
             ['category_slug' => 'suv', 'brand' => 'Hyundai', 'model' => 'Tucson', 'year' => 2024, 'registration_number' => 'SUV-002', 'fuel_type' => 'hybrid', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Red', 'rental_price_per_day' => 80, 'status' => 'available', 'featured' => false, 'location' => 'Airport Branch', 'description' => 'Modern hybrid SUV with bold design and advanced tech features.'],
-            ['category_slug' => 'suv', 'brand' => 'Kia', 'model' => 'Sportage', 'year' => 2023, 'registration_number' => 'SUV-003', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 75, 'status' => 'maintenance', 'featured' => false, 'location' => 'Main Branch', 'description' => 'Stylish compact SUV with excellent warranty and features.'],
-            ['category_slug' => 'luxury', 'brand' => 'BMW', 'model' => '5 Series', 'year' => 2024, 'registration_number' => 'LUX-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 180, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'Executive luxury sedan with cutting-edge technology and performance.'],
-            ['category_slug' => 'luxury', 'brand' => 'Mercedes-Benz', 'model' => 'C-Class', 'year' => 2024, 'registration_number' => 'LUX-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Silver', 'rental_price_per_day' => 200, 'status' => 'available', 'featured' => true, 'location' => 'Downtown Branch', 'description' => 'Iconic luxury sedan offering unparalleled comfort and prestige.'],
+            ['category_slug' => 'suv', 'brand' => 'Kia', 'model' => 'Sportage', 'year' => 2023, 'registration_number' => 'SUV-003', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 75, 'status' => 'maintenance', 'featured' => false, 'location' => 'Bole Branch', 'description' => 'Stylish compact SUV with excellent warranty and features.'],
+            ['category_slug' => 'luxury', 'brand' => 'BMW', 'model' => '5 Series', 'year' => 2024, 'registration_number' => 'LUX-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 180, 'status' => 'available', 'featured' => true, 'location' => 'Bole Branch', 'description' => 'Executive luxury sedan with cutting-edge technology and performance.'],
+            ['category_slug' => 'luxury', 'brand' => 'Mercedes-Benz', 'model' => 'C-Class', 'year' => 2024, 'registration_number' => 'LUX-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Silver', 'rental_price_per_day' => 200, 'status' => 'available', 'featured' => true, 'location' => 'CMC Branch', 'description' => 'Iconic luxury sedan offering unparalleled comfort and prestige.'],
             ['category_slug' => 'luxury', 'brand' => 'Audi', 'model' => 'A4', 'year' => 2023, 'registration_number' => 'LUX-003', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 170, 'status' => 'rented', 'featured' => false, 'location' => 'Airport Branch', 'description' => 'Sophisticated German engineering with Quattro all-wheel drive.'],
-            ['category_slug' => 'sports', 'brand' => 'Ford', 'model' => 'Mustang', 'year' => 2024, 'registration_number' => 'SPT-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 4, 'color' => 'Red', 'rental_price_per_day' => 150, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'Legendary American muscle car with thrilling V8 performance.'],
-            ['category_slug' => 'sports', 'brand' => 'BMW', 'model' => 'Z4', 'year' => 2023, 'registration_number' => 'SPT-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 2, 'color' => 'Blue', 'rental_price_per_day' => 160, 'status' => 'available', 'featured' => false, 'location' => 'Downtown Branch', 'description' => 'Open-top roadster delivering pure driving pleasure.'],
-            ['category_slug' => 'electric', 'brand' => 'Tesla', 'model' => 'Model 3', 'year' => 2024, 'registration_number' => 'ELE-001', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 90, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'All-electric sedan with Autopilot and impressive range.'],
-            ['category_slug' => 'electric', 'brand' => 'Tesla', 'model' => 'Model Y', 'year' => 2024, 'registration_number' => 'ELE-002', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 110, 'status' => 'available', 'featured' => true, 'location' => 'Airport Branch', 'description' => 'Electric crossover SUV with spacious interior and long range.'],
-            ['category_slug' => 'electric', 'brand' => 'Nissan', 'model' => 'Leaf', 'year' => 2023, 'registration_number' => 'ELE-003', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Green', 'rental_price_per_day' => 60, 'status' => 'available', 'featured' => false, 'location' => 'Downtown Branch', 'description' => 'Affordable electric hatchback for eco-conscious drivers.'],
-            ['category_slug' => 'van', 'brand' => 'Ford', 'model' => 'Transit', 'year' => 2024, 'registration_number' => 'VAN-001', 'fuel_type' => 'diesel', 'transmission' => 'automatic', 'seats' => 12, 'color' => 'White', 'rental_price_per_day' => 120, 'status' => 'available', 'featured' => false, 'location' => 'Main Branch', 'description' => 'Full-size passenger van for group travel and corporate events.'],
-            ['category_slug' => 'van', 'brand' => 'Mercedes-Benz', 'model' => 'Sprinter', 'year' => 2023, 'registration_number' => 'VAN-002', 'fuel_type' => 'diesel', 'transmission' => 'automatic', 'seats' => 8, 'color' => 'Silver', 'rental_price_per_day' => 140, 'status' => 'available', 'featured' => false, 'location' => 'Airport Branch', 'description' => 'Premium passenger van with luxury amenities for VIP transport.'],
-            ['category_slug' => 'sedan', 'brand' => 'Nissan', 'model' => 'Altima', 'year' => 2024, 'registration_number' => 'SED-003', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Gray', 'rental_price_per_day' => 55, 'status' => 'available', 'featured' => false, 'location' => 'Shopping Mall Branch', 'description' => 'Reliable mid-size sedan with comfortable ride and modern tech.'],
-            ['category_slug' => 'economy', 'brand' => 'Kia', 'model' => 'Rio', 'year' => 2023, 'registration_number' => 'ECO-003', 'fuel_type' => 'petrol', 'transmission' => 'manual', 'seats' => 5, 'color' => 'Blue', 'rental_price_per_day' => 30, 'status' => 'unavailable', 'featured' => false, 'location' => 'Main Branch', 'description' => 'Budget-friendly subcompact with great value for money.'],
-            ['category_slug' => 'suv', 'brand' => 'Toyota', 'model' => 'Highlander', 'year' => 2024, 'registration_number' => 'SUV-004', 'fuel_type' => 'hybrid', 'transmission' => 'automatic', 'seats' => 7, 'color' => 'Navy', 'rental_price_per_day' => 105, 'status' => 'available', 'featured' => true, 'location' => 'Main Branch', 'description' => 'Three-row hybrid SUV combining efficiency with family versatility.'],
+            ['category_slug' => 'sports', 'brand' => 'Ford', 'model' => 'Mustang', 'year' => 2024, 'registration_number' => 'SPT-001', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 4, 'color' => 'Red', 'rental_price_per_day' => 150, 'status' => 'available', 'featured' => true, 'location' => 'Airport Branch', 'description' => 'Legendary American muscle car with thrilling V8 performance.'],
+            ['category_slug' => 'sports', 'brand' => 'BMW', 'model' => 'Z4', 'year' => 2023, 'registration_number' => 'SPT-002', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 2, 'color' => 'Blue', 'rental_price_per_day' => 160, 'status' => 'available', 'featured' => false, 'location' => 'Kazanchis Branch', 'description' => 'Open-top roadster delivering pure driving pleasure.'],
+            ['category_slug' => 'electric', 'brand' => 'Tesla', 'model' => 'Model 3', 'year' => 2024, 'registration_number' => 'ELE-001', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'White', 'rental_price_per_day' => 90, 'status' => 'available', 'featured' => true, 'location' => 'Bole Branch', 'description' => 'All-electric sedan with Autopilot and impressive range.'],
+            ['category_slug' => 'electric', 'brand' => 'Tesla', 'model' => 'Model Y', 'year' => 2024, 'registration_number' => 'ELE-002', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Black', 'rental_price_per_day' => 110, 'status' => 'available', 'featured' => true, 'location' => 'Kazanchis Branch', 'description' => 'Electric crossover SUV with spacious interior and long range.'],
+            ['category_slug' => 'electric', 'brand' => 'Nissan', 'model' => 'Leaf', 'year' => 2023, 'registration_number' => 'ELE-003', 'fuel_type' => 'electric', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Green', 'rental_price_per_day' => 60, 'status' => 'available', 'featured' => false, 'location' => 'Piassa Branch', 'description' => 'Affordable electric hatchback for eco-conscious drivers.'],
+            ['category_slug' => 'van', 'brand' => 'Ford', 'model' => 'Transit', 'year' => 2024, 'registration_number' => 'VAN-001', 'fuel_type' => 'diesel', 'transmission' => 'automatic', 'seats' => 12, 'color' => 'White', 'rental_price_per_day' => 120, 'status' => 'available', 'featured' => false, 'location' => 'Airport Branch', 'description' => 'Full-size passenger van for group travel and corporate events.'],
+            ['category_slug' => 'van', 'brand' => 'Mercedes-Benz', 'model' => 'Sprinter', 'year' => 2023, 'registration_number' => 'VAN-002', 'fuel_type' => 'diesel', 'transmission' => 'automatic', 'seats' => 8, 'color' => 'Silver', 'rental_price_per_day' => 140, 'status' => 'available', 'featured' => false, 'location' => 'CMC Branch', 'description' => 'Premium passenger van with luxury amenities for VIP transport.'],
+            ['category_slug' => 'sedan', 'brand' => 'Nissan', 'model' => 'Altima', 'year' => 2024, 'registration_number' => 'SED-003', 'fuel_type' => 'petrol', 'transmission' => 'automatic', 'seats' => 5, 'color' => 'Gray', 'rental_price_per_day' => 55, 'status' => 'available', 'featured' => false, 'location' => 'Kazanchis Branch', 'description' => 'Reliable mid-size sedan with comfortable ride and modern tech.'],
+            ['category_slug' => 'economy', 'brand' => 'Kia', 'model' => 'Rio', 'year' => 2023, 'registration_number' => 'ECO-003', 'fuel_type' => 'petrol', 'transmission' => 'manual', 'seats' => 5, 'color' => 'Blue', 'rental_price_per_day' => 30, 'status' => 'unavailable', 'featured' => false, 'location' => 'Piassa Branch', 'description' => 'Budget-friendly subcompact with great value for money.'],
+            ['category_slug' => 'suv', 'brand' => 'Toyota', 'model' => 'Highlander', 'year' => 2024, 'registration_number' => 'SUV-004', 'fuel_type' => 'hybrid', 'transmission' => 'automatic', 'seats' => 7, 'color' => 'Navy', 'rental_price_per_day' => 105, 'status' => 'available', 'featured' => true, 'location' => 'Kazanchis Branch', 'description' => 'Three-row hybrid SUV combining efficiency with family versatility.'],
         ];
 
         foreach ($vehicles as $vehicleData) {
             $category = $categories[$vehicleData['category_slug']] ?? $categories->first();
             unset($vehicleData['category_slug']);
 
+            $location = $vehicleData['location'];
+            unset($vehicleData['location']);
+
+            $branchId = $branchMap[strtolower($location)] ?? null;
+
             $vehicle = Vehicle::updateOrCreate(
                 ['registration_number' => $vehicleData['registration_number']],
                 array_merge($vehicleData, [
                     'category_id' => $category->id,
+                    'branch_id' => $branchId,
                     'created_by' => $admin?->id,
                 ])
             );
@@ -236,24 +408,27 @@ class DatabaseSeeder extends Seeder
             $subtotal = $numberOfDays * $pricePerDay;
             $totalPrice = $subtotal;
 
-            Booking::create([
-                'booking_reference' => 'BK-' . $pickupDate->format('Ymd') . '-' . strtoupper(Str::random(6)),
-                'user_id' => $customer->id,
-                'vehicle_id' => $vehicle->id,
-                'pickup_location' => $data['pickup_location'],
-                'return_location' => $data['return_location'],
-                'pickup_date' => $pickupDate,
-                'return_date' => $returnDate,
-                'number_of_days' => $numberOfDays,
-                'price_per_day' => $pricePerDay,
-                'subtotal' => $subtotal,
-                'additional_charges' => 0,
-                'discount' => 0,
-                'total_price' => $totalPrice,
-                'status' => $data['status'],
-                'payment_status' => $data['payment_status'],
-                'notes' => null,
-            ]);
+             $branchId = $vehicle->branch_id;
+
+             Booking::create([
+                 'booking_reference' => 'BK-' . $pickupDate->format('Ymd') . '-' . strtoupper(Str::random(6)),
+                 'user_id' => $customer->id,
+                 'vehicle_id' => $vehicle->id,
+                 'branch_id' => $branchId,
+                 'pickup_location' => $data['pickup_location'],
+                 'return_location' => $data['return_location'],
+                 'pickup_date' => $pickupDate,
+                 'return_date' => $returnDate,
+                 'number_of_days' => $numberOfDays,
+                 'price_per_day' => $pricePerDay,
+                 'subtotal' => $subtotal,
+                 'additional_charges' => 0,
+                 'discount' => 0,
+                 'total_price' => $totalPrice,
+                 'status' => $data['status'],
+                 'payment_status' => $data['payment_status'],
+                 'notes' => null,
+             ]);
         }
     }
 
@@ -271,9 +446,12 @@ class DatabaseSeeder extends Seeder
             Payment::create([
                 'booking_id' => $booking->id,
                 'user_id' => $booking->user_id,
+                'branch_id' => $booking->branch_id,
                 'amount' => $booking->total_price,
+                'currency' => 'ETB',
                 'payment_method' => $paymentMethods[array_rand($paymentMethods)],
                 'transaction_reference' => 'TXN-' . now()->format('Ymd') . '-' . strtoupper(Str::random(8)),
+                'gateway_reference' => 'GW-' . strtoupper(Str::random(12)),
                 'status' => 'paid',
                 'paid_at' => $booking->created_at->addDay(),
             ]);
@@ -385,6 +563,7 @@ class DatabaseSeeder extends Seeder
 
             Maintenance::create([
                 'vehicle_id' => $record['vehicle']->id,
+                'branch_id' => $record['vehicle']->branch_id,
                 'title' => $record['title'],
                 'description' => $record['description'],
                 'maintenance_type' => $record['maintenance_type'],

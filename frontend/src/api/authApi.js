@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const authApi = {
   register: (payload) => apiClient.post('/auth/register', payload),

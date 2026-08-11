@@ -189,14 +189,29 @@ class BookingController extends Controller
     {
         Gate::authorize('manageAll', Booking::class);
 
-        $bookings = Booking::with([
-                'vehicle.category',
-                'vehicle.images',
-                'vehicle.primaryImage',
-                'user',
-            ])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $user  = $request->user();
+        $query = Booking::with([
+            'vehicle.category',
+            'vehicle.images',
+            'vehicle.primaryImage',
+            'user',
+            'branch',
+        ]);
+
+        // Branch managers / staff only see their branch bookings
+        if (!$user->isAdmin()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('branch_id') && $user->isAdmin()) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        $bookings = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
             'success' => true,

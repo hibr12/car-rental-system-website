@@ -11,14 +11,18 @@ class Payment extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+    public const STATUS_PROCESSING = 'processing';
     public const STATUS_PAID = 'paid';
     public const STATUS_FAILED = 'failed';
+    public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_REFUNDED = 'refunded';
 
     public const STATUSES = [
         self::STATUS_PENDING,
+        self::STATUS_PROCESSING,
         self::STATUS_PAID,
         self::STATUS_FAILED,
+        self::STATUS_CANCELLED,
         self::STATUS_REFUNDED,
     ];
 
@@ -37,11 +41,15 @@ class Payment extends Model
     protected $fillable = [
         'booking_id',
         'user_id',
+        'branch_id',
         'amount',
+        'currency',
         'payment_method',
         'transaction_reference',
+        'gateway_reference',
         'status',
         'paid_at',
+        'failure_reason',
     ];
 
     protected function casts(): array
@@ -49,6 +57,7 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'branch_id' => 'integer',
         ];
     }
 
@@ -60,6 +69,11 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function scopePaid($query)
@@ -80,5 +94,10 @@ class Payment extends Model
     public function scopeRefunded($query)
     {
         return $query->where('status', self::STATUS_REFUNDED);
+    }
+
+    public function scopeInBranch($query, $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 }

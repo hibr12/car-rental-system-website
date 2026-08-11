@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 export const vehicleApi = {
   getAll: (params = {}) => apiClient.get('/vehicles', { params }),
