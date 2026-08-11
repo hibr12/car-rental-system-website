@@ -27,6 +27,7 @@ class Review extends Model
         'user_id',
         'vehicle_id',
         'booking_id',
+        'branch_id',
         'rating',
         'comment',
         'status',
@@ -52,6 +53,11 @@ class Review extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function scopeApproved($query)

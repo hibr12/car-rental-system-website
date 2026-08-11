@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
         $this->seedCompany();
         $this->seedUsers();
         $this->seedBranches();
+        $this->call(InitialBranchesSeeder::class);
         $this->seedCategories();
         $this->seedVehicles();
         $this->seedBookings();
@@ -492,6 +493,7 @@ class DatabaseSeeder extends Seeder
                 'user_id' => $booking->user_id,
                 'vehicle_id' => $booking->vehicle_id,
                 'booking_id' => $booking->id,
+                'branch_id' => $booking->branch_id,
                 'rating' => $rating,
                 'comment' => $comments[array_rand($comments)],
                 'status' => 'approved',

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Car, AlertCircle, Filter } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
+import branchApi from '../../api/branchesApi';
 import VehicleCard from '../../components/vehicles/VehicleCard';
 import VehicleFilter from '../../components/vehicles/VehicleFilter';
 import { VehicleCardSkeleton } from '../../components/common/Skeleton';
@@ -13,6 +14,7 @@ export const VehiclesPage = () => {
 
   const [vehicles, setVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
 
   const [loading, setLoading] = useState(true);
@@ -21,6 +23,9 @@ export const VehiclesPage = () => {
   // Extract filter parameters from URL query params
   const filters = {
     search: searchParams.get('search') || '',
+    branch_id: searchParams.get('branch_id') || '',
+    pickup_date: searchParams.get('pickup_date') || '',
+    return_date: searchParams.get('return_date') || '',
     category: searchParams.get('category') || '',
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
@@ -33,10 +38,8 @@ export const VehiclesPage = () => {
 
   // Fetch Categories
   useEffect(() => {
-    categoryApi
-      .getAll()
-      .then((res) => setCategories(res.data || []))
-      .catch((err) => console.error('Failed to load categories:', err));
+    categoryApi.getAll().then((res) => setCategories(res.data || [])).catch(console.error);
+    branchApi.getAll({ status: 'active' }).then((res) => setBranches(res.data || [])).catch(console.error);
   }, []);
 
   // Fetch Vehicles
@@ -47,6 +50,9 @@ export const VehiclesPage = () => {
 
       const params = {};
       if (filters.search) params.search = filters.search;
+      if (filters.branch_id) params.branch_id = filters.branch_id;
+      if (filters.pickup_date) params.pickup_date = filters.pickup_date;
+      if (filters.return_date) params.return_date = filters.return_date;
       if (filters.category) params.category = filters.category;
       if (filters.min_price) params.min_price = filters.min_price;
       if (filters.max_price) params.max_price = filters.max_price;
@@ -57,7 +63,10 @@ export const VehiclesPage = () => {
       params.page = filters.page;
       params.per_page = 9;
 
-      const res = await vehicleApi.getAll(params);
+      const apiCall = (filters.pickup_date && filters.return_date)
+        ? vehicleApi.getAvailable(params)
+        : vehicleApi.getAll(params);
+      const res = await apiCall;
       setVehicles(res.data || []);
       if (res.meta) {
         setMeta(res.meta);
@@ -115,6 +124,8 @@ export const VehiclesPage = () => {
             onChange={handleFilterChange}
             onReset={handleResetFilters}
             categories={categories}
+            branches={branches}
+            showDates
           />
         </div>
 
@@ -123,8 +134,20 @@ export const VehiclesPage = () => {
           {/* Results Stats */}
           <div className="flex items-center justify-between text-xs text-theme-muted bg-theme-card border border-theme px-4 py-3 rounded-xl">
             <span>
-              Showing <strong className="text-theme-primary">{vehicles.length}</strong> of{' '}
-              <strong className="text-theme-primary">{meta.total || vehicles.length}</strong> vehicles
+              {filters.branch_id ? (
+                <>
+                  <strong className="text-theme-primary">{meta.total || vehicles.length}</strong>{' '}
+                  {meta.total === 1 ? 'vehicle' : 'vehicles'} available at{' '}
+                  <strong className="text-theme-primary">
+                    {branches.find((b) => String(b.id) === String(filters.branch_id))?.name || 'selected branch'}
+                  </strong>
+                </>
+              ) : (
+                <>
+                  Showing <strong className="text-theme-primary">{vehicles.length}</strong> of{' '}
+                  <strong className="text-theme-primary">{meta.total || vehicles.length}</strong> vehicles
+                </>
+              )}
             </span>
             {filters.category && (
               <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full font-semibold capitalize">

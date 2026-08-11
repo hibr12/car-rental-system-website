@@ -21,6 +21,7 @@ class StoreBookingRequest extends FormRequest
             'return_location' => ['required', 'string', 'max:255'],
             'pickup_date' => ['required', 'date', 'after_or_equal:today'],
             'return_date' => ['required', 'date', 'after:pickup_date'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

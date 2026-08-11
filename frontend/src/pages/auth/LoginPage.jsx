@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Car, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { getPortalHome } from '../../utils/roles';
 import useAuthStore from '../../store/authStore';
 import { useToast } from '../../components/common/Toast';
 
@@ -31,11 +32,7 @@ export const LoginPage = () => {
       toast.success('Login successful! Welcome back.');
       
       const userRole = response.data?.user?.role;
-      let targetPath = '/dashboard';
-      if (userRole === 'admin' || userRole === 'super_admin') targetPath = '/admin';
-      else if (userRole === 'branch_manager') targetPath = '/branch';
-      else if (userRole === 'fleet_manager') targetPath = '/fleet';
-      else if (['staff', 'rental_agent', 'inspection_staff', 'maintenance_staff', 'finance_staff'].includes(userRole)) targetPath = '/staff';
+      const targetPath = getPortalHome(userRole);
 
       navigate(from !== '/dashboard' ? from : targetPath, { replace: true });
     } catch (err) {

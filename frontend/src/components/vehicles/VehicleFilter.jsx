@@ -6,6 +6,8 @@ export const VehicleFilter = ({
   onChange,
   onReset,
   categories = [],
+  branches = [],
+  showDates = true,
   sortOptions = [
     { label: 'Newest First', value: 'newest' },
     { label: 'Price: Low to High', value: 'price_asc' },
@@ -33,6 +35,54 @@ export const VehicleFilter = ({
           <span>Reset Filters</span>
         </button>
       </div>
+
+      {/* Branch Selection */}
+      {branches.length > 0 && (
+        <div>
+          <label className="block text-xs font-semibold text-theme-secondary mb-2">Pickup Branch</label>
+          <select
+            value={filters.branch_id || ''}
+            onChange={(e) => handleInputChange('branch_id', e.target.value)}
+            className="w-full bg-theme-input border border-theme rounded-xl px-3.5 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            <option value="">All Branches</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+                {typeof b.available_vehicles_count === 'number'
+                  ? ` (${b.available_vehicles_count} available)`
+                  : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Rental Dates */}
+      {showDates && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Pickup Date</label>
+            <input
+              type="date"
+              value={filters.pickup_date || ''}
+              onChange={(e) => handleInputChange('pickup_date', e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full bg-theme-input border border-theme rounded-xl px-3 py-2 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Return Date</label>
+            <input
+              type="date"
+              value={filters.return_date || ''}
+              onChange={(e) => handleInputChange('return_date', e.target.value)}
+              min={filters.pickup_date || new Date().toISOString().split('T')[0]}
+              className="w-full bg-theme-input border border-theme rounded-xl px-3 py-2 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Search Input */}
       <div>

@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   CalendarCheck,
   Car,
-  Clock,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   ArrowRight,
   UserCheck,
   RotateCcw
@@ -15,6 +13,7 @@ import bookingApi from '../../api/bookingApi';
 import useAuthStore from '../../store/authStore';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { StatCardSkeleton } from '../../components/common/Skeleton';
+import { ManagementCard, ManagementEmptyState } from '../../components/management/ManagementUI';
 
 export const StaffDashboard = () => {
   const { user } = useAuthStore();
@@ -32,10 +31,8 @@ export const StaffDashboard = () => {
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
-  const totalBookings = bookings.length;
   const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
   const activeBookings = bookings.filter((b) => b.status === 'active' || b.status === 'confirmed').length;
-  const completedBookings = bookings.filter((b) => b.status === 'completed').length;
   const todayPickups = bookings.filter(
     (b) => b.pickup_date && b.pickup_date.startsWith(today) && (b.status === 'confirmed' || b.status === 'active')
   ).length;
@@ -44,28 +41,28 @@ export const StaffDashboard = () => {
   ).length;
 
   return (
-    <div className="space-y-8">
+    <div className="mgmt-page space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-theme-card border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
+      <ManagementCard className="rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-400">
+          <span className="text-xs uppercase font-semibold tracking-wider text-[#64748B]">
             Staff Workstation
           </span>
-          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">
+          <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">
             Welcome, {user?.name || 'Staff Member'}!
           </h1>
-          <p className="text-sm text-theme-muted max-w-xl">
+          <p className="text-sm text-[#64748B] max-w-xl">
             Manage bookings, process vehicle pickups and returns, and assist customers with their reservations.
           </p>
         </div>
         <Link
           to="/staff/bookings"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/25 transition-all self-start md:self-auto"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-sm transition-all self-start md:self-auto"
         >
           <CalendarCheck className="w-4 h-4" />
           <span>View All Bookings</span>
         </Link>
-      </div>
+      </ManagementCard>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -78,49 +75,49 @@ export const StaffDashboard = () => {
           </>
         ) : (
           <>
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+            <ManagementCard className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Today's Pickups</span>
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Today&apos;s Pickups</span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center border border-blue-100">
                   <Car className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-blue-400">{todayPickups}</p>
-              <p className="text-[11px] text-theme-muted">Vehicles to be picked up today</p>
-            </div>
+              <p className="text-3xl font-extrabold text-[#2563EB]">{todayPickups}</p>
+              <p className="text-[11px] text-[#64748B]">Vehicles to be picked up today</p>
+            </ManagementCard>
 
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+            <ManagementCard className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Today's Returns</span>
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Today&apos;s Returns</span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center border border-blue-100">
                   <RotateCcw className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-purple-400">{todayReturns}</p>
-              <p className="text-[11px] text-theme-muted">Vehicles to be returned today</p>
-            </div>
+              <p className="text-3xl font-extrabold text-[#2563EB]">{todayReturns}</p>
+              <p className="text-[11px] text-[#64748B]">Vehicles to be returned today</p>
+            </ManagementCard>
 
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+            <ManagementCard className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Pending Confirmations</span>
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Pending Confirmations</span>
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-[#F59E0B] flex items-center justify-center border border-amber-100">
                   <AlertCircle className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-amber-400">{pendingBookings}</p>
-              <p className="text-[11px] text-theme-muted">Awaiting staff approval</p>
-            </div>
+              <p className="text-3xl font-extrabold text-[#F59E0B]">{pendingBookings}</p>
+              <p className="text-[11px] text-[#64748B]">Awaiting staff approval</p>
+            </ManagementCard>
 
-            <div className="bg-theme-card border border-theme p-6 rounded-2xl space-y-3 transition-colors duration-200">
+            <ManagementCard className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">Active Rentals</span>
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Active Rentals</span>
+                <div className="w-10 h-10 rounded-xl bg-green-50 text-[#16A34A] flex items-center justify-center border border-green-100">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-emerald-400">{activeBookings}</p>
-              <p className="text-[11px] text-theme-muted">Currently checked out</p>
-            </div>
+              <p className="text-3xl font-extrabold text-[#16A34A]">{activeBookings}</p>
+              <p className="text-[11px] text-[#64748B]">Currently checked out</p>
+            </ManagementCard>
           </>
         )}
       </div>
@@ -129,51 +126,51 @@ export const StaffDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Link
           to="/staff/bookings"
-          className="bg-theme-card border border-theme p-6 rounded-2xl hover:border-cyan-500/50 transition-all duration-200 group"
+          className="bg-white border border-[#E2E8F0] p-6 rounded-xl hover:border-[#2563EB] transition-all duration-200 group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center border border-blue-100">
                 <UserCheck className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-theme-primary">Process Bookings</h3>
-                <p className="text-xs text-theme-muted">Confirm pickups and process returns</p>
+                <h3 className="font-bold text-[#0F172A]">Process Bookings</h3>
+                <p className="text-xs text-[#64748B]">Confirm pickups and process returns</p>
               </div>
             </div>
-            <ArrowRight className="w-5 h-5 text-theme-muted group-hover:text-cyan-400 transition-colors" />
+            <ArrowRight className="w-5 h-5 text-[#64748B] group-hover:text-[#2563EB] transition-colors" />
           </div>
         </Link>
 
         <Link
           to="/fleet/vehicles"
-          className="bg-theme-card border border-theme p-6 rounded-2xl hover:border-blue-500/50 transition-all duration-200 group"
+          className="bg-white border border-[#E2E8F0] p-6 rounded-xl hover:border-[#2563EB] transition-all duration-200 group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center border border-blue-100">
                 <Car className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-theme-primary">Browse Vehicles</h3>
-                <p className="text-xs text-theme-muted">View available fleet inventory</p>
+                <h3 className="font-bold text-[#0F172A]">Browse Vehicles</h3>
+                <p className="text-xs text-[#64748B]">View available fleet inventory</p>
               </div>
             </div>
-            <ArrowRight className="w-5 h-5 text-theme-muted group-hover:text-blue-400 transition-colors" />
+            <ArrowRight className="w-5 h-5 text-[#64748B] group-hover:text-[#2563EB] transition-colors" />
           </div>
         </Link>
       </div>
 
       {/* Recent Bookings Table */}
-      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-colors duration-200">
-        <div className="flex items-center justify-between pb-4 border-b border-theme">
+      <ManagementCard className="rounded-2xl space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
           <div>
-            <h3 className="text-lg font-bold text-theme-primary">Recent Bookings</h3>
-            <p className="text-xs text-theme-muted">Latest reservation activity requiring attention</p>
+            <h3 className="text-lg font-bold text-[#0F172A]">Recent Bookings</h3>
+            <p className="text-xs text-[#64748B]">Latest reservation activity requiring attention</p>
           </div>
           <Link
             to="/staff/bookings"
-            className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            className="text-xs font-semibold text-[#2563EB] hover:text-blue-700 flex items-center gap-1"
           >
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -182,22 +179,20 @@ export const StaffDashboard = () => {
 
         {loading ? (
           <div className="space-y-3">
-            <div className="h-10 bg-theme-hover rounded-xl animate-pulse" />
-            <div className="h-10 bg-theme-hover rounded-xl animate-pulse" />
-            <div className="h-10 bg-theme-hover rounded-xl animate-pulse" />
+            <div className="h-10 bg-[#F8FAFC] rounded-xl animate-pulse" />
+            <div className="h-10 bg-[#F8FAFC] rounded-xl animate-pulse" />
+            <div className="h-10 bg-[#F8FAFC] rounded-xl animate-pulse" />
           </div>
         ) : bookings.length === 0 ? (
-          <div className="text-center py-12 space-y-3">
-            <CalendarCheck className="w-12 h-12 text-theme-muted mx-auto" />
-            <p className="text-sm font-semibold text-theme-secondary">No Bookings Found</p>
-            <p className="text-xs text-theme-muted max-w-xs mx-auto">
-              There are no bookings in the system yet.
-            </p>
-          </div>
+          <ManagementEmptyState
+            icon={CalendarCheck}
+            title="No Bookings Found"
+            description="There are no bookings in the system yet."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-theme-secondary">
-              <thead className="text-xs uppercase bg-theme-hover text-theme-muted border-b border-theme">
+            <table className="w-full text-left text-sm text-[#334155]">
+              <thead className="mgmt-table-head">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Reference</th>
                   <th className="py-3.5 px-4 font-semibold">Customer</th>
@@ -208,23 +203,23 @@ export const StaffDashboard = () => {
                   <th className="py-3.5 px-4 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-theme">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {bookings.slice(0, 8).map((booking) => (
-                  <tr key={booking.id} className="hover:bg-theme-hover transition-colors">
-                    <td className="py-4 px-4 font-mono text-xs text-cyan-400 font-bold">
+                  <tr key={booking.id} className="mgmt-table-row">
+                    <td className="py-4 px-4 font-mono text-xs text-[#2563EB] font-bold">
                       {booking.booking_reference}
                     </td>
-                    <td className="py-4 px-4 font-medium text-theme-primary">
+                    <td className="py-4 px-4 font-medium text-[#0F172A]">
                       {booking.user?.name || `User #${booking.user_id}`}
                     </td>
-                    <td className="py-4 px-4 text-theme-secondary">
+                    <td className="py-4 px-4 text-[#334155]">
                       {booking.vehicle
                         ? `${booking.vehicle.brand} ${booking.vehicle.model}`
                         : `Vehicle #${booking.vehicle_id}`}
                     </td>
-                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(booking.pickup_date)}</td>
-                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(booking.return_date)}</td>
-                    <td className="py-4 px-4 font-bold text-emerald-400">
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(booking.pickup_date)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(booking.return_date)}</td>
+                    <td className="py-4 px-4 font-bold text-[#16A34A]">
                       {formatCurrency(booking.total_price)}
                     </td>
                     <td className="py-4 px-4">
@@ -242,7 +237,7 @@ export const StaffDashboard = () => {
             </table>
           </div>
         )}
-      </div>
+      </ManagementCard>
     </div>
   );
 };

@@ -26,16 +26,11 @@ export const Navbar = () => {
 
   const getDashboardPath = () => {
     if (!user) return '/dashboard';
-    switch (user.role) {
-      case 'admin':
-        return '/admin';
-      case 'fleet_manager':
-        return '/fleet';
-      case 'staff':
-        return '/staff';
-      default:
-        return '/dashboard';
-    }
+    if (user.role === 'admin' || user.role === 'super_admin') return '/admin';
+    if (user.role === 'branch_manager') return '/manager';
+    if (user.role === 'fleet_manager') return '/fleet';
+    if (user.role === 'staff') return '/staff';
+    return '/dashboard';
   };
 
   const getDashboardIcon = () => {

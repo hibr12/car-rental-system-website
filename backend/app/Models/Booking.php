@@ -13,6 +13,7 @@ class Booking extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+    public const STATUS_BRANCH_REVIEW = 'branch_review';
     public const STATUS_CONFIRMED = 'confirmed';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_COMPLETED = 'completed';
@@ -22,12 +23,24 @@ class Booking extends Model
 
     public const PAYMENT_STATUS_UNPAID = 'unpaid';
     public const PAYMENT_STATUS_PENDING = 'pending';
+    public const PAYMENT_STATUS_CASH_PENDING = 'cash_pending';
     public const PAYMENT_STATUS_PAID = 'paid';
     public const PAYMENT_STATUS_FAILED = 'failed';
     public const PAYMENT_STATUS_REFUNDED = 'refunded';
 
+    public const APPROVAL_PENDING  = 'pending';
+    public const APPROVAL_APPROVED = 'approved';
+    public const APPROVAL_REJECTED = 'rejected';
+
+    public const APPROVAL_STATUSES = [
+        self::APPROVAL_PENDING,
+        self::APPROVAL_APPROVED,
+        self::APPROVAL_REJECTED,
+    ];
+
     public const STATUSES = [
         self::STATUS_PENDING,
+        self::STATUS_BRANCH_REVIEW,
         self::STATUS_CONFIRMED,
         self::STATUS_ACTIVE,
         self::STATUS_COMPLETED,
@@ -39,6 +52,7 @@ class Booking extends Model
     public const PAYMENT_STATUSES = [
         self::PAYMENT_STATUS_UNPAID,
         self::PAYMENT_STATUS_PENDING,
+        self::PAYMENT_STATUS_CASH_PENDING,
         self::PAYMENT_STATUS_PAID,
         self::PAYMENT_STATUS_FAILED,
         self::PAYMENT_STATUS_REFUNDED,
@@ -61,7 +75,21 @@ class Booking extends Model
         'total_price',
         'status',
         'payment_status',
+        'branch_approval_status',
+        'admin_approval_status',
+        'branch_approved_at',
+        'branch_approved_by',
+        'admin_approved_at',
+        'admin_approved_by',
+        'rejected_by_role',
+        'rejected_by_user_id',
+        'rejected_at',
+        'rejection_reason',
         'notes',
+        'is_archived',
+        'archived_at',
+        'archived_by',
+        'archive_reason',
     ];
 
     protected function casts(): array
@@ -78,6 +106,11 @@ class Booking extends Model
             'user_id' => 'integer',
             'vehicle_id' => 'integer',
             'branch_id' => 'integer',
+            'branch_approved_at' => 'datetime',
+            'admin_approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+            'is_archived' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -134,6 +167,16 @@ class Booking extends Model
     public function scopeInBranch($query, $branchId)
     {
         return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeActiveRecords($query)
+    {
+        return $query->where('is_archived', false);
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->where('is_archived', true);
     }
 
     public function scopeOverlapping($query, $vehicleId, $pickupDate, $returnDate)

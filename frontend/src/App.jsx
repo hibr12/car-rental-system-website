@@ -1,29 +1,25 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+import PortalGate from './app/guards/PortalGate';
 import ProtectedRoute from './app/guards/ProtectedRoute';
-import RoleRoute from './app/guards/RoleRoute';
 
-// ── Layouts ──────────────────────────────────────────────────────────────────
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
+import ManagerLayout from './layouts/ManagerLayout';
 import FleetLayout from './layouts/FleetLayout';
 import StaffLayout from './layouts/StaffLayout';
 
-// ── Auth pages ────────────────────────────────────────────────────────────────
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import ManagementLoginPage from './pages/auth/ManagementLoginPage';
 
-// ── Customer / Public pages ───────────────────────────────────────────────────
 import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
 import VehicleDetailPage from './pages/public/VehicleDetailPage';
 import ContactPage from './pages/public/ContactPage';
 
-// ── Customer authenticated pages ──────────────────────────────────────────────
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import CustomerBookings from './pages/customer/CustomerBookings';
 import BookingDetailPage from './pages/customer/BookingDetailPage';
@@ -32,17 +28,19 @@ import CustomerReviews from './pages/customer/CustomerReviews';
 import CustomerPayments from './pages/customer/CustomerPayments';
 import NotificationsPage from './pages/customer/NotificationsPage';
 
-// ── Payment pages ─────────────────────────────────────────────────────────────
 import CheckoutPage from './pages/payment/CheckoutPage';
 import PaymentStatusPage from './pages/payment/PaymentStatusPage';
 import BookingConfirmationPage from './pages/payment/BookingConfirmationPage';
 
-// ── Admin pages ───────────────────────────────────────────────────────────────
 import AdminDashboard from './pages/admin/AdminDashboard';
 import VehicleManagement from './pages/admin/VehicleManagement';
 import AdminBookings from './pages/admin/AdminBookings';
 import UserManagement from './pages/admin/UserManagement';
 import PaymentsPage from './pages/admin/PaymentsPage';
+import PaymentHistoryPage from './pages/admin/PaymentHistoryPage';
+import ArchiveIndexPage from './pages/admin/ArchiveIndexPage';
+import ArchiveBookingsPage from './pages/admin/ArchiveBookingsPage';
+import ArchivePaymentsPage from './pages/admin/ArchivePaymentsPage';
 import MaintenancePage from './pages/admin/MaintenancePage';
 import MessagesPage from './pages/admin/MessagesPage';
 import CategoryManagement from './pages/admin/CategoryManagement';
@@ -53,29 +51,21 @@ import VehicleTransfersPage from './pages/admin/VehicleTransfersPage';
 import StaffManagementPage from './pages/admin/StaffManagementPage';
 import ReportsPage from './pages/admin/ReportsPage';
 
-// ── Branch Manager pages ──────────────────────────────────────────────────────
 import BranchDashboard from './pages/branch/BranchDashboard';
 import BranchRentalsPage from './pages/branch/BranchRentalsPage';
 
-// ── Fleet Manager pages ───────────────────────────────────────────────────────
 import FleetDashboard from './pages/fleet/FleetDashboard';
 import FleetVehicles from './pages/fleet/FleetVehicles';
 import FleetMaintenance from './pages/fleet/FleetMaintenance';
 
-// ── Staff pages ───────────────────────────────────────────────────────────────
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffBookings from './pages/staff/StaffBookings';
 
-import useAuthStore from './store/authStore';
+import PortalNotFound from './pages/shared/PortalNotFound';
+import ManagementLoginPage from './pages/auth/ManagementLoginPage';
+import LegacyBranchRedirect from './app/redirects/LegacyBranchRedirect';
 
-// Admin roles
-const ADMIN_ROLES = ['admin', 'super_admin'];
-// Branch manager roles
-const BRANCH_ROLES = ['branch_manager'];
-// Fleet manager roles
-const FLEET_ROLES = ['fleet_manager'];
-// Staff roles
-const STAFF_ROLES = ['staff', 'rental_agent', 'inspection_staff', 'maintenance_staff', 'finance_staff'];
+import useAuthStore from './store/authStore';
 
 function App() {
   const { initAuth } = useAuthStore();
@@ -91,9 +81,7 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ══════════════════════════════════════════════════════
-            CUSTOMER / PUBLIC  (root)
-        ══════════════════════════════════════════════════════ */}
+        {/* ═══ CUSTOMER / PUBLIC ═══ */}
         <Route element={<CustomerLayout />}>
           <Route path="/"                 element={<HomePage />} />
           <Route path="/vehicles"         element={<VehiclesPage />} />
@@ -105,7 +93,6 @@ function App() {
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
         </Route>
 
-        {/* Protected customer checkout / payment routes */}
         <Route path="/checkout" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>
           <Route index element={<CheckoutPage />} />
         </Route>
@@ -115,8 +102,6 @@ function App() {
         <Route path="/booking/confirmation/:id" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>
           <Route index element={<BookingConfirmationPage />} />
         </Route>
-
-        {/* Protected customer portal */}
         <Route path="/dashboard" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>
           <Route index                  element={<CustomerDashboard />} />
           <Route path="bookings"        element={<CustomerBookings />} />
@@ -127,21 +112,15 @@ function App() {
           <Route path="payments"        element={<CustomerPayments />} />
         </Route>
 
-        {/* ══════════════════════════════════════════════════════
-            MANAGEMENT LOGIN  (/admin/login)
-        ══════════════════════════════════════════════════════ */}
-        <Route path="/admin/login" element={<ManagementLoginPage />} />
+        {/* ═══ MANAGEMENT SIGN-IN (must be outside PortalGate) ═══ */}
+        <Route path="/admin/login"   element={<ManagementLoginPage portal="admin" />} />
+        <Route path="/manager/login" element={<ManagementLoginPage portal="manager" />} />
+        <Route path="/branch/login"  element={<Navigate to="/manager/login" replace />} />
+        <Route path="/fleet/login"   element={<ManagementLoginPage portal="fleet" />} />
+        <Route path="/staff/login"   element={<ManagementLoginPage portal="staff" />} />
 
-        {/* ══════════════════════════════════════════════════════
-            ADMIN PORTAL  (/admin)
-        ══════════════════════════════════════════════════════ */}
-        <Route path="/admin" element={
-          <ProtectedRoute redirectTo="/admin/login">
-            <RoleRoute allowedRoles={ADMIN_ROLES}>
-              <AdminLayout />
-            </RoleRoute>
-          </ProtectedRoute>
-        }>
+        {/* ═══ ADMIN PORTAL ═══ */}
+        <Route path="/admin" element={<PortalGate portal="admin" layout={AdminLayout} />}>
           <Route index                  element={<AdminDashboard />} />
           <Route path="dashboard"       element={<AdminDashboard />} />
           <Route path="branches"        element={<BranchesPage />} />
@@ -150,75 +129,71 @@ function App() {
           <Route path="transfers"       element={<VehicleTransfersPage />} />
           <Route path="bookings"        element={<AdminBookings />} />
           <Route path="users"           element={<UserManagement />} />
+          <Route path="customers"       element={<UserManagement />} />
           <Route path="payments"        element={<PaymentsPage />} />
+          <Route path="payment-history" element={<PaymentHistoryPage />} />
           <Route path="reviews"         element={<ReviewsManagement />} />
           <Route path="maintenance"     element={<MaintenancePage />} />
           <Route path="messages"        element={<MessagesPage />} />
           <Route path="categories"      element={<CategoryManagement />} />
           <Route path="reports"         element={<ReportsPage />} />
           <Route path="analytics"       element={<AnalyticsPage />} />
+          <Route path="archive"         element={<ArchiveIndexPage />} />
+          <Route path="archive/bookings" element={<ArchiveBookingsPage />} />
+          <Route path="archive/payments" element={<ArchivePaymentsPage />} />
+          <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* ══════════════════════════════════════════════════════
-            BRANCH MANAGER PORTAL  (/branch)
-        ══════════════════════════════════════════════════════ */}
-        <Route path="/branch" element={
-          <ProtectedRoute redirectTo="/admin/login">
-            <RoleRoute allowedRoles={BRANCH_ROLES}>
-              <AdminLayout />
-            </RoleRoute>
-          </ProtectedRoute>
-        }>
+        {/* ═══ BRANCH MANAGER PORTAL (/manager) ═══ */}
+        <Route path="/manager" element={<PortalGate portal="manager" layout={ManagerLayout} />}>
           <Route index                  element={<BranchDashboard />} />
           <Route path="dashboard"       element={<BranchDashboard />} />
           <Route path="vehicles"        element={<VehicleManagement />} />
           <Route path="bookings"        element={<AdminBookings />} />
+          <Route path="customers"       element={<UserManagement />} />
           <Route path="rentals"         element={<BranchRentalsPage />} />
           <Route path="check-in"        element={<BranchRentalsPage />} />
           <Route path="check-out"       element={<BranchRentalsPage />} />
+          <Route path="inspections"     element={<BranchRentalsPage />} />
           <Route path="payments"        element={<PaymentsPage />} />
+          <Route path="payment-history" element={<PaymentHistoryPage />} />
           <Route path="maintenance"     element={<MaintenancePage />} />
           <Route path="staff"           element={<StaffManagementPage />} />
           <Route path="transfers"       element={<VehicleTransfersPage />} />
           <Route path="reports"         element={<ReportsPage />} />
+          <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* ══════════════════════════════════════════════════════
-            FLEET MANAGER PORTAL  (/fleet)
-        ══════════════════════════════════════════════════════ */}
-        <Route path="/fleet" element={
-          <ProtectedRoute redirectTo="/admin/login">
-            <RoleRoute allowedRoles={FLEET_ROLES}>
-              <FleetLayout />
-            </RoleRoute>
-          </ProtectedRoute>
-        }>
+        {/* Legacy /branch → /manager */}
+        <Route path="/branch/*" element={<LegacyBranchRedirect />} />
+
+        {/* ═══ FLEET MANAGER PORTAL ═══ */}
+        <Route path="/fleet" element={<PortalGate portal="fleet" layout={FleetLayout} />}>
           <Route index                  element={<FleetDashboard />} />
           <Route path="dashboard"       element={<FleetDashboard />} />
           <Route path="vehicles"        element={<FleetVehicles />} />
           <Route path="maintenance"     element={<FleetMaintenance />} />
+          <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* ══════════════════════════════════════════════════════
-            STAFF PORTAL  (/staff)
-        ══════════════════════════════════════════════════════ */}
-        <Route path="/staff" element={
-          <ProtectedRoute redirectTo="/admin/login">
-            <RoleRoute allowedRoles={STAFF_ROLES}>
-              <StaffLayout />
-            </RoleRoute>
-          </ProtectedRoute>
-        }>
+        {/* ═══ STAFF PORTAL ═══ */}
+        <Route path="/staff" element={<PortalGate portal="staff" layout={StaffLayout} />}>
           <Route index                  element={<StaffDashboard />} />
           <Route path="dashboard"       element={<StaffDashboard />} />
           <Route path="bookings"        element={<StaffBookings />} />
+          <Route path="payments"        element={<PaymentsPage />} />
+          <Route path="payment-history" element={<PaymentHistoryPage />} />
+          <Route path="customers"       element={<UserManagement />} />
+          <Route path="vehicles"        element={<VehicleManagement />} />
+          <Route path="maintenance"     element={<MaintenancePage />} />
           <Route path="check-in"        element={<StaffBookings />} />
           <Route path="check-out"       element={<StaffBookings />} />
+          <Route path="inspections"     element={<StaffBookings />} />
+          <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* Fallback — customer homepage, NOT login */}
+        {/* Customer 404 only — management unknown routes handled inside each portal */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </BrowserRouter>
   );

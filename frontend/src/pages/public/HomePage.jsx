@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Car, Calendar, ShieldCheck, Clock, Award, Star, ArrowRight, CheckCircle2, ChevronRight, Zap } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
+import branchApi from '../../api/branchesApi';
 import VehicleCard from '../../components/vehicles/VehicleCard';
 import { VehicleCardSkeleton } from '../../components/common/Skeleton';
 import StarRating from '../../components/common/StarRating';
@@ -11,9 +12,12 @@ export const HomePage = () => {
   const navigate = useNavigate();
   const [featuredVehicles, setFeaturedVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Quick Hero Search Form State
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [pickupDate, setPickupDate] = useState('');
+  const [returnDate, setReturnDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
@@ -21,16 +25,15 @@ export const HomePage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [vehRes, catRes] = await Promise.all([
+        const [vehRes, catRes, branchRes] = await Promise.all([
           vehicleApi.getAll({ featured: true, per_page: 6 }),
           categoryApi.getAll(),
+          branchApi.getAll({ status: 'active' }),
         ]);
 
-        const vehList = vehRes.data || [];
-        setFeaturedVehicles(vehList);
-
-        const catList = catRes.data || [];
-        setCategories(catList);
+        setFeaturedVehicles(vehRes.data || []);
+        setCategories(catRes.data || []);
+        setBranches(branchRes.data || []);
       } catch (err) {
         console.error('Failed to load homepage data:', err);
       } finally {
@@ -44,6 +47,9 @@ export const HomePage = () => {
   const handleHeroSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
+    if (selectedBranch) params.set('branch_id', selectedBranch);
+    if (pickupDate) params.set('pickup_date', pickupDate);
+    if (returnDate) params.set('return_date', returnDate);
     if (searchQuery) params.set('search', searchQuery);
     if (selectedCategory) params.set('category', selectedCategory);
     navigate(`/vehicles?${params.toString()}`);
@@ -73,9 +79,43 @@ export const HomePage = () => {
 
           {/* Quick Discovery Widget */}
           <div className="max-w-4xl mx-auto bg-theme-card/90 border border-theme p-4 sm:p-6 rounded-3xl shadow-2xl backdrop-blur-xl transition-colors duration-200">
-            <form onSubmit={handleHeroSearch} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <form onSubmit={handleHeroSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-theme-muted mb-1.5 text-left">Pickup Branch</label>
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="w-full bg-theme-input border border-theme rounded-2xl px-4 py-3 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+                >
+                  <option value="">Choose Branch</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-theme-muted mb-1.5 text-left">Pickup Date</label>
+                <input
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full bg-theme-input border border-theme rounded-2xl px-4 py-3 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-theme-muted mb-1.5 text-left">Return Date</label>
+                <input
+                  type="date"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  min={pickupDate || new Date().toISOString().split('T')[0]}
+                  className="w-full bg-theme-input border border-theme rounded-2xl px-4 py-3 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div className="relative sm:col-span-2 lg:col-span-1">
+                <label className="block text-xs font-semibold text-theme-muted mb-1.5 text-left">Search</label>
+                <Search className="w-4 h-4 text-theme-muted absolute left-3.5 bottom-3.5" />
                 <input
                   type="text"
                   placeholder="Brand, model, keyword..."
@@ -84,8 +124,8 @@ export const HomePage = () => {
                   className="w-full bg-theme-input border border-theme rounded-2xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
-
               <div>
+                <label className="block text-xs font-semibold text-theme-muted mb-1.5 text-left">Category</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
@@ -93,20 +133,19 @@ export const HomePage = () => {
                 >
                   <option value="">All Categories</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.slug}>
-                      {cat.name}
-                    </option>
+                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
                   ))}
                 </select>
               </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
-              >
-                <Search className="w-4 h-4" />
-                <span>Search Vehicles</span>
-              </button>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <Search className="w-4 h-4" />
+                  Search Vehicles
+                </button>
+              </div>
             </form>
           </div>
         </div>

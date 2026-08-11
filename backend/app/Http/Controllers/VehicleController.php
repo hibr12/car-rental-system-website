@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreVehicleRequest;
 use App\Http\Requests\UpdateVehicleRequest;
 use App\Http\Resources\VehicleResource;
+use App\Models\Booking;
 use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +15,15 @@ class VehicleController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Vehicle::with(['category', 'images', 'primaryImage']);
+        $query = Vehicle::with(['category', 'images', 'primaryImage', 'branch']);
+
+        if ($branchId = $request->input('branch_id')) {
+            $query->where('branch_id', $branchId);
+
+            if (!$request->user()?->isAdmin()) {
+                $query->whereHas('branch', fn ($q) => $q->where('status', 'active'));
+            }
+        }
 
         if ($search = $request->input('search')) {
             $searchLower = strtolower($search);
@@ -49,6 +59,29 @@ class VehicleController extends Controller
 
         if ($status = $request->input('status')) {
             $query->where('status', $status);
+        } elseif ($request->boolean('available_only', false) || ($request->has('pickup_date') && $request->has('return_date'))) {
+            $query->where('status', 'available');
+        }
+
+        // Exclude vehicles with overlapping bookings for date range
+        if ($request->has('pickup_date') && $request->has('return_date')) {
+            $pickupDate = Carbon::parse($request->input('pickup_date'));
+            $returnDate = Carbon::parse($request->input('return_date'));
+
+            $query->whereDoesntHave('bookings', function ($q) use ($pickupDate, $returnDate) {
+                $q->whereIn('status', [
+                    Booking::STATUS_PENDING,
+                    Booking::STATUS_CONFIRMED,
+                    Booking::STATUS_ACTIVE,
+                ])->where(function ($q2) use ($pickupDate, $returnDate) {
+                    $q2->whereBetween('pickup_date', [$pickupDate, $returnDate])
+                       ->orWhereBetween('return_date', [$pickupDate, $returnDate])
+                       ->orWhere(function ($q3) use ($pickupDate, $returnDate) {
+                           $q3->where('pickup_date', '<=', $pickupDate)
+                              ->where('return_date', '>=', $returnDate);
+                       });
+                });
+            });
         }
 
         if ($request->has('featured')) {

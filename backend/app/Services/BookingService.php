@@ -42,6 +42,11 @@ class BookingService
         $vehicle = $this->findVehicleOrFail($data['vehicle_id']);
         $this->validateVehicle($vehicle);
 
+        // Ensure vehicle belongs to requested branch when provided
+        if (!empty($data['branch_id']) && (int) $data['branch_id'] !== (int) $vehicle->branch_id) {
+            throw new \InvalidArgumentException('The selected vehicle does not belong to the chosen branch.');
+        }
+
         $pickupDate = Carbon::parse($data['pickup_date']);
         $returnDate = Carbon::parse($data['return_date']);
         $this->validateDates($pickupDate, $returnDate);
@@ -76,9 +81,11 @@ class BookingService
                 'additional_charges' => $additionalCharges,
                 'discount'           => $discount,
                 'total_price'        => $totalPrice,
-                'status'             => Booking::STATUS_PENDING,
-                'payment_status'     => Booking::PAYMENT_STATUS_UNPAID,
-                'notes'              => $data['notes'] ?? null,
+                'status'                 => Booking::STATUS_PENDING,
+                'payment_status'         => Booking::PAYMENT_STATUS_UNPAID,
+                'branch_approval_status' => Booking::APPROVAL_PENDING,
+                'admin_approval_status'  => Booking::APPROVAL_PENDING,
+                'notes'                  => $data['notes'] ?? null,
             ]);
 
             $booking->load('vehicle', 'user');
@@ -100,69 +107,192 @@ class BookingService
     }
 
     /**
-     * Confirm a pending booking and reserve the vehicle.
+     * Branch manager approves a pending booking (first approval step).
      */
-    public function confirmBooking(Booking $booking): Booking
+    public function approveByBranch(Booking $booking, User $approver): Booking
     {
-        if ($booking->status !== Booking::STATUS_PENDING) {
-            throw new \InvalidArgumentException('Only pending bookings can be confirmed.');
+        if (!$approver->isBranchManager() && !$approver->isAdmin()) {
+            throw new \InvalidArgumentException('Only branch managers can perform branch approval.');
         }
 
-        $booking = DB::transaction(function () use ($booking) {
+        if ($approver->isBranchManager() && (int) $approver->branch_id !== (int) $booking->branch_id) {
+            throw new \InvalidArgumentException('You can only approve bookings for your own branch.');
+        }
+
+        if ($booking->status !== Booking::STATUS_PENDING && $booking->status !== Booking::STATUS_BRANCH_REVIEW) {
+            throw new \InvalidArgumentException('Only pending bookings can be branch-approved.');
+        }
+
+        if ($booking->branch_approval_status === Booking::APPROVAL_APPROVED) {
+            throw new \InvalidArgumentException('Booking is already branch-approved.');
+        }
+
+        if ($booking->branch_approval_status === Booking::APPROVAL_REJECTED) {
+            throw new \InvalidArgumentException('Booking was rejected by the branch.');
+        }
+
+        $booking = DB::transaction(function () use ($booking, $approver) {
             $booking->update([
-                'status' => Booking::STATUS_CONFIRMED,
-                'payment_status' => Booking::PAYMENT_STATUS_PENDING,
+                'branch_approval_status' => Booking::APPROVAL_APPROVED,
+                'branch_approved_at'     => now(),
+                'branch_approved_by'     => $approver->id,
+                'admin_approval_status'  => Booking::APPROVAL_APPROVED,
+                'admin_approved_at'      => now(),
+                'admin_approved_by'      => $approver->id,
+                'status'                 => Booking::STATUS_CONFIRMED,
+                'payment_status'         => Booking::PAYMENT_STATUS_PENDING,
             ]);
 
             $booking->vehicle->update(['status' => 'reserved']);
 
-            return $booking->fresh()->load('vehicle', 'user');
+            return $booking->fresh()->load('vehicle', 'user', 'branch');
         });
 
         event(new BookingConfirmed($booking));
 
-        Log::info('Booking confirmed', [
+        Log::info('Booking branch-approved and confirmed', [
             'booking_id' => $booking->id,
-            'booking_reference' => $booking->booking_reference,
+            'approver_id' => $approver->id,
         ]);
 
         return $booking;
     }
 
     /**
-     * Reject a pending booking with optional reason.
+     * Admin gives final approval — booking becomes confirmed.
      */
-    public function rejectBooking(Booking $booking, ?string $reason = null): Booking
+    public function approveByAdmin(Booking $booking, User $approver): Booking
     {
+        if (!$approver->isAdmin()) {
+            throw new \InvalidArgumentException('Only administrators can give final approval.');
+        }
+
+        if ($booking->status !== Booking::STATUS_PENDING && $booking->status !== Booking::STATUS_BRANCH_REVIEW) {
+            throw new \InvalidArgumentException('Only pending bookings can receive admin approval.');
+        }
+
+        if ($booking->admin_approval_status === Booking::APPROVAL_APPROVED) {
+            throw new \InvalidArgumentException('Booking is already admin-approved.');
+        }
+
+        $booking = DB::transaction(function () use ($booking, $approver) {
+            $booking->update([
+                'branch_approval_status' => Booking::APPROVAL_APPROVED,
+                'branch_approved_at'     => $booking->branch_approved_at ?? now(),
+                'branch_approved_by'     => $booking->branch_approved_by ?? $approver->id,
+                'admin_approval_status' => Booking::APPROVAL_APPROVED,
+                'admin_approved_at'     => now(),
+                'admin_approved_by'     => $approver->id,
+                'status'                => Booking::STATUS_CONFIRMED,
+                'payment_status'        => Booking::PAYMENT_STATUS_PENDING,
+            ]);
+
+            $booking->vehicle->update(['status' => 'reserved']);
+
+            return $booking->fresh()->load('vehicle', 'user', 'branch');
+        });
+
+        event(new BookingConfirmed($booking));
+
+        Log::info('Booking admin-approved and confirmed', [
+            'booking_id' => $booking->id,
+            'approver_id' => $approver->id,
+        ]);
+
+        return $booking;
+    }
+
+    /**
+     * Confirm a pending booking (legacy — routes to role-appropriate approval).
+     */
+    public function confirmBooking(Booking $booking, ?User $actor = null): Booking
+    {
+        $actor = $actor ?? auth()->user();
+
+        if ($actor->isBranchManager()) {
+            return $this->approveByBranch($booking, $actor);
+        }
+
+        if ($actor->isAdmin()) {
+            return $this->approveByAdmin($booking, $actor);
+        }
+
+        return $this->approveByAdmin($booking, $actor);
+    }
+
+    /**
+     * Reject a booking — branch manager or admin depending on actor role.
+     */
+    public function rejectBooking(Booking $booking, ?string $reason = null, ?User $actor = null): Booking
+    {
+        $actor = $actor ?? auth()->user();
+
         if ($booking->status !== Booking::STATUS_PENDING) {
             throw new \InvalidArgumentException('Only pending bookings can be rejected.');
         }
 
+        if ($actor->isBranchManager()) {
+            return $this->rejectByBranch($booking, $actor, $reason);
+        }
+
+        return $this->rejectByAdmin($booking, $actor, $reason);
+    }
+
+    public function rejectByBranch(Booking $booking, User $rejector, ?string $reason = null): Booking
+    {
+        if (!$rejector->isBranchManager() && !$rejector->isAdmin()) {
+            throw new \InvalidArgumentException('Unauthorized to reject this booking.');
+        }
+
+        if ($rejector->isBranchManager() && (int) $rejector->branch_id !== (int) $booking->branch_id) {
+            throw new \InvalidArgumentException('You can only reject bookings for your own branch.');
+        }
+
+        return $this->performRejection($booking, $rejector, 'branch', $reason);
+    }
+
+    public function rejectByAdmin(Booking $booking, User $rejector, ?string $reason = null): Booking
+    {
+        if (!$rejector->isAdmin()) {
+            throw new \InvalidArgumentException('Only administrators can reject at admin level.');
+        }
+
+        return $this->performRejection($booking, $rejector, 'admin', $reason);
+    }
+
+    private function performRejection(Booking $booking, User $rejector, string $role, ?string $reason): Booking
+    {
         $notes = $booking->notes;
         if ($reason) {
             $notes = $notes ? $notes . "\nRejection: " . $reason : 'Rejection: ' . $reason;
         }
 
-        $booking = DB::transaction(function () use ($booking, $notes) {
-            $booking->update([
-                'status' => Booking::STATUS_REJECTED,
-                'notes' => $notes,
-            ]);
+        $booking = DB::transaction(function () use ($booking, $rejector, $role, $reason, $notes) {
+            $updates = [
+                'status'              => Booking::STATUS_REJECTED,
+                'rejected_by_role'    => $role,
+                'rejected_by_user_id' => $rejector->id,
+                'rejected_at'         => now(),
+                'rejection_reason'    => $reason,
+                'notes'               => $notes,
+            ];
+
+            if ($role === 'branch') {
+                $updates['branch_approval_status'] = Booking::APPROVAL_REJECTED;
+            } else {
+                $updates['admin_approval_status'] = Booking::APPROVAL_REJECTED;
+            }
+
+            $booking->update($updates);
 
             if ($booking->vehicle->status === 'reserved') {
                 $booking->vehicle->update(['status' => 'available']);
             }
 
-            return $booking->fresh()->load('vehicle', 'user');
+            return $booking->fresh()->load('vehicle', 'user', 'branch');
         });
 
         event(new BookingRejected($booking, $reason));
-
-        Log::info('Booking rejected', [
-            'booking_id' => $booking->id,
-            'booking_reference' => $booking->booking_reference,
-            'reason' => $reason,
-        ]);
 
         return $booking;
     }
@@ -330,6 +460,15 @@ class BookingService
 
     private function validateVehicle(Vehicle $vehicle): void
     {
+        if (!$vehicle->branch_id) {
+            throw new \InvalidArgumentException('Vehicle is not assigned to a branch and cannot be booked.');
+        }
+
+        $branch = $vehicle->branch;
+        if ($branch && !$branch->isActive()) {
+            throw new \InvalidArgumentException('Bookings are not available for inactive branches.');
+        }
+
         if ($vehicle->status === 'maintenance') {
             throw new \InvalidArgumentException('Vehicle is currently under maintenance and cannot be booked.');
         }

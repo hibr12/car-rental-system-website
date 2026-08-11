@@ -16,15 +16,9 @@ export const useAuthStore = create((set, get) => ({
       return;
     }
 
-    // If already authenticated with valid state, skip re-fetch
-    const currentState = get();
-    if (currentState.isAuthenticated && currentState.user && currentState.token === token) {
-      set({ isInitializing: false });
-      return;
-    }
-
+    // Always validate token on load (F5-safe, ensures fresh user + branch data)
     try {
-      set({ isLoading: true });
+      set({ isLoading: true, isInitializing: true });
       const response = await authApi.me();
       const user = response.data?.user || response.data;
       

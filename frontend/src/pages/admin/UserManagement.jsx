@@ -5,6 +5,12 @@ import { formatDate, getRoleBadgeStyle, formatStatus } from '../../utils/formatt
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import {
+  ManagementPageHeader,
+  ManagementCard,
+  ManagementEmptyState,
+  ManagementButton,
+} from '../../components/management/ManagementUI';
 
 export const UserManagement = () => {
   const toast = useToast();
@@ -55,23 +61,20 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-8">
-      <div className="border-b border-slate-800 pb-6">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">User Account Management</h1>
-        <p className="text-sm text-slate-400">View registered users, inspect details, and update role privileges.</p>
-      </div>
+      <ManagementPageHeader
+        title="User Account Management"
+        description="View registered users, inspect details, and update role privileges."
+      />
 
-      <div className="bg-theme-card border border-theme rounded-xl p-6 sm:p-8 space-y-6 shadow-xl">
+      <ManagementCard className="space-y-6">
         {loading ? (
-          <div className="py-12 text-center text-slate-400 text-sm">Loading users list...</div>
+          <div className="py-12 text-center text-[#64748B] text-sm">Loading users list...</div>
         ) : users.length === 0 ? (
-          <div className="text-center py-12 space-y-3">
-            <Users className="w-12 h-12 text-slate-700 mx-auto" />
-            <p className="text-sm font-semibold text-slate-300">No Users Found</p>
-          </div>
+          <ManagementEmptyState icon={Users} title="No Users Found" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950/60 text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-[#334155]">
+              <thead className="text-xs uppercase bg-[#F8FAFC] text-[#334155] border-b border-[#E2E8F0]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">User Profile</th>
                   <th className="py-3.5 px-4 font-semibold">Email</th>
@@ -81,35 +84,38 @@ export const UserManagement = () => {
                   <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-4 px-4 font-medium text-white flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-600/30 text-blue-400 font-bold text-xs flex items-center justify-center shrink-0 border border-blue-500/30">
-                        {u.name?.[0]?.toUpperCase() || 'U'}
+                  <tr key={u.id} className="hover:bg-[#F8FAFC] transition-colors">
+                    <td className="py-4 px-4 font-medium text-[#0F172A]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-50 text-[#2563EB] font-bold text-xs flex items-center justify-center shrink-0 border border-blue-100">
+                          {u.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <span className="font-bold">{u.name}</span>
                       </div>
-                      <span className="font-bold">{u.name}</span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-slate-400">{u.email}</td>
-                    <td className="py-4 px-4 text-xs text-slate-400">{u.phone || 'N/A'}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{u.email}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{u.phone || 'N/A'}</td>
                     <td className="py-4 px-4">
                       <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-full border ${getRoleBadgeStyle(u.role)}`}>
                         {formatStatus(u.role)}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-slate-400">{formatDate(u.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(u.created_at)}</td>
                     <td className="py-4 px-4 text-right">
-                      <button
+                      <ManagementButton
+                        variant="secondary"
                         onClick={() => {
                           setSelectedUser(u);
                           setNewRole(u.role || 'customer');
                           setRoleModalOpen(true);
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 ml-auto"
+                        className="ml-auto"
                       >
                         <Edit className="w-3.5 h-3.5" />
                         <span>Edit Role</span>
-                      </button>
+                      </ManagementButton>
                     </td>
                   </tr>
                 ))}
@@ -126,7 +132,7 @@ export const UserManagement = () => {
             onPageChange={(p) => setPage(p)}
           />
         )}
-      </div>
+      </ManagementCard>
 
       {/* Role Assignment Modal */}
       {selectedUser && (
@@ -138,11 +144,11 @@ export const UserManagement = () => {
         >
           <form onSubmit={handleUpdateRole} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">Select Role Assignment</label>
+              <label className="block text-[#334155] font-semibold mb-1.5">Select Role Assignment</label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100"
+                className="w-full bg-white border border-[#CBD5E1] rounded-xl p-3 text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               >
                 <option value="customer">Customer (Standard Renter)</option>
                 <option value="staff">Staff Member (Pickup/Return Desk)</option>
@@ -151,13 +157,9 @@ export const UserManagement = () => {
               </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={updating}
-              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg"
-            >
+            <ManagementButton type="submit" disabled={updating} className="w-full py-3.5">
               {updating ? 'Updating...' : 'Save User Role'}
-            </button>
+            </ManagementButton>
           </form>
         </Modal>
       )}

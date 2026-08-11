@@ -53,6 +53,35 @@ class ReviewController extends Controller
         ]);
     }
 
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->isAdmin() && !$user->isBranchManager()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Insufficient permissions.',
+            ], 403);
+        }
+
+        $filters = $request->only(['search', 'rating', 'branch_id']);
+        $perPage = (int) $request->input('per_page', 10);
+
+        $reviews = $this->reviewService->getAdminReviews($user, $filters, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reviews retrieved successfully',
+            'data' => ReviewResource::collection($reviews),
+            'meta' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page' => $reviews->lastPage(),
+                'per_page' => $reviews->perPage(),
+                'total' => $reviews->total(),
+            ],
+        ]);
+    }
+
     public function store(StoreReviewRequest $request, Vehicle $vehicle): JsonResponse
     {
         Gate::authorize('create', Review::class);

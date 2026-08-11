@@ -29,6 +29,9 @@ export const adminApi = {
   // Reports
   getRevenueReport: (params = {}) => apiClient.get('/admin/reports/revenue', { params }),
   getFleetReport:   (params = {}) => apiClient.get('/admin/reports/fleet', { params }),
+
+  // Reviews
+  getReviews: (params = {}) => apiClient.get('/admin/reviews', { params }),
 };
 
 export default adminApi;

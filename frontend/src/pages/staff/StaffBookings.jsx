@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   XCircle,
   Car,
-  Loader2,
   RefreshCw,
   Filter,
   Search
@@ -13,6 +12,12 @@ import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../components/common/Toast';
+import {
+  ManagementPageHeader,
+  ManagementCard,
+  ManagementEmptyState,
+  ManagementButton,
+} from '../../components/management/ManagementUI';
 
 export const StaffBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -97,14 +102,14 @@ export const StaffBookings = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleConfirm(booking.id)}
-              className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+              className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-green-50 text-[#16A34A] border border-green-200 hover:bg-green-100 transition-colors"
             >
               <CheckCircle2 className="w-3 h-3 inline mr-1" />
               Confirm
             </button>
             <button
               onClick={() => handleReject(booking.id)}
-              className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors"
+              className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-red-50 text-[#DC2626] border border-red-200 hover:bg-red-100 transition-colors"
             >
               <XCircle className="w-3 h-3 inline mr-1" />
               Reject
@@ -115,7 +120,7 @@ export const StaffBookings = () => {
         return (
           <button
             onClick={() => handlePickup(booking.id)}
-            className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+            className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 text-[#2563EB] border border-blue-200 hover:bg-blue-100 transition-colors"
           >
             <Car className="w-3 h-3 inline mr-1" />
             Pickup
@@ -125,7 +130,7 @@ export const StaffBookings = () => {
         return (
           <button
             onClick={() => handleReturn(booking.id)}
-            className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+            className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 text-[#2563EB] border border-blue-200 hover:bg-blue-100 transition-colors"
           >
             <RefreshCw className="w-3 h-3 inline mr-1" />
             Return
@@ -137,43 +142,37 @@ export const StaffBookings = () => {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme pb-6">
-        <div>
-          <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-400">
-            Staff Workstation
-          </span>
-          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Bookings Management</h1>
-          <p className="text-sm text-theme-muted mt-1">Process pickups, returns, and manage booking statuses</p>
-        </div>
-        <button
-          onClick={fetchBookings}
-          className="px-4 py-2.5 rounded-xl bg-theme-secondary border border-theme hover:bg-theme-hover text-theme-secondary font-semibold text-xs flex items-center gap-2 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
-      </div>
+    <div className="mgmt-page space-y-8">
+      <ManagementPageHeader
+        eyebrow="Staff Workstation"
+        title="Bookings Management"
+        description="Process pickups, returns, and manage booking statuses"
+        actions={
+          <ManagementButton variant="secondary" onClick={fetchBookings}>
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </ManagementButton>
+        }
+      />
 
       {/* Filters */}
-      <div className="bg-theme-card border border-theme rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-colors duration-200">
+      <ManagementCard className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by reference, customer, or vehicle..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-cyan-500 transition-colors"
+            className="mgmt-input pl-10"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-theme-muted" />
+          <Filter className="w-4 h-4 text-[#64748B]" />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-theme-input border border-theme rounded-xl px-3 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-cyan-500 transition-colors"
+            className="mgmt-input w-auto"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -184,10 +183,10 @@ export const StaffBookings = () => {
             <option value="rejected">Rejected</option>
           </select>
         </div>
-      </div>
+      </ManagementCard>
 
       {/* Bookings Table */}
-      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-colors duration-200">
+      <ManagementCard className="rounded-2xl space-y-6">
         {loading ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -199,17 +198,17 @@ export const StaffBookings = () => {
             </table>
           </div>
         ) : filteredBookings.length === 0 ? (
-          <div className="text-center py-12 space-y-3">
-            <CalendarCheck className="w-12 h-12 text-theme-muted mx-auto" />
-            <p className="text-sm font-semibold text-theme-secondary">No Bookings Found</p>
-            <p className="text-xs text-theme-muted">
-              {searchQuery || filterStatus ? 'Try adjusting your filters.' : 'No bookings in the system yet.'}
-            </p>
-          </div>
+          <ManagementEmptyState
+            icon={CalendarCheck}
+            title="No Bookings Found"
+            description={
+              searchQuery || filterStatus ? 'Try adjusting your filters.' : 'No bookings in the system yet.'
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-theme-secondary">
-              <thead className="text-xs uppercase bg-theme-hover text-theme-muted border-b border-theme">
+            <table className="w-full text-left text-sm text-[#334155]">
+              <thead className="mgmt-table-head">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Reference</th>
                   <th className="py-3.5 px-4 font-semibold">Customer</th>
@@ -220,26 +219,26 @@ export const StaffBookings = () => {
                   <th className="py-3.5 px-4 font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-theme">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-theme-hover transition-colors">
-                    <td className="py-4 px-4 font-mono text-xs text-cyan-400 font-bold">
+                  <tr key={booking.id} className="mgmt-table-row">
+                    <td className="py-4 px-4 font-mono text-xs text-[#2563EB] font-bold">
                       {booking.booking_reference}
                     </td>
-                    <td className="py-4 px-4 font-medium text-theme-primary">
+                    <td className="py-4 px-4 font-medium text-[#0F172A]">
                       {booking.user?.name || `User #${booking.user_id}`}
                     </td>
                     <td className="py-4 px-4">
-                      <p className="font-medium text-theme-primary">
+                      <p className="font-medium text-[#0F172A]">
                         {booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : `#${booking.vehicle_id}`}
                       </p>
-                      <p className="text-[11px] text-theme-muted">{booking.pickup_location}</p>
+                      <p className="text-[11px] text-[#64748B]">{booking.pickup_location}</p>
                     </td>
-                    <td className="py-4 px-4 text-xs text-theme-muted">
+                    <td className="py-4 px-4 text-xs text-[#64748B]">
                       <p>{formatDate(booking.pickup_date)}</p>
-                      <p className="text-theme-muted/70">to {formatDate(booking.return_date)}</p>
+                      <p>to {formatDate(booking.return_date)}</p>
                     </td>
-                    <td className="py-4 px-4 font-bold text-emerald-400">
+                    <td className="py-4 px-4 font-bold text-[#16A34A]">
                       {formatCurrency(booking.total_price)}
                     </td>
                     <td className="py-4 px-4">
@@ -260,7 +259,7 @@ export const StaffBookings = () => {
             </table>
           </div>
         )}
-      </div>
+      </ManagementCard>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Fuel, Gauge, Users, Star, ArrowRight } from 'lucide-react';
+import { Fuel, Gauge, Users, Star, ArrowRight, MapPin } from 'lucide-react';
 import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 
 export const VehicleCard = ({ vehicle }) => {
@@ -75,6 +75,13 @@ export const VehicleCard = ({ vehicle }) => {
               <span>{vehicle.seats} Seats</span>
             </div>
           </div>
+
+          {(vehicle.branch?.name || vehicle.location) && (
+            <div className="flex items-center gap-1.5 text-xs text-theme-muted px-1">
+              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>{vehicle.branch?.name || vehicle.location}</span>
+            </div>
+          )}
         </div>
       </div>
 

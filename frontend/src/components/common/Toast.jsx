@@ -7,19 +7,19 @@ const ToastContext = createContext(null);
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const showToast = useCallback((message, type = 'info', duration = 4000) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
 
     if (duration > 0) {
       setTimeout(() => {
-        removeToast(id);
+        setToasts((prev) => prev.filter((t) => t.id !== id));
       }, duration);
     }
-  }, []);
-
-  const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const success = (msg, dur) => showToast(msg, 'success', dur);
@@ -50,47 +50,53 @@ export const useToast = () => {
 };
 
 const ToastItem = ({ toast, onClose }) => {
-  const getIcon = () => {
-    switch (toast.type) {
-      case 'success':
-        return <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />;
-      case 'error':
-        return <XCircle className="w-5 h-5 text-rose-400 shrink-0" />;
-      case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />;
-      default:
-        return <Info className="w-5 h-5 text-sky-400 shrink-0" />;
-    }
+  const styles = {
+    success: {
+      icon: <CheckCircle2 className="w-5 h-5 text-[#16A34A] shrink-0" />,
+      border: 'border-[#16A34A]/30',
+      text: 'text-[#0F172A]',
+      accent: 'border-l-[#16A34A]',
+    },
+    error: {
+      icon: <XCircle className="w-5 h-5 text-[#DC2626] shrink-0" />,
+      border: 'border-[#DC2626]/30',
+      text: 'text-[#0F172A]',
+      accent: 'border-l-[#DC2626]',
+    },
+    warning: {
+      icon: <AlertTriangle className="w-5 h-5 text-[#F59E0B] shrink-0" />,
+      border: 'border-[#F59E0B]/30',
+      text: 'text-[#0F172A]',
+      accent: 'border-l-[#F59E0B]',
+    },
+    info: {
+      icon: <Info className="w-5 h-5 text-[#2563EB] shrink-0" />,
+      border: 'border-[#2563EB]/30',
+      text: 'text-[#0F172A]',
+      accent: 'border-l-[#2563EB]',
+    },
   };
 
-  const getBorderColor = () => {
-    switch (toast.type) {
-      case 'success':
-        return 'border-emerald-500/30 bg-theme-card/90 text-emerald-100';
-      case 'error':
-        return 'border-rose-500/30 bg-theme-card/90 text-rose-100';
-      case 'warning':
-        return 'border-amber-500/30 bg-theme-card/90 text-amber-100';
-      default:
-        return 'border-sky-500/30 bg-theme-card/90 text-sky-100';
-    }
-  };
+  const style = styles[toast.type] || styles.info;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-xl ${getBorderColor()}`}
+      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border border-l-4 bg-white shadow-lg ${style.border} ${style.accent} ${style.text}`}
     >
-      {getIcon()}
-      <div className="flex-1 text-sm font-medium pr-2">{toast.message}</div>
+      {style.icon}
+      <p className="flex-1 text-sm font-medium text-[#334155]">{toast.message}</p>
       <button
         onClick={onClose}
-        className="text-theme-muted hover:text-theme-primary transition-colors p-1 rounded-lg hover:bg-white/10"
+        className="text-[#94A3B8] hover:text-[#0F172A] transition-colors"
+        aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />
       </button>
     </motion.div>
   );
 };
+
+export default ToastProvider;

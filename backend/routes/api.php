@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BranchController;
@@ -42,9 +43,11 @@ Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 
 Route::post('/contact-messages',   [ContactMessageController::class, 'store']);
 
-// Chapa payment callback (no auth — called by Chapa gateway)
-Route::post('/payments/callback',  [PaymentController::class, 'callback'])
+// Chapa payment callback + webhook (no auth — called by Chapa gateway)
+Route::match(['get', 'post'], '/payments/callback', [PaymentController::class, 'callback'])
     ->name('payments.callback');
+Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
+    ->name('payments.chapa.webhook');
 
 // ════════════════════════════════════════════════════════════════════
 //  AUTHENTICATED ROUTES
@@ -74,7 +77,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/payments',                    [PaymentController::class, 'store']);
     Route::post('/payments/initialize',         [PaymentController::class, 'initialize']);
     Route::get('/payments/verify/{tx_ref}',     [PaymentController::class, 'verify'])->name('payments.verify');
+    Route::get('/payments/{payment}/status',     [PaymentController::class, 'paymentStatus']);
+    Route::get('/bookings/{booking}/payment-status', [PaymentController::class, 'bookingPaymentStatus']);
     Route::get('/payments/{payment}',           [PaymentController::class, 'show']);
+    Route::post('/payments/{payment}/verify',   [PaymentController::class, 'verifyById'])
+        ->middleware('role:admin,branch_manager,staff');
 
     // ── Customer: Reviews ─────────────────────────────────────────
     Route::get('/reviews',                      [ReviewController::class, 'userReviews']);
@@ -182,6 +189,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/reports/fleet',             [ReportController::class, 'fleetUtilization']);
     });
 
+    Route::prefix('admin')->middleware('role:admin,branch_manager')->group(function () {
+        Route::get('/reviews',                   [ReviewController::class, 'adminIndex']);
+    });
+
     // ═══════════════════════════════════════════════════════════════
     //  ADMIN + STAFF BOOKING MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
@@ -195,7 +206,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::put('/payments/{payment}/fail',   [PaymentController::class, 'markAsFailed']);
         Route::put('/payments/{payment}/refund', [PaymentController::class, 'refund']);
-        Route::delete('/payments/{payment}',     [PaymentController::class, 'destroy']);
+        Route::post('/payments/{payment}/confirm-cash', [PaymentController::class, 'confirmCash']);
+        Route::get('/payment-history',           [PaymentController::class, 'history']);
+    });
+
+    // Archive — admin only; soft-archive, never hard-delete financial records
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
+        Route::get('/archive/bookings',              [ArchiveController::class, 'bookings']);
+        Route::put('/bookings/{booking}/archive',    [ArchiveController::class, 'archiveBooking']);
+        Route::get('/archive/payments',               [ArchiveController::class, 'payments']);
+        Route::put('/payments/{payment}/archive',    [ArchiveController::class, 'archivePayment']);
     });
 
     // ═══════════════════════════════════════════════════════════════

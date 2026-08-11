@@ -25,10 +25,41 @@ class ReviewService
 
     public function getUserReviews(User $user): LengthAwarePaginator
     {
-        return Review::with(['vehicle', 'booking'])
+        return Review::with(['vehicle', 'booking', 'branch'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+    }
+
+    public function getAdminReviews(User $user, array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        $query = Review::with(['user', 'vehicle', 'booking', 'branch'])
+            ->orderByDesc('created_at');
+
+        if ($user->isBranchManager() && !$user->isAdmin()) {
+            $query->where('branch_id', $user->branch_id);
+        } elseif (!empty($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+
+        if (!empty($filters['rating'])) {
+            $query->where('rating', (int) $filters['rating']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = strtolower($filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('vehicle', function ($vq) use ($search) {
+                    $vq->whereRaw('LOWER(brand) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(model) LIKE ?', ["%{$search}%"]);
+                })->orWhereHas('user', function ($uq) use ($search) {
+                    $uq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                });
+            });
+        }
+
+        return $query->paginate($perPage);
     }
 
     public function createReview(array $data, int $userId): Review
@@ -47,6 +78,7 @@ class ReviewService
                 'user_id' => $userId,
                 'vehicle_id' => $vehicle->id,
                 'booking_id' => $booking->id,
+                'branch_id' => $booking->branch_id,
                 'rating' => $data['rating'],
                 'comment' => $data['comment'] ?? null,
                 'status' => Review::STATUS_APPROVED,

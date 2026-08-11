@@ -22,6 +22,11 @@ import {
 } from 'recharts';
 import adminApi from '../../api/adminApi';
 import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import {
+  ManagementPageHeader,
+  ManagementCard,
+  ManagementButton,
+} from '../../components/management/ManagementUI';
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -39,8 +44,8 @@ export const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-theme-muted">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+      <div className="flex flex-col items-center justify-center py-20 text-[#64748B]">
+        <Loader2 className="w-10 h-10 animate-spin text-[#2563EB] mb-4" />
         <p className="text-sm font-medium">Loading executive dashboard statistics...</p>
       </div>
     );
@@ -50,35 +55,26 @@ export const AdminDashboard = () => {
   const monthlyRevData = stats?.monthly_revenue || [];
   const bookingStatusesData = stats?.booking_statuses || [];
 
-  const PIE_COLORS = ['#475569', '#64748b', '#94a3b8', '#3b82f6', '#1d4ed8'];
+  const PIE_COLORS = ['#64748B', '#94A3B8', '#CBD5E1', '#2563EB', '#1D4ED8'];
+  const tooltipStyle = { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', color: '#0F172A' };
 
   return (
     <div className="space-y-10">
-      {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme pb-6">
-        <div>
-          <span className="text-xs uppercase font-semibold tracking-wider text-theme-muted">
-            Administration
-          </span>
-          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Executive Analytics</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/admin/vehicles"
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md"
-          >
-            Manage Vehicles
-          </Link>
-          <Link
-            to="/admin/bookings"
-            className="px-4 py-2.5 rounded-xl bg-theme-secondary border border-theme hover:bg-theme-hover text-theme-secondary font-semibold text-xs transition-colors"
-          >
-            Booking Desk
-          </Link>
-        </div>
-      </div>
+      <ManagementPageHeader
+        eyebrow="Administration"
+        title="Executive Analytics"
+        actions={
+          <>
+            <Link to="/admin/vehicles">
+              <ManagementButton>Manage Vehicles</ManagementButton>
+            </Link>
+            <Link to="/admin/bookings">
+              <ManagementButton variant="secondary">Booking Desk</ManagementButton>
+            </Link>
+          </>
+        }
+      />
 
-      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Revenue',  value: formatCurrency(summary.total_revenue || 0),  sub: `Monthly: ${formatCurrency(summary.monthly_revenue || 0)}`, Icon: DollarSign },
@@ -86,55 +82,49 @@ export const AdminDashboard = () => {
           { label: 'Vehicle Fleet',  value: summary.total_vehicles || 0,                 sub: `Available: ${summary.available_vehicles || 0} · Rented: ${summary.rented_vehicles || 0}`, Icon: Car },
           { label: 'Bookings',       value: summary.total_bookings || 0,                 sub: `Active: ${summary.active_rentals || 0} · Pending: ${summary.pending_bookings || 0}`, Icon: CalendarCheck },
         ].map(({ label, value, sub, Icon }) => (
-          <div key={label} className="bg-theme-card border border-theme p-5 rounded-xl transition-colors duration-200">
+          <ManagementCard key={label}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">{label}</span>
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">{label}</span>
+              <div className="w-8 h-8 rounded-lg bg-[#F8FAFC] text-[#64748B] flex items-center justify-center border border-[#E2E8F0]">
                 <Icon className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-theme-primary">{value}</p>
-            <p className="text-[11px] text-theme-muted mt-1">{sub}</p>
-          </div>
+            <p className="text-2xl font-bold text-[#0F172A]">{value}</p>
+            <p className="text-[11px] text-[#64748B] mt-1">{sub}</p>
+          </ManagementCard>
         ))}
       </div>
 
-      {/* Recharts Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Monthly Revenue Area Chart */}
-        <div className="lg:col-span-2 bg-theme-card border border-theme p-6 rounded-xl space-y-6 shadow-sm transition-colors duration-200">
+        <ManagementCard className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-theme-primary">Revenue Growth Trend</h3>
-              <p className="text-xs text-theme-muted">Monthly total revenue generated from reservations</p>
+              <h3 className="text-lg font-bold text-[#0F172A]">Revenue Growth Trend</h3>
+              <p className="text-xs text-[#64748B]">Monthly total revenue generated from reservations</p>
             </div>
-            <TrendingUp className="w-5 h-5 text-theme-muted" />
+            <TrendingUp className="w-5 h-5 text-[#64748B]" />
           </div>
 
           <div className="h-72 w-full pt-4">
             {monthlyRevData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyRevData}>
-                  <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderRadius: '12px', color: 'var(--text-primary)' }}
-                    formatter={(val) => [formatCurrency(val), 'Revenue']}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fill="#3b82f6" fillOpacity={0.2} />
+                  <XAxis dataKey="month" stroke="#64748B" fontSize={11} />
+                  <YAxis stroke="#64748B" fontSize={11} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(val) => [formatCurrency(val), 'Revenue']} />
+                  <Area type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={3} fill="#2563EB" fillOpacity={0.15} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-theme-muted">No revenue data points yet.</div>
+              <div className="h-full flex items-center justify-center text-xs text-[#64748B]">No revenue data points yet.</div>
             )}
           </div>
-        </div>
+        </ManagementCard>
 
-        {/* Booking Status Distribution Pie Chart */}
-        <div className="lg:col-span-1 bg-theme-card border border-theme p-6 rounded-xl space-y-6 shadow-sm transition-colors duration-200">
+        <ManagementCard className="space-y-6">
           <div>
-            <h3 className="text-lg font-bold text-theme-primary">Booking Statuses</h3>
-            <p className="text-xs text-theme-muted">Distribution across active states</p>
+            <h3 className="text-lg font-bold text-[#0F172A]">Booking Statuses</h3>
+            <p className="text-xs text-[#64748B]">Distribution across active states</p>
           </div>
 
           <div className="h-64 w-full flex items-center justify-center">
@@ -155,38 +145,34 @@ export const AdminDashboard = () => {
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderRadius: '12px', color: 'var(--text-primary)' }}
-                  />
-                  <Legend formatter={(val) => formatStatus(val)} wrapperStyle={{ fontSize: '11px', color: 'var(--text-muted)' }} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend formatter={(val) => formatStatus(val)} wrapperStyle={{ fontSize: '11px', color: '#64748B' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-xs text-theme-muted">No booking breakdown available.</div>
+              <div className="text-xs text-[#64748B]">No booking breakdown available.</div>
             )}
           </div>
-        </div>
+        </ManagementCard>
       </div>
 
-      {/* Recent Bookings & Recent Users Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Bookings */}
-        <div className="bg-theme-card border border-theme p-6 rounded-xl space-y-4 shadow-sm transition-colors duration-200">
-          <div className="flex items-center justify-between pb-3 border-b border-theme">
-            <h3 className="text-base font-bold text-theme-primary">Recent System Bookings</h3>
-            <Link to="/admin/bookings" className="text-xs text-blue-400 hover:underline">
+        <ManagementCard className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+            <h3 className="text-base font-bold text-[#0F172A]">Recent System Bookings</h3>
+            <Link to="/admin/bookings" className="text-xs text-[#2563EB] hover:underline">
               View All
             </Link>
           </div>
           <div className="space-y-3">
             {(stats?.recent_bookings || []).map((b) => (
-              <div key={b.id} className="flex items-center justify-between p-3 bg-theme-input rounded-2xl border border-theme text-xs transition-colors duration-200">
+              <div key={b.id} className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] text-xs">
                 <div>
-                  <p className="font-mono font-bold text-theme-primary">{b.booking_reference}</p>
-                  <p className="font-medium text-theme-secondary">{b.vehicle?.brand} {b.vehicle?.model}</p>
+                  <p className="font-mono font-bold text-[#0F172A]">{b.booking_reference}</p>
+                  <p className="font-medium text-[#334155]">{b.vehicle?.brand} {b.vehicle?.model}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-theme-primary">{formatCurrency(b.total_price)}</p>
+                  <p className="font-bold text-[#0F172A]">{formatCurrency(b.total_price)}</p>
                   <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${getStatusBadgeStyle(b.status)}`}>
                     {formatStatus(b.status)}
                   </span>
@@ -194,35 +180,34 @@ export const AdminDashboard = () => {
               </div>
             ))}
           </div>
-        </div>
+        </ManagementCard>
 
-        {/* Recent Users */}
-        <div className="bg-theme-card border border-theme p-6 rounded-xl space-y-4 shadow-sm transition-colors duration-200">
-          <div className="flex items-center justify-between pb-3 border-b border-theme">
-            <h3 className="text-base font-bold text-theme-primary">New User Registrations</h3>
-            <Link to="/admin/users" className="text-xs text-blue-400 hover:underline">
+        <ManagementCard className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+            <h3 className="text-base font-bold text-[#0F172A]">New User Registrations</h3>
+            <Link to="/admin/users" className="text-xs text-[#2563EB] hover:underline">
               Manage Users
             </Link>
           </div>
           <div className="space-y-3">
             {(stats?.recent_users || []).map((u) => (
-              <div key={u.id} className="flex items-center justify-between p-3 bg-theme-input rounded-2xl border border-theme text-xs transition-colors duration-200">
+              <div key={u.id} className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2563EB] font-bold text-xs flex items-center justify-center border border-blue-100">
                     {u.name?.[0]?.toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-theme-primary">{u.name}</p>
-                    <p className="text-theme-muted">{u.email}</p>
+                    <p className="font-bold text-[#0F172A]">{u.name}</p>
+                    <p className="text-[#64748B]">{u.email}</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded-full bg-theme-hover text-theme-secondary">
+                <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded-full bg-[#F8FAFC] text-[#334155] border border-[#E2E8F0]">
                   {u.role}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </ManagementCard>
       </div>
     </div>
   );

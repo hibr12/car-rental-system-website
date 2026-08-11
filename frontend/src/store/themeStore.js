@@ -4,9 +4,9 @@ const getInitialTheme = () => {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('theme');
     if (stored) return stored;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   }
-  return 'dark';
+  return 'light';
 };
 
 export const useThemeStore = create((set) => ({

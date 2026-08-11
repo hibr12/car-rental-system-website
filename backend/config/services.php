@@ -38,7 +38,8 @@ return [
     'chapa' => [
         'secret_key' => env('CHAPA_SECRET_KEY'),
         'base_url' => env('CHAPA_BASE_URL', 'https://api.chapa.co'),
-        'return_url' => env('CHAPA_RETURN_URL'),
+        'webhook_secret' => env('CHAPA_WEBHOOK_SECRET', env('CHAPA_SECRET_KEY')),
+        'return_url' => env('CHAPA_RETURN_URL') ?: (rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/payments/status'),
     ],
 
 ];

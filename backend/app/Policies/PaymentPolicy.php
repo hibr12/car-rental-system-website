@@ -9,16 +9,20 @@ class PaymentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'staff', 'fleet_manager']);
+        return $user->isAdmin() || $user->isBranchManager() || $user->isStaff() || $user->isFleetManager();
     }
 
     public function view(User $user, Payment $payment): bool
     {
-        if ($user->isAdmin() || $user->isStaff() || $user->isFleetManager()) {
+        if ($user->isAdmin() || $user->isFleetManager()) {
             return true;
         }
 
-        return $user->id === $payment->user_id;
+        if ($user->isBranchManager() || $user->isStaff()) {
+            return (int) $user->branch_id === (int) $payment->branch_id;
+        }
+
+        return (int) $user->id === (int) $payment->user_id;
     }
 
     public function create(User $user): bool
@@ -28,8 +32,12 @@ class PaymentPolicy
 
     public function update(User $user, Payment $payment): bool
     {
-        if ($user->isAdmin() || $user->isStaff()) {
+        if ($user->isAdmin()) {
             return true;
+        }
+
+        if ($user->isBranchManager() || $user->isStaff()) {
+            return (int) $user->branch_id === (int) $payment->branch_id;
         }
 
         return false;
@@ -37,17 +45,50 @@ class PaymentPolicy
 
     public function delete(User $user, Payment $payment): bool
     {
-        if ($user->isAdmin() || $user->isStaff()) {
-            return true;
+        // Financial records must never be permanently deleted through the UI.
+        return false;
+    }
+
+    public function archive(User $user, Payment $payment): bool
+    {
+        if (!$user->isAdmin()) {
+            return false;
         }
 
-        return false;
+        return !in_array($payment->status, [
+            Payment::STATUS_PAID,
+            Payment::STATUS_REFUNDED,
+            Payment::STATUS_CASH_PENDING,
+            Payment::STATUS_PROCESSING,
+        ], true);
+    }
+
+    public function archiveAny(User $user): bool
+    {
+        return $user->isAdmin();
     }
 
     public function refund(User $user, Payment $payment): bool
     {
-        if ($user->isAdmin() || $user->isStaff()) {
+        return $user->isAdmin();
+    }
+
+    public function confirmCash(User $user, Payment $payment): bool
+    {
+        if ($payment->payment_method !== Payment::METHOD_CASH) {
+            return false;
+        }
+
+        if ($payment->status !== Payment::STATUS_CASH_PENDING) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
             return true;
+        }
+
+        if ($user->isBranchManager() || $user->isStaff()) {
+            return (int) $user->branch_id === (int) $payment->branch_id;
         }
 
         return false;

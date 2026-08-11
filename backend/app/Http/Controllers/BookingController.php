@@ -107,14 +107,21 @@ class BookingController extends Controller
 
     public function confirm(Request $request, Booking $booking): JsonResponse
     {
-        Gate::authorize('confirm', Booking::class);
+        Gate::authorize('confirm', $booking);
 
         try {
-            $booking = $this->bookingService->confirmBooking($booking);
+            $booking = $this->bookingService->confirmBooking(
+                $booking,
+                $request->user()
+            );
+
+            $message = $request->user()->isBranchManager()
+                ? 'Booking approved and confirmed successfully.'
+                : 'Booking confirmed successfully.';
 
             return response()->json([
                 'success' => true,
-                'message' => 'Booking confirmed successfully',
+                'message' => $message,
                 'data' => new BookingResource($booking),
             ]);
         } catch (\InvalidArgumentException $e) {
@@ -127,10 +134,14 @@ class BookingController extends Controller
 
     public function reject(Request $request, Booking $booking): JsonResponse
     {
-        Gate::authorize('reject', Booking::class);
+        Gate::authorize('reject', $booking);
 
         try {
-            $booking = $this->bookingService->rejectBooking($booking, $request->input('reason'));
+            $booking = $this->bookingService->rejectBooking(
+                $booking,
+                $request->input('reason'),
+                $request->user()
+            );
 
             return response()->json([
                 'success' => true,
@@ -196,11 +207,19 @@ class BookingController extends Controller
             'vehicle.primaryImage',
             'user',
             'branch',
-        ]);
+        ])->activeRecords();
 
         // Branch managers / staff only see their branch bookings
         if (!$user->isAdmin()) {
             $query->where('branch_id', $user->branch_id);
+        }
+
+        if ($request->has('branch_approval_status')) {
+            $query->where('branch_approval_status', $request->branch_approval_status);
+        }
+
+        if ($request->has('admin_approval_status')) {
+            $query->where('admin_approval_status', $request->admin_approval_status);
         }
 
         if ($request->has('status')) {

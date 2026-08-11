@@ -12,6 +12,7 @@ export const bookingApi = {
   reject: (id, reason) => apiClient.put(`/admin/bookings/${id}/reject`, { reason }),
   pickup: (id) => apiClient.put(`/admin/bookings/${id}/pickup`),
   returnVehicle: (id) => apiClient.put(`/admin/bookings/${id}/return`),
+  archive: (id, reason) => apiClient.put(`/admin/bookings/${id}/archive`, { reason }),
 };
 
 export default bookingApi;

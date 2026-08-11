@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Branch;
+use App\Models\Company;
 use App\Models\Maintenance;
 use App\Models\Payment;
 use App\Models\User;
@@ -18,10 +19,24 @@ class BranchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Branch::with('manager', 'company');
+        $query = Branch::with('manager', 'company')
+            ->withCount([
+                'vehicles',
+                'vehicles as available_vehicles_count' => fn ($q) => $q->where('status', 'available'),
+                'bookings',
+                'users as staff_count' => function ($q) {
+                    $q->whereIn('role', [
+                        User::ROLE_BRANCH_STAFF,
+                        User::ROLE_BRANCH_MANAGER,
+                    ]);
+                },
+            ]);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        } elseif (!$request->user()?->isAdmin()) {
+            // Public/customer requests only see active branches by default
+            $query->where('status', 'active');
         }
 
         $branches = $query->orderBy('name')->get();
@@ -55,7 +70,17 @@ class BranchController extends Controller
             'status'       => ['sometimes', 'in:active,inactive'],
         ]);
 
-        $company = \App\Models\Company::first();
+        $company = Company::first() ?? Company::updateOrCreate(
+            ['code' => 'APEX'],
+            [
+                'name'      => 'Apex Rentals',
+                'address'   => 'Addis Ababa, Ethiopia',
+                'phone'     => '+251 11 123 4567',
+                'email'     => 'info@apexrentals.com',
+                'is_active' => true,
+            ]
+        );
+
         $branch = Branch::create(array_merge($data, [
             'company_id' => $company->id,
             'code'       => strtoupper($data['code']),
