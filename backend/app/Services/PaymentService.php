@@ -42,6 +42,7 @@ class PaymentService
 
         $this->validateBookingOwnership($booking, $userId);
         $this->validateBookingEligibleForPayment($booking);
+        $this->cleanUpOrphanedPayments($booking);
         $this->validateNoDuplicatePayment($booking);
 
         $txRef = $this->chapaService->generateTransactionRef();
@@ -75,13 +76,20 @@ class PaymentService
                 'email' => $user->email,
                 'first_name' => explode(' ', $user->name)[0] ?? '',
                 'last_name' => explode(' ', $user->name)[1] ?? '',
-                'title' => 'Car Rental Payment',
+                'title' => 'Car Rental',
                 'description' => 'Payment for booking ' . $booking->booking_reference,
                 'callback_url' => route('payments.callback'),
                 'return_url' => config('services.chapa.return_url', env('FRONTEND_URL', 'http://localhost:5173') . '/payments/status'),
             ]);
         } catch (\RuntimeException $e) {
-            $this->markAsFailed($payment);
+            try {
+                $this->markAsFailed($payment);
+            } catch (\Exception $markEx) {
+                Log::error('Failed to mark payment as failed after Chapa error', [
+                    'payment_id' => $payment->id,
+                    'error' => $markEx->getMessage(),
+                ]);
+            }
 
             throw $e;
         }
@@ -221,7 +229,7 @@ class PaymentService
     {
         return DB::transaction(function () use ($payment) {
             if ($payment->status === Payment::STATUS_FAILED) {
-                throw new \InvalidArgumentException('Payment is already marked as failed.');
+                return $payment->fresh();
             }
 
             if ($payment->status === Payment::STATUS_REFUNDED) {
@@ -300,6 +308,20 @@ class PaymentService
         if ($existingPendingPayment) {
             throw new \InvalidArgumentException('A pending payment already exists for this booking.');
         }
+    }
+
+    private function cleanUpOrphanedPayments(Booking $booking): void
+    {
+        // Delete failed payment records so the user can retry
+        $booking->payments()
+            ->where('status', Payment::STATUS_FAILED)
+            ->delete();
+
+        // Delete stale pending payments older than 30 minutes
+        $booking->payments()
+            ->where('status', Payment::STATUS_PENDING)
+            ->where('created_at', '<', now()->subMinutes(30))
+            ->delete();
     }
 
     private function validatePaymentAmount(array $data, Booking $booking): void

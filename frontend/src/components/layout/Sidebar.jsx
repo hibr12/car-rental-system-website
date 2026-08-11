@@ -11,6 +11,7 @@ import {
   Star,
   Wrench,
   MessageSquare,
+  Bell,
   LogOut,
   ChevronRight,
 } from 'lucide-react';
@@ -83,7 +84,9 @@ export const Sidebar = ({ isOpen, onClose }) => {
             items: [
               { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
               { name: 'My Bookings', path: '/dashboard/bookings', icon: CalendarCheck },
+              { name: 'Payment History', path: '/dashboard/payments', icon: CreditCard },
               { name: 'My Reviews', path: '/dashboard/reviews', icon: Star },
+              { name: 'Notifications', path: '/dashboard/notifications', icon: Bell },
               { name: 'Profile Settings', path: '/dashboard/profile', icon: User },
             ],
           },
@@ -112,7 +115,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           {/* Logo Header */}
           <div className="h-20 flex items-center px-6 border-b border-theme justify-between">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
                 <Car className="w-5 h-5 text-white" />
               </div>
               <span className="text-lg font-bold tracking-tight text-theme-primary">

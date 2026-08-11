@@ -12,7 +12,9 @@ class BookingResource extends JsonResource
         return [
             'id' => $this->id,
             'booking_reference' => $this->booking_reference,
+            'user_id' => $this->user_id,
             'user' => new UserResource($this->whenLoaded('user')),
+            'vehicle_id' => $this->vehicle_id,
             'vehicle' => new VehicleResource($this->whenLoaded('vehicle')),
             'pickup_location' => $this->pickup_location,
             'return_location' => $this->return_location,

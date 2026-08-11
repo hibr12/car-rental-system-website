@@ -123,32 +123,32 @@ export const MaintenancePage = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Fleet Maintenance Tracking</h1>
-          <p className="text-sm text-slate-400">Schedule vehicle servicing, track repair costs, and update statuses.</p>
+          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Fleet Maintenance Tracking</h1>
+          <p className="text-sm text-theme-muted">Schedule vehicle servicing, track repair costs, and update statuses.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 flex items-center gap-2 self-start sm:self-auto"
+          className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-xs shadow-lg shadow-blue-600/20 flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>New Maintenance Record</span>
         </button>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
         {loading ? (
-          <div className="py-12 text-center text-slate-400 text-sm">Loading maintenance log...</div>
+          <div className="py-12 text-center text-theme-muted text-sm">Loading maintenance log...</div>
         ) : maintenanceRecords.length === 0 ? (
           <div className="text-center py-12 space-y-3">
             <Wrench className="w-12 h-12 text-slate-700 mx-auto" />
-            <p className="text-sm font-semibold text-slate-300">No Maintenance Records Found</p>
+            <p className="text-sm font-semibold text-theme-secondary">No Maintenance Records Found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950/60 text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-theme-secondary">
+              <thead className="text-xs uppercase bg-theme-secondary/60 text-theme-muted border-b border-theme">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Title / Type</th>
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
@@ -160,15 +160,15 @@ export const MaintenancePage = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {maintenanceRecords.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={m.id} className="hover:bg-theme-hover transition-colors">
                     <td className="py-4 px-4">
-                      <p className="font-bold text-white">{m.title}</p>
-                      <p className="text-[11px] text-slate-500">{m.maintenance_type}</p>
+                      <p className="font-bold text-theme-primary">{m.title}</p>
+                      <p className="text-[11px] text-theme-muted">{m.maintenance_type}</p>
                     </td>
-                    <td className="py-4 px-4 text-xs font-semibold text-slate-200">
+                    <td className="py-4 px-4 text-xs font-semibold text-theme-secondary">
                       {m.vehicle ? `${m.vehicle.brand} ${m.vehicle.model}` : `Vehicle #${m.vehicle_id}`}
                     </td>
-                    <td className="py-4 px-4 text-xs text-slate-400">{formatDate(m.start_date)}</td>
+                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(m.start_date)}</td>
                     <td className="py-4 px-4 font-bold text-rose-400">
                       {formatCurrency(m.cost || 0)}
                     </td>
@@ -180,7 +180,7 @@ export const MaintenancePage = () => {
                     <td className="py-4 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleOpenEditModal(m)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+                        className="p-2 rounded-lg bg-theme-hover hover:bg-theme-hover text-theme-secondary"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
@@ -217,11 +217,11 @@ export const MaintenancePage = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Target Vehicle *</label>
+            <label className="block text-theme-secondary font-semibold mb-1">Target Vehicle *</label>
             <select
               value={formData.vehicle_id}
               onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+              className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
             >
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -232,70 +232,70 @@ export const MaintenancePage = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Maintenance Title *</label>
+            <label className="block text-theme-secondary font-semibold mb-1">Maintenance Title *</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. Brake Replacement & Alignment"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+              className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Type *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Type *</label>
               <input
                 type="text"
                 required
                 value={formData.maintenance_type}
                 onChange={(e) => setFormData({ ...formData, maintenance_type: e.target.value })}
                 placeholder="Oil Change, Engine Repair..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Estimated Cost ($)</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Estimated Cost ($)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                 placeholder="250.00"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Start Date *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Start Date *</label>
               <input
                 type="date"
                 required
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">End Date</label>
+              <label className="block text-theme-secondary font-semibold mb-1">End Date</label>
               <input
                 type="date"
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Status</label>
+            <label className="block text-theme-secondary font-semibold mb-1">Status</label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+              className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
             >
               <option value="scheduled">Scheduled</option>
               <option value="in_progress">In Progress</option>
@@ -305,20 +305,20 @@ export const MaintenancePage = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Notes</label>
+            <label className="block text-theme-secondary font-semibold mb-1">Notes</label>
             <textarea
               rows="2"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Parts replaced, garage details..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+              className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
             />
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25"
+            className="w-full py-3.5 rounded-2xl bg-blue-600 text-theme-primary font-bold text-sm shadow-lg shadow-blue-600/25"
           >
             {submitting ? 'Saving Record...' : editingRecord ? 'Update Record' : 'Save Maintenance Log'}
           </button>

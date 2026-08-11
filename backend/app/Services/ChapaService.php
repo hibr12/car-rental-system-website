@@ -23,29 +23,67 @@ class ChapaService
      */
     public function initializePayment(array $payload): array
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
-            'Content-Type' => 'application/json',
-        ])->timeout(30)->post($this->baseUrl . '/v1/hosted/pay', [
-            'tx_ref' => $payload['tx_ref'],
-            'amount' => $payload['amount'],
-            'currency' => $payload['currency'] ?? 'ETB',
-            'email' => $payload['email'],
-            'first_name' => $payload['first_name'] ?? '',
-            'last_name' => $payload['last_name'] ?? '',
-            'title' => $payload['title'] ?? 'Car Rental Payment',
-            'description' => $payload['description'] ?? 'Payment for car rental booking',
-            'callback_url' => $payload['callback_url'],
-            'return_url' => $payload['return_url'],
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->post($this->baseUrl . '/v1/transaction/initialize', [
+                'tx_ref' => $payload['tx_ref'],
+                'amount' => $payload['amount'],
+                'currency' => $payload['currency'] ?? 'ETB',
+                'email' => $payload['email'],
+                'first_name' => $payload['first_name'] ?? '',
+                'last_name' => $payload['last_name'] ?? '',
+                'callback_url' => $payload['callback_url'],
+                'return_url' => $payload['return_url'],
+                'customization' => [
+                    'title' => $payload['title'] ?? 'Car Rental',
+                    'description' => $payload['description'] ?? 'Payment for car rental booking',
+                ],
+            ]);
+        } catch (\GuzzleHttp\Exception\ConnectException $e) {
+            Log::error('Chapa API connection failed', [
+                'error' => $e->getMessage(),
+                'url' => $this->baseUrl . '/v1/transaction/initialize',
+            ]);
+            throw new \RuntimeException('Unable to connect to payment gateway. Please check your network and try again.');
+        } catch (\Exception $e) {
+            Log::error('Chapa API request failed', [
+                'error' => $e->getMessage(),
+                'url' => $this->baseUrl . '/v1/transaction/initialize',
+            ]);
+            throw new \RuntimeException('Payment gateway request failed. Please try again later.');
+        }
+
+        Log::debug('Chapa API response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+            'successful' => $response->successful(),
+            'failed' => $response->failed(),
         ]);
 
         if ($response->failed()) {
+            $errorData = $response->json();
+            $errorMessages = $errorData['message'] ?? [];
+
             Log::error('Chapa payment initialization failed', [
                 'status' => $response->status(),
-                'response' => $response->json(),
+                'response' => $errorData,
             ]);
 
-            throw new \RuntimeException('Payment initialization failed. Please try again later.');
+            $detail = '';
+            if (is_array($errorMessages)) {
+                foreach ($errorMessages as $field => $errors) {
+                    $detail .= $field . ': ' . implode(', ', (array) $errors) . '; ';
+                }
+            } elseif (is_string($errorMessages)) {
+                $detail = $errorMessages;
+            }
+
+            $detail = trim($detail);
+            throw new \RuntimeException(
+                'Payment initialization failed' . ($detail ? ": {$detail}" : '. Please try again later.')
+            );
         }
 
         $data = $response->json();

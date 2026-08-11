@@ -29,7 +29,7 @@ export const CustomerDashboard = () => {
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-900/60 via-theme-secondary to-theme-secondary border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
+      <div className="bg-blue-900/60 border border-theme p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl transition-colors duration-200">
         <div className="space-y-2">
           <span className="text-xs uppercase font-extrabold tracking-wider text-blue-400">
             Customer Dashboard

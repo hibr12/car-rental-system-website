@@ -188,4 +188,16 @@ class PaymentController extends Controller
             ], 422);
         }
     }
+
+    public function destroy(Request $request, Payment $payment): JsonResponse
+    {
+        Gate::authorize('delete', $payment);
+
+        $payment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment record deleted successfully',
+        ]);
+    }
 }

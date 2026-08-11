@@ -37,9 +37,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->middleware('role:admin');
 
     Route::get('/bookings', [BookingController::class, 'index']);
-    Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
     Route::get('/bookings/price-estimate', [BookingController::class, 'priceEstimate']);
+    Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::put('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
 
@@ -85,6 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::put('/payments/{payment}/fail', [PaymentController::class, 'markAsFailed']);
         Route::put('/payments/{payment}/refund', [PaymentController::class, 'refund']);
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
     });
 
     Route::prefix('admin')->middleware('role:admin')->group(function () {

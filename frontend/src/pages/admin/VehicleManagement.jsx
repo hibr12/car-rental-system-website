@@ -157,14 +157,14 @@ export const VehicleManagement = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Fleet Vehicle Management</h1>
-          <p className="text-sm text-slate-400">Add, edit, update status, and manage vehicle specs & images.</p>
+          <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Fleet Vehicle Management</h1>
+          <p className="text-sm text-theme-muted">Add, edit, update status, and manage vehicle specs & images.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 flex items-center gap-2 self-start sm:self-auto"
+          className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-xs shadow-lg shadow-blue-600/20 flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Vehicle</span>
@@ -172,32 +172,32 @@ export const VehicleManagement = () => {
       </div>
 
       {/* Search Input Bar */}
-      <div className="flex items-center gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+      <div className="flex items-center gap-4 bg-theme-card border border-theme p-4 rounded-2xl">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by brand, model, registration..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
         {loading ? (
-          <div className="py-12 text-center text-slate-400 text-sm">Loading vehicle fleet...</div>
+          <div className="py-12 text-center text-theme-muted text-sm">Loading vehicle fleet...</div>
         ) : vehicles.length === 0 ? (
           <div className="text-center py-12 space-y-3">
             <Car className="w-12 h-12 text-slate-700 mx-auto" />
-            <p className="text-sm font-semibold text-slate-300">No Vehicles Found</p>
+            <p className="text-sm font-semibold text-theme-secondary">No Vehicles Found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950/60 text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-theme-secondary">
+              <thead className="text-xs uppercase bg-theme-secondary/60 text-theme-muted border-b border-theme">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
                   <th className="py-3.5 px-4 font-semibold">Category</th>
@@ -210,9 +210,9 @@ export const VehicleManagement = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-4 px-4 font-medium text-white flex items-center gap-3">
-                      <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                  <tr key={v.id} className="hover:bg-theme-hover transition-colors">
+                    <td className="py-4 px-4 font-medium text-theme-primary flex items-center gap-3">
+                      <div className="w-12 h-9 rounded-lg overflow-hidden bg-theme-secondary border border-theme shrink-0">
                         <img
                           src={
                             v.primary_image?.image_url ||
@@ -225,13 +225,13 @@ export const VehicleManagement = () => {
                       </div>
                       <div>
                         <p className="font-bold">{v.brand} {v.model}</p>
-                        <p className="text-[11px] text-slate-500">{v.year} • {v.fuel_type}</p>
+                        <p className="text-[11px] text-theme-muted">{v.year} • {v.fuel_type}</p>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-xs font-semibold text-slate-300">
+                    <td className="py-4 px-4 text-xs font-semibold text-theme-secondary">
                       {v.category?.name || 'Uncategorized'}
                     </td>
-                    <td className="py-4 px-4 text-xs font-mono text-slate-400">
+                    <td className="py-4 px-4 text-xs font-mono text-theme-muted">
                       {v.registration_number}
                     </td>
                     <td className="py-4 px-4 font-bold text-emerald-400">
@@ -254,7 +254,7 @@ export const VehicleManagement = () => {
                     <td className="py-4 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleOpenEditModal(v)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+                        className="p-2 rounded-lg bg-theme-hover hover:bg-theme-hover text-theme-secondary"
                         title="Edit Vehicle"
                       >
                         <Edit className="w-4 h-4" />
@@ -293,46 +293,46 @@ export const VehicleManagement = () => {
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Brand *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Brand *</label>
               <input
                 type="text"
                 required
                 value={formData.brand}
                 onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 placeholder="e.g. BMW, Mercedes, Toyota"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Model *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Model *</label>
               <input
                 type="text"
                 required
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 placeholder="e.g. M5, C-Class, RAV4"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Year *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Year *</label>
               <input
                 type="number"
                 required
                 value={formData.year}
                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Category *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Category *</label>
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -342,7 +342,7 @@ export const VehicleManagement = () => {
               </select>
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Daily Price ($) *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Daily Price ($) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -350,42 +350,42 @@ export const VehicleManagement = () => {
                 value={formData.rental_price_per_day}
                 onChange={(e) => setFormData({ ...formData, rental_price_per_day: e.target.value })}
                 placeholder="100.00"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Registration Number *</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Registration Number *</label>
               <input
                 type="text"
                 required
                 value={formData.registration_number}
                 onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
                 placeholder="ABC-1234"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">VIN Number</label>
+              <label className="block text-theme-secondary font-semibold mb-1">VIN Number</label>
               <input
                 type="text"
                 value={formData.vin_number}
                 onChange={(e) => setFormData({ ...formData, vin_number: e.target.value })}
                 placeholder="17-digit VIN"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Fuel Type</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Fuel Type</label>
               <select
                 value={formData.fuel_type}
                 onChange={(e) => setFormData({ ...formData, fuel_type: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               >
                 <option value="petrol">Petrol</option>
                 <option value="diesel">Diesel</option>
@@ -395,11 +395,11 @@ export const VehicleManagement = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Transmission</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Transmission</label>
               <select
                 value={formData.transmission}
                 onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               >
                 <option value="automatic">Automatic</option>
                 <option value="manual">Manual</option>
@@ -407,11 +407,11 @@ export const VehicleManagement = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Status</label>
+              <label className="block text-theme-secondary font-semibold mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
               >
                 <option value="available">Available</option>
                 <option value="rented">Rented</option>
@@ -423,13 +423,13 @@ export const VehicleManagement = () => {
 
           {/* Description */}
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Description</label>
+            <label className="block text-theme-secondary font-semibold mb-1">Description</label>
             <textarea
               rows="3"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Vehicle features, condition, specs..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+              className="w-full bg-theme-secondary border border-theme rounded-xl p-2.5 text-theme-primary"
             />
           </div>
 
@@ -440,17 +440,17 @@ export const VehicleManagement = () => {
               id="featured_check"
               checked={formData.featured}
               onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-              className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-blue-600"
+              className="w-4 h-4 rounded bg-theme-secondary border-theme text-blue-600"
             />
-            <label htmlFor="featured_check" className="text-slate-300 font-semibold cursor-pointer">
+            <label htmlFor="featured_check" className="text-theme-secondary font-semibold cursor-pointer">
               Mark as Featured Vehicle on Homepage
             </label>
           </div>
 
           {/* Image URLs */}
-          <div className="space-y-2 pt-2 border-t border-slate-800">
+          <div className="space-y-2 pt-2 border-t border-theme">
             <div className="flex justify-between items-center">
-              <label className="block text-slate-300 font-semibold">Image URLs</label>
+              <label className="block text-theme-secondary font-semibold">Image URLs</label>
               <button
                 type="button"
                 onClick={handleAddImageField}
@@ -466,7 +466,7 @@ export const VehicleManagement = () => {
                   placeholder="https://images.unsplash.com/..."
                   value={img.image_url}
                   onChange={(e) => handleImageChange(idx, e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100"
+                  className="flex-1 bg-theme-secondary border border-theme rounded-xl p-2 text-theme-primary"
                 />
               </div>
             ))}
@@ -475,7 +475,7 @@ export const VehicleManagement = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25"
+            className="w-full py-3.5 rounded-2xl bg-blue-600 text-theme-primary font-bold text-sm shadow-lg shadow-blue-600/25"
           >
             {submitting ? 'Saving Vehicle...' : editingVehicle ? 'Update Vehicle' : 'Save New Vehicle'}
           </button>

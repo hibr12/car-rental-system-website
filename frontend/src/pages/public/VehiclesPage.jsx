@@ -94,14 +94,14 @@ export const VehiclesPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
-      <div className="space-y-2 border-b border-slate-800 pb-6">
+      <div className="space-y-2 border-b border-theme pb-6">
         <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
           Our Fleet Catalog
         </span>
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-theme-primary tracking-tight">
           Browse & Reserve Vehicles
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-theme-muted">
           Explore our available premium vehicles. Filter by category, price, fuel, and transmission.
         </p>
       </div>
@@ -121,10 +121,10 @@ export const VehiclesPage = () => {
         {/* Right Vehicles Catalog */}
         <div className="lg:col-span-3 space-y-6">
           {/* Results Stats */}
-          <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl">
+          <div className="flex items-center justify-between text-xs text-theme-muted bg-theme-card border border-theme px-4 py-3 rounded-xl">
             <span>
-              Showing <strong className="text-white">{vehicles.length}</strong> of{' '}
-              <strong className="text-white">{meta.total || vehicles.length}</strong> vehicles
+              Showing <strong className="text-theme-primary">{vehicles.length}</strong> of{' '}
+              <strong className="text-theme-primary">{meta.total || vehicles.length}</strong> vehicles
             </span>
             {filters.category && (
               <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full font-semibold capitalize">
@@ -145,28 +145,28 @@ export const VehiclesPage = () => {
             </div>
           ) : error ? (
             /* Error State */
-            <div className="bg-slate-900 border border-rose-500/30 rounded-3xl p-12 text-center space-y-4">
+            <div className="bg-theme-card border border-rose-500/30 rounded-3xl p-12 text-center space-y-4">
               <AlertCircle className="w-12 h-12 text-rose-400 mx-auto" />
-              <h3 className="text-lg font-bold text-white">Error Loading Catalog</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">{error}</p>
+              <h3 className="text-lg font-bold text-theme-primary">Error Loading Catalog</h3>
+              <p className="text-xs text-theme-muted max-w-md mx-auto">{error}</p>
               <button
                 onClick={fetchVehicles}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs shadow-md shadow-blue-600/20"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-theme-primary font-semibold text-xs shadow-md shadow-blue-600/20"
               >
                 Try Again
               </button>
             </div>
           ) : vehicles.length === 0 ? (
             /* Empty State */
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-4">
-              <Car className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-white">No Vehicles Match Your Criteria</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <div className="bg-theme-card border border-theme rounded-3xl p-12 text-center space-y-4">
+              <Car className="w-12 h-12 text-theme-muted mx-auto" />
+              <h3 className="text-lg font-bold text-theme-primary">No Vehicles Match Your Criteria</h3>
+              <p className="text-xs text-theme-muted max-w-sm mx-auto">
                 Try adjusting your search query or clearing selected category and price filters.
               </p>
               <button
                 onClick={handleResetFilters}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-theme-primary font-semibold text-xs"
               >
                 Clear All Filters
               </button>

@@ -129,19 +129,17 @@
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #3b82f6;
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
+  background-color: #2563eb;
 }
 
 .gradient-border {
   position: relative;
   border-radius: 0.75rem;
-  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+  background: var(--bg-secondary);
 }
 
 .gradient-border::before {
@@ -150,7 +148,7 @@
   inset: -1px;
   border-radius: 0.8rem;
   padding: 1px;
-  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+  background: #3b82f6;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

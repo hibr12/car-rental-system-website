@@ -22,6 +22,10 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
+// Import Payment Pages
+import CheckoutPage from "./pages/payment/CheckoutPage";
+import PaymentStatusPage from "./pages/payment/PaymentStatusPage";
+
 // Import Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import VehicleManagement from "./pages/admin/VehicleManagement";
@@ -37,6 +41,8 @@ import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CustomerBookings from "./pages/customer/CustomerBookings";
 import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerReviews from "./pages/customer/CustomerReviews";
+import CustomerPayments from "./pages/customer/CustomerPayments";
+import NotificationsPage from "./pages/customer/NotificationsPage";
 
 // Import Fleet Page
 import FleetDashboard from "./pages/fleet/FleetDashboard";
@@ -126,7 +132,31 @@ function App() {
           <Route index element={<CustomerDashboard />} />
           <Route path="bookings" element={<CustomerBookings />} />
           <Route path="reviews" element={<CustomerReviews />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<CustomerProfile />} />
+          <Route path="payments" element={<CustomerPayments />} />
+        </Route>
+
+        {/* Checkout and Payment Status Routes (accessible with auth) */}
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<CheckoutPage />} />
+        </Route>
+        <Route
+          path="/payments/status"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<PaymentStatusPage />} />
         </Route>
 
         {/* ================= PROTECTED STAFF ROUTES ================= */}

@@ -59,13 +59,13 @@ export const VehicleDetailPage = () => {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8 animate-pulse">
-        <div className="h-6 bg-slate-800 rounded w-1/4" />
+        <div className="h-6 bg-theme-hover rounded w-1/4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            <div className="h-96 bg-slate-800 rounded-3xl" />
-            <div className="h-32 bg-slate-800 rounded-2xl" />
+            <div className="h-96 bg-theme-hover rounded-3xl" />
+            <div className="h-32 bg-theme-hover rounded-2xl" />
           </div>
-          <div className="h-[500px] bg-slate-800 rounded-3xl" />
+          <div className="h-[500px] bg-theme-hover rounded-3xl" />
         </div>
       </div>
     );
@@ -75,11 +75,11 @@ export const VehicleDetailPage = () => {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
         <AlertCircle className="w-16 h-16 text-rose-400 mx-auto" />
-        <h2 className="text-2xl font-bold text-white">Vehicle Not Found</h2>
-        <p className="text-sm text-slate-400">{error || 'The requested vehicle does not exist or has been removed.'}</p>
+        <h2 className="text-2xl font-bold text-theme-primary">Vehicle Not Found</h2>
+        <p className="text-sm text-theme-muted">{error || 'The requested vehicle does not exist or has been removed.'}</p>
         <Link
           to="/vehicles"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold text-xs"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-theme-primary font-semibold text-xs"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>Back to Catalog</span>
@@ -98,14 +98,14 @@ export const VehicleDetailPage = () => {
       {/* Breadcrumb navigation */}
       <Link
         to="/vehicles"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-blue-400 transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-theme-muted hover:text-blue-400 transition-colors"
       >
         <ChevronLeft className="w-4 h-4" />
         <span>Back to All Vehicles</span>
       </Link>
 
       {/* Title Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-theme pb-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
@@ -119,20 +119,20 @@ export const VehicleDetailPage = () => {
               {formatStatus(vehicle.status)}
             </span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-theme-primary tracking-tight">
             {vehicle.model}
           </h1>
           {vehicle.category && (
-            <p className="text-sm text-slate-400">
-              Category: <span className="font-semibold text-slate-200">{vehicle.category.name}</span>
+            <p className="text-sm text-theme-muted">
+              Category: <span className="font-semibold text-theme-secondary">{vehicle.category.name}</span>
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-2xl">
+        <div className="flex items-center gap-3 bg-theme-card border border-theme px-4 py-2.5 rounded-2xl">
           <StarRating rating={Math.round(parseFloat(averageRating))} size="md" />
-          <span className="text-sm font-bold text-white">{averageRating}</span>
-          <span className="text-xs text-slate-500">({reviews.length} reviews)</span>
+          <span className="text-sm font-bold text-theme-primary">{averageRating}</span>
+          <span className="text-xs text-theme-muted">({reviews.length} reviews)</span>
         </div>
       </div>
 
@@ -144,87 +144,87 @@ export const VehicleDetailPage = () => {
           <VehicleGallery images={vehicle.images} vehicleName={`${vehicle.brand} ${vehicle.model}`} />
 
           {/* Description */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
-            <h3 className="text-lg font-bold text-white">Vehicle Description</h3>
-            <p className="text-sm text-slate-300 leading-relaxed">
+          <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-4">
+            <h3 className="text-lg font-bold text-theme-primary">Vehicle Description</h3>
+            <p className="text-sm text-theme-secondary leading-relaxed">
               {vehicle.description ||
                 `The ${vehicle.year} ${vehicle.brand} ${vehicle.model} offers top-tier engineering, remarkable comfort, and an exhilarating driving experience. Perfect for both city cruising and long-distance travel.`}
             </p>
           </div>
 
           {/* Detailed Specifications */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-            <h3 className="text-lg font-bold text-white">Specifications & Features</h3>
+          <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6">
+            <h3 className="text-lg font-bold text-theme-primary">Specifications & Features</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                 <Fuel className="w-5 h-5 text-blue-400 mb-2" />
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Fuel Type</span>
-                <p className="text-sm font-bold text-white capitalize">{vehicle.fuel_type}</p>
+                <span className="text-[11px] text-theme-muted uppercase font-semibold">Fuel Type</span>
+                <p className="text-sm font-bold text-theme-primary capitalize">{vehicle.fuel_type}</p>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                 <Gauge className="w-5 h-5 text-indigo-400 mb-2" />
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Transmission</span>
-                <p className="text-sm font-bold text-white capitalize">{vehicle.transmission}</p>
+                <span className="text-[11px] text-theme-muted uppercase font-semibold">Transmission</span>
+                <p className="text-sm font-bold text-theme-primary capitalize">{vehicle.transmission}</p>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                 <Users className="w-5 h-5 text-purple-400 mb-2" />
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Seating Capacity</span>
-                <p className="text-sm font-bold text-white">{vehicle.seats} Passengers</p>
+                <span className="text-[11px] text-theme-muted uppercase font-semibold">Seating Capacity</span>
+                <p className="text-sm font-bold text-theme-primary">{vehicle.seats} Passengers</p>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                 <Calendar className="w-5 h-5 text-amber-400 mb-2" />
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Model Year</span>
-                <p className="text-sm font-bold text-white">{vehicle.year}</p>
+                <span className="text-[11px] text-theme-muted uppercase font-semibold">Model Year</span>
+                <p className="text-sm font-bold text-theme-primary">{vehicle.year}</p>
               </div>
 
               {vehicle.color && (
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+                <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                   <Palette className="w-5 h-5 text-emerald-400 mb-2" />
-                  <span className="text-[11px] text-slate-400 uppercase font-semibold">Exterior Color</span>
-                  <p className="text-sm font-bold text-white capitalize">{vehicle.color}</p>
+                  <span className="text-[11px] text-theme-muted uppercase font-semibold">Exterior Color</span>
+                  <p className="text-sm font-bold text-theme-primary capitalize">{vehicle.color}</p>
                 </div>
               )}
 
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-1">
                 <ShieldCheck className="w-5 h-5 text-cyan-400 mb-2" />
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Registration</span>
-                <p className="text-sm font-bold text-white truncate">{vehicle.registration_number || 'Verified'}</p>
+                <span className="text-[11px] text-theme-muted uppercase font-semibold">Registration</span>
+                <p className="text-sm font-bold text-theme-primary truncate">{vehicle.registration_number || 'Verified'}</p>
               </div>
             </div>
           </div>
 
           {/* Customer Reviews Section */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="flex items-center justify-between border-b border-theme pb-4">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-blue-400" />
-                <h3 className="text-lg font-bold text-white">Customer Reviews</h3>
+                <h3 className="text-lg font-bold text-theme-primary">Customer Reviews</h3>
               </div>
-              <span className="text-xs text-slate-400">{reviews.length} total reviews</span>
+              <span className="text-xs text-theme-muted">{reviews.length} total reviews</span>
             </div>
 
             {reviews.length === 0 ? (
-              <p className="text-xs text-slate-500 italic text-center py-6">
+              <p className="text-xs text-theme-muted italic text-center py-6">
                 No customer reviews yet for this vehicle.
               </p>
             ) : (
               <div className="space-y-4">
                 {reviews.map((rev) => (
-                  <div key={rev.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2">
+                  <div key={rev.id} className="bg-theme-secondary p-5 rounded-2xl border border-theme space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-blue-600/30 text-blue-400 font-bold text-xs flex items-center justify-center">
                           {rev.user?.name?.[0]?.toUpperCase() || 'U'}
                         </div>
-                        <span className="text-xs font-semibold text-white">{rev.user?.name || 'Verified Renter'}</span>
+                        <span className="text-xs font-semibold text-theme-primary">{rev.user?.name || 'Verified Renter'}</span>
                       </div>
                       <StarRating rating={rev.rating} size="sm" />
                     </div>
-                    {rev.comment && <p className="text-xs text-slate-300 leading-relaxed pt-1">"{rev.comment}"</p>}
-                    <p className="text-[10px] text-slate-500">{formatDate(rev.created_at)}</p>
+                    {rev.comment && <p className="text-xs text-theme-secondary leading-relaxed pt-1">"{rev.comment}"</p>}
+                    <p className="text-[10px] text-theme-muted">{formatDate(rev.created_at)}</p>
                   </div>
                 ))}
               </div>

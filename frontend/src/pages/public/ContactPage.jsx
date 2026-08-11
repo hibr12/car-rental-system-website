@@ -37,10 +37,10 @@ export const ContactPage = () => {
         <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
           24/7 Concierge Support
         </span>
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-theme-primary tracking-tight">
           Get In Touch With ApexRentals
         </h1>
-        <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+        <p className="text-theme-muted text-sm sm:text-base leading-relaxed">
           Have questions about our fleet, booking policies, or corporate rentals? Fill out the form below or reach our team directly.
         </p>
       </div>
@@ -48,45 +48,45 @@ export const ContactPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
         {/* Contact Info Cards */}
         <div className="space-y-6 lg:col-span-1">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+          <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
               <Phone className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Call Us Directly</h3>
-              <p className="text-xs text-slate-400 mt-1">Available 24 hours a day, 7 days a week</p>
+              <h3 className="text-base font-bold text-theme-primary">Call Us Directly</h3>
+              <p className="text-xs text-theme-muted mt-1">Available 24 hours a day, 7 days a week</p>
             </div>
             <p className="text-sm font-semibold text-blue-400">+1 (800) 555-APEX</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+          <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
               <Mail className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Email Inquiries</h3>
-              <p className="text-xs text-slate-400 mt-1">We typically reply within 2 hours</p>
+              <h3 className="text-base font-bold text-theme-primary">Email Inquiries</h3>
+              <p className="text-xs text-theme-muted mt-1">We typically reply within 2 hours</p>
             </div>
             <p className="text-sm font-semibold text-indigo-400">support@apexrentals.com</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+          <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-purple-600/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
               <MapPin className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Headquarters Terminal</h3>
-              <p className="text-xs text-slate-400 mt-1">100 Premium Boulevard, Grand City</p>
+              <h3 className="text-base font-bold text-theme-primary">Headquarters Terminal</h3>
+              <p className="text-xs text-theme-muted mt-1">100 Premium Boulevard, Grand City</p>
             </div>
-            <p className="text-xs text-slate-500">Open for key pickups & returns daily: 06:00 AM - 11:00 PM</p>
+            <p className="text-xs text-theme-muted">Open for key pickups & returns daily: 06:00 AM - 11:00 PM</p>
           </div>
         </div>
 
         {/* Contact Form */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-8 sm:p-10 rounded-3xl space-y-6 shadow-2xl">
+        <div className="lg:col-span-2 bg-theme-card border border-theme p-8 sm:p-10 rounded-3xl space-y-6 shadow-2xl">
           <div>
-            <h2 className="text-2xl font-bold text-white">Send Us A Message</h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <h2 className="text-2xl font-bold text-theme-primary">Send Us A Message</h2>
+            <p className="text-xs text-theme-muted mt-1">
               Please complete all required fields below.
             </p>
           </div>
@@ -101,71 +101,71 @@ export const ContactPage = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name *</label>
+                <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address *</label>
+                <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Email Address *</label>
                 <input
                   type="email"
                   required
                   placeholder="john@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Phone Number</label>
+                <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="+1 (555) 000-0000"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Subject *</label>
+                <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Subject *</label>
                 <input
                   type="text"
                   required
                   placeholder="Booking inquiry, corporate rate, support..."
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Message *</label>
+              <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Message *</label>
               <textarea
                 rows="5"
                 required
                 placeholder="Write your detailed message or inquiry here..."
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm shadow-xl shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

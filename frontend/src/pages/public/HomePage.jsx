@@ -54,8 +54,8 @@ export const HomePage = () => {
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-12 pb-20 overflow-hidden">
         {/* Background Gradients & Glow */}
-        <div className="absolute inset-0 bg-radial from-blue-900/20 via-theme-primary to-theme-primary pointer-events-none transition-colors duration-200" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-blue-600/15 via-indigo-500/15 to-purple-600/15 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute inset-0 bg-blue-900/5 via-theme-primary to-theme-primary pointer-events-none transition-colors duration-200" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/15 blur-3xl pointer-events-none rounded-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full text-center space-y-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
@@ -104,7 +104,7 @@ export const HomePage = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
               >
                 <Search className="w-4 h-4" />
                 <span>Search Vehicles</span>
@@ -251,7 +251,7 @@ export const HomePage = () => {
             <div className="pt-4">
               <Link
                 to="/vehicles"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 hover:scale-105 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/25 hover:scale-105 transition-all"
               >
                 <span>Find Your Ideal Vehicle</span>
                 <ChevronRight className="w-4 h-4" />
@@ -325,7 +325,7 @@ export const HomePage = () => {
 
       {/* Call To Action */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 sm:p-12 text-center text-white space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="bg-blue-600 rounded-3xl p-8 sm:p-12 text-center text-white space-y-6 shadow-2xl relative overflow-hidden">
           <div className="relative z-10 max-w-2xl mx-auto space-y-4">
             <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">Ready To Hit The Open Road?</h2>
             <p className="text-blue-100 text-sm sm:text-base">
