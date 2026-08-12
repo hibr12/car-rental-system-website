@@ -37,6 +37,9 @@ class PaymentTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'branch_id' => $vehicle->branch_id,
             'total_price' => 400,
+            'subtotal' => 400,
+            'additional_charges' => 0,
+            'discount' => 0,
             'status' => 'payment_required',
             'payment_status' => 'pending',
             'branch_approval_status' => 'approved',
@@ -168,5 +171,26 @@ class PaymentTest extends TestCase
         ]);
 
         $response->assertStatus(401);
+    }
+
+    public function test_initialize_payment_rejects_inconsistent_booking_total(): void
+    {
+        $this->booking->update([
+            'subtotal' => 500,
+            'additional_charges' => 0,
+            'discount' => 0,
+            'total_price' => 400,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->postJson('/api/payments/initialize', [
+                'booking_id' => $this->booking->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Payment amount is no longer valid. Please refresh your booking and try again.',
+            ]);
     }
 }

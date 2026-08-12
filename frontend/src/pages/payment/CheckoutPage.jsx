@@ -276,7 +276,9 @@ export const CheckoutPage = () => {
     'payment_verified',
   ];
   const bookingStatus = booking.booking_status || booking.status;
+  const allowedActions = booking.allowed_actions || [];
   const canPay =
+    allowedActions.includes('pay') &&
     !isPaid &&
     !isCashPending &&
     !isPaymentProcessing &&

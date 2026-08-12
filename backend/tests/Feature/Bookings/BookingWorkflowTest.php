@@ -307,6 +307,16 @@ class BookingWorkflowTest extends TestCase
         $this->workflow->approveBranch($booking, $this->otherManager);
     }
 
+    public function test_branch_approval_fails_when_vehicle_branch_mismatch(): void
+    {
+        $booking = $this->createBooking([
+            'branch_id' => $this->otherBranch->id,
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->workflow->approveBranch($booking, $this->admin);
+    }
+
     public function test_customer_cannot_access_another_customers_booking(): void
     {
         $booking = $this->createBooking();
@@ -427,5 +437,30 @@ class BookingWorkflowTest extends TestCase
 
         $this->assertEquals(Booking::STATUS_ACTIVE, $active->status);
         $this->assertEquals('rented', $active->vehicle->status);
+    }
+
+    public function test_customer_gets_pay_action_after_branch_approval(): void
+    {
+        $booking = $this->createBooking();
+        $approved = $this->workflow->approveBranch($booking, $this->branchManager);
+
+        $customerView = $this->withHeader('Authorization', 'Bearer ' . $this->customer->createToken('t')->plainTextToken)
+            ->getJson('/api/bookings/' . $approved->id);
+
+        $customerView->assertOk();
+        $this->assertContains('pay', $customerView->json('data.allowed_actions'));
+        $this->assertEquals(Booking::STATUS_PAYMENT_REQUIRED, $customerView->json('data.status'));
+        $this->assertEquals(Booking::PAYMENT_STATUS_PENDING, $customerView->json('data.payment_status'));
+    }
+
+    public function test_customer_does_not_get_pay_action_before_branch_approval(): void
+    {
+        $booking = $this->createBooking();
+
+        $customerView = $this->withHeader('Authorization', 'Bearer ' . $this->customer->createToken('t')->plainTextToken)
+            ->getJson('/api/bookings/' . $booking->id);
+
+        $customerView->assertOk();
+        $this->assertNotContains('pay', $customerView->json('data.allowed_actions'));
     }
 }

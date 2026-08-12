@@ -339,7 +339,7 @@ export const PaymentStatusPage = () => {
             <AlertTriangle className="w-10 h-10" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-theme-primary">Something Went Wrong</h2>
+            <h2 className="text-2xl font-bold text-theme-primary">Payment Verification Unavailable</h2>
             <p className="text-sm text-theme-muted">{errorMessage}</p>
           </div>
           <button

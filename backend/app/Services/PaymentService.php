@@ -108,6 +108,7 @@ class PaymentService
 
         $this->validateBookingOwnership($booking, $userId);
         $this->validateBookingEligibleForPayment($booking);
+        $this->assertBookingAmountIntegrity($booking);
         $this->cleanUpOrphanedPayments($booking);
 
         // Reuse a recent pending online payment instead of creating duplicates
@@ -519,7 +520,7 @@ class PaymentService
             $this->validateBookingOwnership($booking, $userId);
             $this->validateBookingEligibleForPayment($booking);
             $this->validateNoDuplicatePaidPayment($booking);
-            $this->validatePaymentAmount($data, $booking);
+            $this->assertBookingAmountIntegrity($booking);
 
             $existingCash = $booking->payments()
                 ->where('payment_method', Payment::METHOD_CASH)
@@ -796,6 +797,16 @@ class PaymentService
                         'payment_status' => Booking::PAYMENT_STATUS_FAILED,
                     ]);
                 }
+            } elseif (!in_array($payment->booking->normalizeStatus(), [
+                Booking::STATUS_CANCELLED,
+                Booking::STATUS_REJECTED,
+                Booking::STATUS_EXPIRED,
+                Booking::STATUS_COMPLETED,
+            ], true) && $payment->booking->isBranchApproved() && $payment->booking->isAdminApproved()) {
+                // Keep booking payable after mismatch for manual review / retry.
+                $payment->booking->update([
+                    'status' => Booking::STATUS_PAYMENT_REQUIRED,
+                ]);
             }
 
             if ($actor) {
@@ -865,6 +876,9 @@ class PaymentService
             if (!$hasPaid) {
                 $payment->booking->update([
                     'payment_status' => Booking::PAYMENT_STATUS_FAILED,
+                    'status' => $payment->booking->isBranchApproved() && $payment->booking->isAdminApproved()
+                        ? Booking::STATUS_PAYMENT_REQUIRED
+                        : $payment->booking->status,
                 ]);
             }
 
@@ -1291,6 +1305,21 @@ class PaymentService
     {
         if (isset($data['amount']) && abs((float) $data['amount'] - (float) $booking->total_price) > 0.01) {
             throw new \InvalidArgumentException('Payment amount must match the booking total.');
+        }
+    }
+
+    private function assertBookingAmountIntegrity(Booking $booking): void
+    {
+        $authoritativeTotal = round(
+            ((float) $booking->subtotal) + ((float) $booking->additional_charges) - ((float) $booking->discount),
+            2
+        );
+        $storedTotal = round((float) $booking->total_price, 2);
+
+        if (abs($authoritativeTotal - $storedTotal) > 0.01) {
+            throw new \InvalidArgumentException(
+                'Payment amount is no longer valid. Please refresh your booking and try again.'
+            );
         }
     }
 

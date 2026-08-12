@@ -57,6 +57,20 @@ export const CustomerBookings = () => {
     ? bookings.filter((b) => (b.booking_status || b.status) === statusFilter)
     : bookings;
 
+  const paymentHint = (booking) => {
+    const bookingStatus = booking.booking_status || booking.status;
+    const paymentStatus = booking.payment_status;
+    const canPay = (booking.allowed_actions || []).includes('pay');
+
+    if (canPay) return 'Booking approved - payment required';
+    if (bookingStatus === 'pending_branch_approval') return 'Payment available after branch approval';
+    if (paymentStatus === 'cash_pending') return 'Awaiting cash verification at branch';
+    if (paymentStatus === 'failed' || paymentStatus === 'invalid') return 'Payment failed - try again';
+    if (paymentStatus === 'paid') return 'Payment verified';
+    if (bookingStatus === 'cancelled' || bookingStatus === 'rejected') return 'Payment unavailable for this booking';
+    return '';
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme pb-6">
@@ -143,6 +157,9 @@ export const CustomerBookings = () => {
                       >
                         {formatStatus(booking.payment_status)}
                       </span>
+                      {paymentHint(booking) && (
+                        <p className="mt-1 text-[11px] text-theme-muted">{paymentHint(booking)}</p>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-right space-x-2">
                       <button

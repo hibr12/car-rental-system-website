@@ -607,20 +607,34 @@ class BookingWorkflowService
         $status = $booking->normalizeStatus();
         $sameBranch = $actor->isAdmin() || (int) $actor->branch_id === (int) $booking->branch_id;
         $paid = $booking->isPaymentSatisfied();
+        $isTerminal = in_array($status, [
+            Booking::STATUS_CANCELLED,
+            Booking::STATUS_REJECTED,
+            Booking::STATUS_EXPIRED,
+            Booking::STATUS_COMPLETED,
+        ], true);
 
         if ($actor->id === $booking->user_id && in_array($status, Booking::CANCELLABLE_STATUSES, true)) {
             $actions[] = 'cancel';
-            if (in_array($status, [Booking::STATUS_PAYMENT_REQUIRED, Booking::STATUS_PAYMENT_PROCESSING], true)
-                && !$paid) {
-                $actions[] = 'pay';
-            }
-            // Legacy payment-before-approval rows
-            if (in_array($status, [Booking::STATUS_PENDING_PAYMENT, Booking::STATUS_PENDING], true)
-                && !$paid
-                && $booking->payment_status !== Booking::PAYMENT_STATUS_CASH_PENDING
-                && $booking->payment_status !== Booking::PAYMENT_STATUS_NOT_REQUIRED) {
-                $actions[] = 'pay';
-            }
+        }
+
+        // Payment is a separate workflow gate from cancellation:
+        // if branch/admin approvals are satisfied and booking is payable, show PAY NOW.
+        if ($actor->id === $booking->user_id
+            && !$isTerminal
+            && !$paid
+            && $booking->payment_status !== Booking::PAYMENT_STATUS_CASH_PENDING
+            && $booking->payment_status !== Booking::PAYMENT_STATUS_NOT_REQUIRED
+            && $booking->isBranchApproved()
+            && $booking->isAdminApproved()
+            && in_array($status, [
+                Booking::STATUS_PAYMENT_REQUIRED,
+                Booking::STATUS_PAYMENT_PROCESSING,
+                Booking::STATUS_PENDING_PAYMENT,
+                Booking::STATUS_PENDING,
+                Booking::STATUS_PAYMENT_VERIFIED,
+            ], true)) {
+            $actions[] = 'pay';
         }
 
         if ($status === Booking::STATUS_COMPLETED && $actor->id === $booking->user_id && !$booking->review) {
@@ -957,6 +971,14 @@ class BookingWorkflowService
         $vehicle = $booking->vehicle;
         if (!$vehicle) {
             throw new \InvalidArgumentException('Booking vehicle not found.');
+        }
+
+        if ((int) $vehicle->branch_id !== (int) $booking->branch_id) {
+            throw new \InvalidArgumentException('Vehicle branch does not match booking branch.');
+        }
+
+        if ($vehicle->branch && !$vehicle->branch->isActive()) {
+            throw new \InvalidArgumentException('Booking branch is inactive.');
         }
 
         if (in_array($vehicle->status, [Vehicle::STATUS_MAINTENANCE, Vehicle::STATUS_UNAVAILABLE], true)) {

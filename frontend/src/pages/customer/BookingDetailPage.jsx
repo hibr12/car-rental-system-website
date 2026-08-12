@@ -137,6 +137,14 @@ export const BookingDetailPage = () => {
   const canPay = actions.includes('pay');
   const canCancel = actions.includes('cancel');
   const canReview = actions.includes('write_review') || (booking.status === 'completed' && !booking.has_review);
+  const paymentStateMessage = (() => {
+    if (booking.payment_status === 'paid') return 'Payment successful and verified.';
+    if (booking.payment_status === 'cash_pending') return 'Cash payment is waiting for branch verification.';
+    if (booking.payment_status === 'failed' || booking.payment_status === 'invalid') return 'Payment failed. Try payment again.';
+    if (canPay) return 'Your booking has been approved. Complete payment to confirm your reservation.';
+    if ((booking.booking_status || booking.status) === 'pending_branch_approval') return 'Payment will be available after branch approval.';
+    return 'Payment status will update automatically when verification completes.';
+  })();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -273,6 +281,32 @@ export const BookingDetailPage = () => {
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider">Payment</h3>
+            <div className="bg-theme-secondary p-4 rounded-2xl border border-theme space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-theme-muted">Amount Due</span>
+                <span className="font-bold text-theme-primary">{formatCurrency(booking.total_price)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-theme-muted">Status</span>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${getStatusBadgeStyle(booking.payment_status)}`}>
+                  {formatStatus(booking.payment_status)}
+                </span>
+              </div>
+              <p className="text-xs text-theme-muted">{paymentStateMessage}</p>
+            </div>
+            {canPay && (
+              <Link
+                to={`/checkout?booking_id=${booking.id}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+              >
+                <CreditCard className="w-4 h-4" />
+                Pay Now
+              </Link>
+            )}
           </div>
         </div>
 
