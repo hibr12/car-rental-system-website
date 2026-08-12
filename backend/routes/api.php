@@ -201,6 +201,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/bookings',                  [BookingController::class, 'adminIndex']);
         Route::put('/bookings/{booking}/confirm',[BookingController::class, 'confirm']);
         Route::put('/bookings/{booking}/reject', [BookingController::class, 'reject']);
+        Route::put('/bookings/{booking}/prepare-pickup', [BookingController::class, 'preparePickup']);
         Route::put('/bookings/{booking}/pickup', [BookingController::class, 'pickup']);
         Route::put('/bookings/{booking}/return', [BookingController::class, 'returnVehicle']);
 
@@ -208,7 +209,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/payments/{payment}/refund', [PaymentController::class, 'refund']);
         Route::post('/payments/{payment}/confirm-cash', [PaymentController::class, 'confirmCash']);
         Route::get('/payment-history',           [PaymentController::class, 'history']);
+        Route::get('/payments/reconciliation',   [PaymentController::class, 'reconciliation']);
     });
+
+    // Payment attempts — customer + management
+    Route::get('/bookings/{booking}/payment-attempts', [PaymentController::class, 'bookingAttempts']);
 
     // Archive — admin only; soft-archive, never hard-delete financial records
     Route::prefix('admin')->middleware('role:admin')->group(function () {

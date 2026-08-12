@@ -35,9 +35,12 @@ class PaymentTest extends TestCase
         $this->booking = Booking::factory()->create([
             'user_id' => $this->customer->id,
             'vehicle_id' => $vehicle->id,
+            'branch_id' => $vehicle->branch_id,
             'total_price' => 400,
-            'status' => 'confirmed',
-            'payment_status' => 'unpaid',
+            'status' => 'payment_required',
+            'payment_status' => 'pending',
+            'branch_approval_status' => 'approved',
+            'admin_approval_status' => 'not_required',
         ]);
 
         $this->token = $this->customer->createToken('auth-token')->plainTextToken;
@@ -49,7 +52,7 @@ class PaymentTest extends TestCase
             ->postJson('/api/payments', [
                 'booking_id' => $this->booking->id,
                 'amount' => 400,
-                'payment_method' => 'card',
+                'payment_method' => 'cash',
             ]);
 
         $response->assertStatus(201)
@@ -71,29 +74,30 @@ class PaymentTest extends TestCase
             'booking_id' => $this->booking->id,
             'user_id' => $this->customer->id,
             'amount' => 400,
-            'status' => 'paid',
+            'status' => 'cash_pending',
         ]);
 
         $this->assertDatabaseHas('bookings', [
             'id' => $this->booking->id,
-            'payment_status' => 'paid',
+            'payment_status' => 'cash_pending',
         ]);
     }
 
-    public function test_payment_amount_must_match_booking_total(): void
+    public function test_cash_payment_uses_booking_total_not_client_amount(): void
     {
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
             ->postJson('/api/payments', [
                 'booking_id' => $this->booking->id,
                 'amount' => 100,
-                'payment_method' => 'card',
+                'payment_method' => 'cash',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Payment amount must match the booking total.',
-            ]);
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $this->booking->id,
+            'amount' => 400,
+            'status' => 'cash_pending',
+        ]);
     }
 
     public function test_unauthorized_user_cannot_pay_for_others_booking(): void
@@ -105,7 +109,7 @@ class PaymentTest extends TestCase
             ->postJson('/api/payments', [
                 'booking_id' => $this->booking->id,
                 'amount' => 400,
-                'payment_method' => 'card',
+                'payment_method' => 'cash',
             ]);
 
         $response->assertStatus(422)
@@ -121,7 +125,7 @@ class PaymentTest extends TestCase
             ->postJson('/api/payments', [
                 'booking_id' => $this->booking->id,
                 'amount' => 400,
-                'payment_method' => 'card',
+                'payment_method' => 'cash',
             ]);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
@@ -137,7 +141,7 @@ class PaymentTest extends TestCase
             ->postJson('/api/payments', [
                 'booking_id' => $this->booking->id,
                 'amount' => 400,
-                'payment_method' => 'card',
+                'payment_method' => 'cash',
             ]);
         $postResponse->assertStatus(201);
 
@@ -160,7 +164,7 @@ class PaymentTest extends TestCase
         $response = $this->postJson('/api/payments', [
             'booking_id' => $this->booking->id,
             'amount' => 400,
-            'payment_method' => 'card',
+            'payment_method' => 'cash',
         ]);
 
         $response->assertStatus(401);

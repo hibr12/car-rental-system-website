@@ -28,6 +28,9 @@ class PaymentController extends Controller
             'success' => true,
             'message' => 'Payments retrieved successfully',
             'data' => PaymentResource::collection($payments),
+            'summary' => $request->user()->isCustomer()
+                ? null
+                : $this->paymentService->summaryCounts($request->user()),
             'meta' => [
                 'current_page' => $payments->currentPage(),
                 'last_page' => $payments->lastPage(),
@@ -190,7 +193,8 @@ class PaymentController extends Controller
             if ((int) $user->branch_id !== (int) $payment->branch_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You can only verify payments for your own branch.',
+                    'message' => 'You are not authorized to manage this branch payment.',
+                    'code' => 'BRANCH_PAYMENT_FORBIDDEN',
                 ], 403);
             }
         }
@@ -202,20 +206,53 @@ class PaymentController extends Controller
                 'manual_verify'
             );
 
+            $message = match ($payment->verification_status) {
+                Payment::VERIFICATION_VERIFIED => 'Payment verified with Chapa.',
+                Payment::VERIFICATION_AMOUNT_MISMATCH => 'The gateway reports a successful transaction, but the received amount does not match the booking amount.',
+                Payment::VERIFICATION_CURRENCY_MISMATCH => 'Payment currency does not match the expected currency.',
+                Payment::VERIFICATION_REFERENCE_MISMATCH => 'Transaction reference mismatch.',
+                Payment::VERIFICATION_GATEWAY_FAILED => 'Gateway payment failed.',
+                Payment::VERIFICATION_GATEWAY_PENDING => 'Gateway payment is still processing.',
+                Payment::VERIFICATION_ERROR => 'Unable to verify transaction with Chapa right now.',
+                default => 'Payment status retrieved from Chapa.',
+            };
+
+            $code = match ($payment->verification_status) {
+                Payment::VERIFICATION_AMOUNT_MISMATCH => 'PAYMENT_AMOUNT_MISMATCH',
+                Payment::VERIFICATION_CURRENCY_MISMATCH => 'PAYMENT_CURRENCY_MISMATCH',
+                Payment::VERIFICATION_REFERENCE_MISMATCH => 'PAYMENT_REFERENCE_MISMATCH',
+                default => null,
+            };
+
+            $http = 200;
+
+            return response()->json([
+                'success' => $payment->status === Payment::STATUS_PAID && $payment->isVerified(),
+                'message' => $message,
+                'code' => $code,
+                'data' => new PaymentResource($payment->load(['booking.vehicle', 'booking.user', 'branch', 'user'])),
+            ], $http);
+        } catch (PaymentVerificationRetryableException $e) {
+            $payment->refresh();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Payment verified with Chapa.',
-                'data' => new PaymentResource($payment),
+                'message' => $e->getMessage(),
+                'code' => 'VERIFICATION_TEMPORARILY_UNAVAILABLE',
+                'retryable' => true,
+                'data' => new PaymentResource($payment->load(['booking', 'branch', 'user'])),
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+                'code' => 'PAYMENT_VERIFICATION_ERROR',
             ], 422);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment verification failed. Please try again later.',
+                'code' => 'VERIFICATION_TEMPORARILY_UNAVAILABLE',
             ], 500);
         }
     }
@@ -343,12 +380,22 @@ class PaymentController extends Controller
     {
         Gate::authorize('refund', $payment);
 
+        $data = $request->validate([
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+
         try {
-            $payment = $this->paymentService->refundPayment($payment);
+            $payment = $this->paymentService->refundPayment(
+                $payment,
+                $request->user(),
+                isset($data['amount']) ? (float) $data['amount'] : null,
+                $data['reason'] ?? null
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment refunded successfully',
+                'message' => 'Payment refund recorded successfully',
                 'data' => new PaymentResource($payment),
             ]);
         } catch (\InvalidArgumentException $e) {
@@ -376,22 +423,35 @@ class PaymentController extends Controller
     {
         Gate::authorize('confirmCash', $payment);
 
+        $data = $request->validate([
+            'amount_received' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
         try {
             $payment = $this->paymentService->confirmCashPayment(
                 $payment,
-                $request->user()
+                $request->user(),
+                isset($data['amount_received']) ? (float) $data['amount_received'] : null
             );
 
+            $message = $payment->status === Payment::STATUS_INVALID
+                ? 'Cash amount does not match the booking amount. Payment flagged for investigation.'
+                : 'Cash payment confirmed successfully.';
+
             return response()->json([
-                'success' => true,
-                'message' => 'Cash payment confirmed successfully.',
-                'data' => new PaymentResource($payment->load(['booking.vehicle', 'booking.user', 'branch', 'user'])),
+                'success' => $payment->status === Payment::STATUS_PAID && $payment->isVerified(),
+                'message' => $message,
+                'code' => $payment->status === Payment::STATUS_INVALID ? 'PAYMENT_AMOUNT_MISMATCH' : null,
+                'data' => new PaymentResource($payment->load(['booking.vehicle', 'booking.user', 'branch', 'user', 'confirmer'])),
             ]);
         } catch (\InvalidArgumentException $e) {
+            $forbidden = str_contains(strtolower($e->getMessage()), 'authorized');
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 422);
+                'code' => $forbidden ? 'BRANCH_PAYMENT_FORBIDDEN' : 'PAYMENT_CONFIRMATION_ERROR',
+            ], $forbidden ? 403 : 422);
         }
     }
 
@@ -403,7 +463,8 @@ class PaymentController extends Controller
         Gate::authorize('viewAny', Payment::class);
 
         $filters = $request->only([
-            'branch_id', 'status', 'payment_method', 'search', 'date_from', 'date_to', 'per_page',
+            'branch_id', 'status', 'payment_method', 'verification_status',
+            'search', 'date_from', 'date_to', 'per_page',
         ]);
 
         $payments = $this->paymentService->getPaymentHistory($request->user(), $filters);
@@ -412,11 +473,73 @@ class PaymentController extends Controller
             'success' => true,
             'message' => 'Payment history retrieved successfully',
             'data' => PaymentResource::collection($payments),
+            'summary' => $this->paymentService->summaryCounts($request->user()),
             'meta' => [
                 'current_page' => $payments->currentPage(),
                 'last_page' => $payments->lastPage(),
                 'per_page' => $payments->perPage(),
                 'total' => $payments->total(),
+            ],
+        ]);
+    }
+
+    public function reconciliation(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Payment::class);
+
+        $user = $request->user();
+        if (!$user->isAdmin() && !$user->isBranchManager()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to view payment reconciliation.',
+                'code' => 'BRANCH_PAYMENT_FORBIDDEN',
+            ], 403);
+        }
+
+        $data = $this->paymentService->reconciliation(
+            $user,
+            $request->only(['branch_id', 'date_from', 'date_to'])
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment reconciliation retrieved successfully',
+            'data' => $data,
+        ]);
+    }
+
+    public function bookingAttempts(Request $request, Booking $booking): JsonResponse
+    {
+        $user = $request->user();
+        $allowed = $user->isAdmin()
+            || (int) $user->id === (int) $booking->user_id
+            || (($user->isBranchManager() || $user->isStaff()) && (int) $user->branch_id === (int) $booking->branch_id);
+
+        if (!$allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.',
+                'code' => 'BRANCH_PAYMENT_FORBIDDEN',
+            ], 403);
+        }
+
+        $attempts = $booking->payments()
+            ->with(['user', 'branch', 'confirmer'])
+            ->orderBy('attempt_number')
+            ->get();
+
+        $verifiedPaid = $attempts->first(fn ($p) => $p->isSettled());
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'amount_due' => (float) $booking->total_price,
+                'amount_paid' => $verifiedPaid ? (float) ($verifiedPaid->paid_amount ?? $verifiedPaid->amount) : 0,
+                'amount_remaining' => $verifiedPaid ? 0 : (float) $booking->total_price,
+                'payment_status' => $booking->payment_status,
+                'attempts' => PaymentResource::collection($attempts),
             ],
         ]);
     }

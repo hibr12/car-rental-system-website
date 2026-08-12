@@ -58,8 +58,11 @@ class PaymentPolicy
         return !in_array($payment->status, [
             Payment::STATUS_PAID,
             Payment::STATUS_REFUNDED,
+            Payment::STATUS_PARTIALLY_REFUNDED,
+            Payment::STATUS_REFUND_PENDING,
             Payment::STATUS_CASH_PENDING,
             Payment::STATUS_PROCESSING,
+            Payment::STATUS_DISPUTED,
         ], true);
     }
 

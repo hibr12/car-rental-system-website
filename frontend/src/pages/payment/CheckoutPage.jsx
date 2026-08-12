@@ -268,7 +268,19 @@ export const CheckoutPage = () => {
     (verifying ||
       booking.payment_status === 'pending' ||
       sessionStorage.getItem('pending_payment_tx_ref'));
-  const canPay = !isPaid && !isCashPending && !isPaymentProcessing && booking.status === 'confirmed';
+  const payableStatuses = [
+    'payment_required',
+    'payment_processing',
+    'pending_payment',
+    'pending',
+    'payment_verified',
+  ];
+  const bookingStatus = booking.booking_status || booking.status;
+  const canPay =
+    !isPaid &&
+    !isCashPending &&
+    !isPaymentProcessing &&
+    payableStatuses.includes(bookingStatus);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -297,14 +309,27 @@ export const CheckoutPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Payment Method Selection */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Awaiting branch confirmation */}
-          {!canPay && !isPaid && !isCashPending && booking.status === 'pending' && (
+          {/* Not payable in current state */}
+          {!canPay && !isPaid && !isCashPending && !isPaymentProcessing && (
             <div className="bg-amber-50 border border-[#F59E0B]/30 rounded-2xl p-5 flex items-center gap-4">
               <AlertCircle className="w-8 h-8 text-[#F59E0B] shrink-0" />
               <div>
-                <h3 className="font-bold text-[#F59E0B]">Awaiting Branch Approval</h3>
+                <h3 className="font-bold text-[#F59E0B]">Payment Not Available</h3>
                 <p className="text-xs text-[#64748B]">
-                  Your booking is pending branch review. Payment will be available once the branch confirms your booking.
+                  This booking cannot accept payment in its current status ({formatStatus(bookingStatus)}).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Legacy payment-before-approval row: paid but still awaiting approval */}
+          {isPaid && ['pending_branch_approval', 'pending_admin_approval'].includes(bookingStatus) && (
+            <div className="bg-blue-50 border border-[#2563EB]/30 rounded-2xl p-5 flex items-center gap-4">
+              <ShieldCheck className="w-8 h-8 text-[#2563EB] shrink-0" />
+              <div>
+                <h3 className="font-bold text-[#2563EB]">Payment Verified</h3>
+                <p className="text-xs text-[#64748B]">
+                  Your payment has been verified. This legacy booking is awaiting approval review.
                 </p>
               </div>
             </div>

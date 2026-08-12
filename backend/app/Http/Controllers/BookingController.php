@@ -9,7 +9,9 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Models\Vehicle;
+use App\Services\AuditLogService;
 use App\Services\BookingService;
+use App\Services\BookingWorkflowService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +20,9 @@ use Illuminate\Support\Facades\Gate;
 class BookingController extends Controller
 {
     public function __construct(
-        private BookingService $bookingService
+        private BookingService $bookingService,
+        private BookingWorkflowService $workflow,
+        private AuditLogService $auditLogService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -28,6 +32,9 @@ class BookingController extends Controller
                 'vehicle.images',
                 'vehicle.primaryImage',
                 'user',
+                'branch',
+                'payments',
+                'review',
             ])
             ->where('user_id', $request->user()->id)
             ->orderBy('created_at', 'desc')
@@ -55,12 +62,16 @@ class BookingController extends Controller
             'vehicle.images',
             'vehicle.primaryImage',
             'user',
+            'branch',
+            'payments',
+            'review',
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Booking retrieved successfully',
             'data' => new BookingResource($booking),
+            'audit' => $this->auditLogService->forEntity('booking', $booking->id),
         ]);
     }
 
@@ -75,7 +86,7 @@ class BookingController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Booking created successfully',
-                'data' => new BookingResource($booking),
+                'data' => new BookingResource($booking->load(['payments', 'review'])),
             ], 201);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
@@ -90,7 +101,12 @@ class BookingController extends Controller
         Gate::authorize('cancel', $booking);
 
         try {
-            $booking = $this->bookingService->cancelBooking($booking);
+            $booking = $this->bookingService->cancelBooking(
+                $booking,
+                $request->user(),
+                $request->input('reason'),
+                $request->user()->isCustomer() ? 'customer' : 'staff'
+            );
 
             return response()->json([
                 'success' => true,
@@ -115,9 +131,11 @@ class BookingController extends Controller
                 $request->user()
             );
 
-            $message = $request->user()->isBranchManager()
-                ? 'Booking approved and confirmed successfully.'
-                : 'Booking confirmed successfully.';
+            $message = match ($booking->normalizeStatus()) {
+                Booking::STATUS_PENDING_ADMIN_APPROVAL => 'Branch approved. Awaiting admin approval.',
+                Booking::STATUS_CONFIRMED, Booking::STATUS_READY_FOR_PICKUP => 'Booking confirmed successfully.',
+                default => 'Booking approval recorded successfully.',
+            };
 
             return response()->json([
                 'success' => true,
@@ -135,6 +153,10 @@ class BookingController extends Controller
     public function reject(Request $request, Booking $booking): JsonResponse
     {
         Gate::authorize('reject', $booking);
+
+        $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
 
         try {
             $booking = $this->bookingService->rejectBooking(
@@ -156,12 +178,44 @@ class BookingController extends Controller
         }
     }
 
-    public function pickup(Request $request, Booking $booking): JsonResponse
+    public function preparePickup(Request $request, Booking $booking): JsonResponse
     {
-        Gate::authorize('pickup', Booking::class);
+        Gate::authorize('preparePickup', $booking);
 
         try {
-            $booking = $this->bookingService->markAsPickedUp($booking);
+            $booking = $this->bookingService->preparePickup($booking, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking marked ready for pickup.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function pickup(Request $request, Booking $booking): JsonResponse
+    {
+        Gate::authorize('pickup', $booking);
+
+        $data = $request->validate([
+            'identity_verification_status' => ['nullable', 'string', 'in:verified,unverified,not_required'],
+            'license_verification_status' => ['nullable', 'string', 'in:verified,unverified,not_required'],
+            'pickup_mileage' => ['nullable', 'integer', 'min:0'],
+            'pickup_fuel_level' => ['nullable', 'string', 'in:empty,quarter,half,three_quarter,full'],
+            'exterior_condition' => ['nullable', 'string', 'max:50'],
+            'interior_condition' => ['nullable', 'string', 'max:50'],
+            'existing_damage' => ['nullable', 'string', 'max:2000'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'skip_document_check' => ['nullable', 'boolean'],
+        ]);
+
+        try {
+            $booking = $this->bookingService->markAsPickedUp($booking, $request->user(), $data);
 
             return response()->json([
                 'success' => true,
@@ -178,10 +232,22 @@ class BookingController extends Controller
 
     public function returnVehicle(Request $request, Booking $booking): JsonResponse
     {
-        Gate::authorize('returnVehicle', Booking::class);
+        Gate::authorize('returnVehicle', $booking);
+
+        $data = $request->validate([
+            'return_mileage' => ['nullable', 'integer', 'min:0'],
+            'return_fuel_level' => ['nullable', 'string', 'in:empty,quarter,half,three_quarter,full'],
+            'exterior_condition' => ['nullable', 'string', 'max:50'],
+            'interior_condition' => ['nullable', 'string', 'max:50'],
+            'new_damage' => ['nullable', 'string', 'max:2000'],
+            'damage_notes' => ['nullable', 'string', 'max:2000'],
+            'additional_charges' => ['nullable', 'numeric', 'min:0'],
+            'requires_maintenance' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
 
         try {
-            $booking = $this->bookingService->markAsReturned($booking);
+            $booking = $this->bookingService->markAsReturned($booking, $request->user(), $data);
 
             return response()->json([
                 'success' => true,
@@ -200,42 +266,99 @@ class BookingController extends Controller
     {
         Gate::authorize('manageAll', Booking::class);
 
-        $user  = $request->user();
+        $user = $request->user();
         $query = Booking::with([
             'vehicle.category',
             'vehicle.images',
             'vehicle.primaryImage',
             'user',
             'branch',
+            'payments',
+            'review',
         ])->activeRecords();
 
-        // Branch managers / staff only see their branch bookings
         if (!$user->isAdmin()) {
             $query->where('branch_id', $user->branch_id);
         }
 
-        if ($request->has('branch_approval_status')) {
+        if ($request->filled('branch_approval_status')) {
             $query->where('branch_approval_status', $request->branch_approval_status);
         }
 
-        if ($request->has('admin_approval_status')) {
+        if ($request->filled('admin_approval_status')) {
             $query->where('admin_approval_status', $request->admin_approval_status);
         }
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
         }
 
-        if ($request->has('branch_id') && $user->isAdmin()) {
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === 'pending') {
+                $query->whereIn('status', [Booking::STATUS_PENDING, Booking::STATUS_PENDING_PAYMENT]);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($request->filled('branch_id') && $user->isAdmin()) {
             $query->where('branch_id', $request->branch_id);
         }
 
-        $bookings = $query->orderBy('created_at', 'desc')->paginate(15);
+        if ($request->filled('vehicle_id')) {
+            $query->where('vehicle_id', $request->vehicle_id);
+        }
+
+        if ($request->filled('customer_id')) {
+            $query->where('user_id', $request->customer_id);
+        }
+
+        if ($request->filled('pickup_date_from')) {
+            $query->whereDate('pickup_date', '>=', $request->pickup_date_from);
+        }
+
+        if ($request->filled('pickup_date_to')) {
+            $query->whereDate('pickup_date', '<=', $request->pickup_date_to);
+        }
+
+        if ($request->filled('return_date_from')) {
+            $query->whereDate('return_date', '>=', $request->return_date_from);
+        }
+
+        if ($request->filled('return_date_to')) {
+            $query->whereDate('return_date', '<=', $request->return_date_to);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_reference', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('vehicle', function ($vq) use ($search) {
+                        $vq->where('brand', 'like', "%{$search}%")
+                            ->orWhere('model', 'like', "%{$search}%")
+                            ->orWhere('registration_number', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('branch', function ($bq) use ($search) {
+                        $bq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('payments', function ($pq) use ($search) {
+                        $pq->where('transaction_reference', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $bookings = $query->orderBy('created_at', 'desc')->paginate((int) $request->input('per_page', 15));
 
         return response()->json([
             'success' => true,
             'message' => 'All bookings retrieved successfully',
             'data' => BookingResource::collection($bookings),
+            'summary' => $this->workflow->summaryCounts($user, $request->filled('branch_id') ? (int) $request->branch_id : null),
             'meta' => [
                 'current_page' => $bookings->currentPage(),
                 'last_page' => $bookings->lastPage(),

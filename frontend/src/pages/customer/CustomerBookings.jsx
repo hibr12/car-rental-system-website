@@ -54,7 +54,7 @@ export const CustomerBookings = () => {
   };
 
   const filteredBookings = statusFilter
-    ? bookings.filter((b) => b.status === statusFilter)
+    ? bookings.filter((b) => (b.booking_status || b.status) === statusFilter)
     : bookings;
 
   return (
@@ -74,7 +74,9 @@ export const CustomerBookings = () => {
             className="bg-theme-card border border-theme rounded-xl px-3 py-2 text-xs text-theme-primary focus:outline-none focus:border-blue-500"
           >
             <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
+            <option value="pending_branch_approval">Pending Branch Approval</option>
+            <option value="payment_required">Payment Required</option>
+            <option value="payment_processing">Payment Processing</option>
             <option value="confirmed">Confirmed</option>
             <option value="active">Active</option>
             <option value="completed">Completed</option>
@@ -127,10 +129,10 @@ export const CustomerBookings = () => {
                     <td className="py-4 px-4">
                       <span
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(
-                          booking.status
+                          booking.booking_status || booking.status
                         )}`}
                       >
-                        {formatStatus(booking.status)}
+                        {formatStatus(booking.booking_status || booking.status)}
                       </span>
                     </td>
                     <td className="py-4 px-4">
@@ -153,7 +155,7 @@ export const CustomerBookings = () => {
                         View
                       </button>
 
-                      {['pending', 'confirmed'].includes(booking.status) && booking.payment_status !== 'paid' && (
+                      {(booking.allowed_actions || []).includes('pay') && (
                         <Link
                           to={`/checkout?booking_id=${booking.id}`}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
@@ -163,7 +165,7 @@ export const CustomerBookings = () => {
                         </Link>
                       )}
 
-                      {['pending', 'confirmed'].includes(booking.status) && (
+                      {(booking.allowed_actions || []).includes('cancel') && (
                         <button
                           onClick={() => {
                             setSelectedBooking(booking);

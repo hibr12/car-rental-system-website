@@ -35,28 +35,53 @@ export const getStatusBadgeStyle = (status) => {
     case 'available':
     case 'completed':
     case 'paid':
-    case 'confirmed':
+    case 'verified':
+    case 'manually_confirmed':
+    case 'approved':
     case 'active':
     case 'replied':
       return 'bg-green-50 text-[#16A34A] border-[#16A34A]/30';
+    case 'confirmed':
+    case 'ready_for_pickup':
+    case 'processing':
+    case 'rented':
+    case 'in_progress':
+    case 'gateway_pending':
+    case 'verifying':
+    case 'refund_pending':
+      return 'bg-blue-50 text-[#2563EB] border-[#2563EB]/30';
     case 'pending':
+    case 'pending_payment':
+    case 'payment_required':
+    case 'payment_processing':
+    case 'payment_verified':
+    case 'pending_branch_approval':
+    case 'pending_admin_approval':
+    case 'return_pending':
     case 'cash_pending':
     case 'reserved':
     case 'scheduled':
     case 'unpaid':
+    case 'unverified':
     case 'branch_review':
+    case 'not_required':
+    case 'amount_mismatch':
+    case 'currency_mismatch':
+    case 'reference_mismatch':
+    case 'verification_error':
+    case 'disputed':
       return 'bg-amber-50 text-[#F59E0B] border-[#F59E0B]/30';
-    case 'processing':
-    case 'rented':
-    case 'in_progress':
-      return 'bg-blue-50 text-[#2563EB] border-[#2563EB]/30';
     case 'maintenance':
     case 'unavailable':
     case 'cancelled':
     case 'rejected':
     case 'failed':
+    case 'invalid':
+    case 'gateway_failed':
+    case 'expired':
       return 'bg-red-50 text-[#DC2626] border-[#DC2626]/30';
     case 'refunded':
+    case 'partially_refunded':
       return 'bg-slate-50 text-[#64748B] border-[#64748B]/30';
     default:
       return 'bg-slate-50 text-[#64748B] border-[#E2E8F0]';

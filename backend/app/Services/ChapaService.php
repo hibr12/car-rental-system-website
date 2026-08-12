@@ -194,8 +194,12 @@ class ChapaService
         return hash_equals($expected, $signature);
     }
 
-    public function generateTransactionRef(?int $bookingId = null): string
+    public function generateTransactionRef(?int $bookingId = null, ?string $bookingReference = null): string
     {
+        if ($bookingReference) {
+            return 'APEX-' . $bookingReference . '-' . str_pad((string) random_int(1, 99), 2, '0', STR_PAD_LEFT);
+        }
+
         $bookingPart = $bookingId ? 'BK-' . $bookingId . '-' : '';
 
         return 'APEX-' . $bookingPart . now()->format('Ymd') . '-' . strtoupper(Str::random(8));

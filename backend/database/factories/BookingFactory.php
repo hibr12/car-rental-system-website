@@ -21,9 +21,10 @@ class BookingFactory extends Factory
         $subtotal = $numberOfDays * $pricePerDay;
 
         return [
-            'booking_reference' => 'BK-' . now()->format('Ymd') . '-' . strtoupper(fake()->lexify('??????')),
+            'booking_reference' => 'BOOK-' . now()->format('Ymd') . '-' . strtoupper(fake()->lexify('????')) . '-' . strtoupper(fake()->lexify('????')),
             'user_id' => User::factory(),
             'vehicle_id' => Vehicle::factory(),
+            'branch_id' => null,
             'pickup_location' => fake()->randomElement(['Main Branch', 'Airport Branch', 'Downtown Branch']),
             'return_location' => fake()->randomElement(['Main Branch', 'Airport Branch', 'Downtown Branch']),
             'pickup_date' => $pickupDate,
@@ -34,10 +35,32 @@ class BookingFactory extends Factory
             'additional_charges' => 0,
             'discount' => 0,
             'total_price' => $subtotal,
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
+            'status' => Booking::STATUS_PENDING_BRANCH_APPROVAL,
+            'payment_status' => Booking::PAYMENT_STATUS_NOT_REQUIRED,
+            'branch_approval_status' => Booking::APPROVAL_PENDING,
+            'admin_approval_status' => Booking::APPROVAL_NOT_REQUIRED,
+            'admin_approval_required' => false,
             'notes' => null,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Booking $booking) {
+            if (!$booking->branch_id && $booking->vehicle_id) {
+                $vehicle = Vehicle::find($booking->vehicle_id);
+                if ($vehicle?->branch_id) {
+                    $booking->branch_id = $vehicle->branch_id;
+                }
+            }
+        })->afterCreating(function (Booking $booking) {
+            if (!$booking->branch_id && $booking->vehicle_id) {
+                $vehicle = Vehicle::find($booking->vehicle_id);
+                if ($vehicle?->branch_id) {
+                    $booking->update(['branch_id' => $vehicle->branch_id]);
+                }
+            }
+        });
     }
 
     public function pending(): static

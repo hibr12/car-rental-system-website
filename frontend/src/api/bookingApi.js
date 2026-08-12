@@ -10,8 +10,9 @@ export const bookingApi = {
   getAdminBookings: (params = {}) => apiClient.get('/admin/bookings', { params }),
   confirm: (id) => apiClient.put(`/admin/bookings/${id}/confirm`),
   reject: (id, reason) => apiClient.put(`/admin/bookings/${id}/reject`, { reason }),
-  pickup: (id) => apiClient.put(`/admin/bookings/${id}/pickup`),
-  returnVehicle: (id) => apiClient.put(`/admin/bookings/${id}/return`),
+  preparePickup: (id) => apiClient.put(`/admin/bookings/${id}/prepare-pickup`),
+  pickup: (id, payload = {}) => apiClient.put(`/admin/bookings/${id}/pickup`, payload),
+  returnVehicle: (id, payload = {}) => apiClient.put(`/admin/bookings/${id}/return`, payload),
   archive: (id, reason) => apiClient.put(`/admin/bookings/${id}/archive`, { reason }),
 };
 

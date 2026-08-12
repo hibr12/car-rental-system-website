@@ -73,8 +73,8 @@ class BookingTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'user_id' => $this->customer->id,
             'vehicle_id' => $this->vehicle->id,
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
+            'status' => 'pending_branch_approval',
+            'payment_status' => 'not_required',
         ]);
     }
 
@@ -246,48 +246,130 @@ class BookingTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_staff_can_confirm_booking(): void
+    public function test_branch_manager_can_approve_unpaid_booking(): void
     {
-        $staff = User::factory()->staff()->create();
-        $staffToken = $staff->createToken('auth-token')->plainTextToken;
+        $branch = \App\Models\Branch::factory()->create();
+        $this->vehicle->update(['branch_id' => $branch->id]);
+
+        $manager = User::factory()->branchManager()->create(['branch_id' => $branch->id]);
+        $managerToken = $manager->createToken('auth-token')->plainTextToken;
 
         $booking = Booking::factory()->create([
             'user_id' => $this->customer->id,
             'vehicle_id' => $this->vehicle->id,
-            'status' => 'pending',
+            'branch_id' => $branch->id,
+            'status' => 'pending_branch_approval',
+            'payment_status' => 'not_required',
+            'branch_approval_status' => 'pending',
+            'admin_approval_status' => 'not_required',
+            'admin_approval_required' => false,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $staffToken)
+        $response = $this->withHeader('Authorization', 'Bearer ' . $managerToken)
             ->putJson('/api/admin/bookings/' . $booking->id . '/confirm');
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Booking confirmed successfully',
-            ]);
+        $response->assertOk();
 
-        $this->assertDatabaseHas('bookings', [
-            'id' => $booking->id,
-            'status' => 'confirmed',
+        $booking->refresh();
+        $this->assertEquals('approved', $booking->branch_approval_status);
+        $this->assertEquals('payment_required', $booking->status);
+        $this->assertEquals('pending', $booking->payment_status);
+    }
+
+    public function test_branch_manager_can_approve_legacy_paid_booking(): void
+    {
+        $branch = \App\Models\Branch::factory()->create();
+        $this->vehicle->update(['branch_id' => $branch->id]);
+
+        $manager = User::factory()->branchManager()->create(['branch_id' => $branch->id]);
+        $managerToken = $manager->createToken('auth-token')->plainTextToken;
+
+        $booking = Booking::factory()->create([
+            'user_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
+            'branch_id' => $branch->id,
+            'status' => 'pending_branch_approval',
+            'payment_status' => 'paid',
+            'branch_approval_status' => 'pending',
+            'admin_approval_status' => 'not_required',
+            'admin_approval_required' => false,
         ]);
+
+        \App\Models\Payment::create([
+            'booking_id' => $booking->id,
+            'user_id' => $this->customer->id,
+            'branch_id' => $branch->id,
+            'amount' => $booking->total_price,
+            'currency' => 'ETB',
+            'payment_method' => 'online_payment',
+            'transaction_reference' => 'TXN-LEGACY-1',
+            'status' => 'paid',
+            'verification_status' => 'verified',
+            'paid_at' => now(),
+            'verified_at' => now(),
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $managerToken)
+            ->putJson('/api/admin/bookings/' . $booking->id . '/confirm');
+
+        $response->assertOk();
+
+        $booking->refresh();
+        $this->assertEquals('approved', $booking->branch_approval_status);
+        $this->assertContains($booking->status, ['confirmed', 'ready_for_pickup']);
     }
 
     public function test_admin_can_manage_booking_workflow(): void
     {
         $adminToken = $this->admin->createToken('auth-token')->plainTextToken;
+        $branch = \App\Models\Branch::factory()->create();
+        $this->vehicle->update(['branch_id' => $branch->id, 'status' => 'available']);
 
         $booking = Booking::factory()->create([
             'user_id' => $this->customer->id,
             'vehicle_id' => $this->vehicle->id,
-            'status' => 'pending',
+            'branch_id' => $branch->id,
+            'status' => 'pending_branch_approval',
+            'payment_status' => 'not_required',
+            'branch_approval_status' => 'pending',
+            'admin_approval_status' => 'not_required',
+            'admin_approval_required' => false,
+            'pickup_date' => now()->addHours(2),
+            'return_date' => now()->addDays(2),
         ]);
 
         $this->withHeader('Authorization', 'Bearer ' . $adminToken)
             ->putJson('/api/admin/bookings/' . $booking->id . '/confirm')
             ->assertOk();
 
+        $booking->refresh();
+        $this->assertEquals('payment_required', $booking->status);
+
+        \App\Models\Payment::create([
+            'booking_id' => $booking->id,
+            'user_id' => $this->customer->id,
+            'branch_id' => $branch->id,
+            'amount' => $booking->total_price,
+            'currency' => 'ETB',
+            'payment_method' => 'online_payment',
+            'transaction_reference' => 'TXN-LEGACY-2',
+            'status' => 'paid',
+            'verification_status' => 'verified',
+            'paid_at' => now(),
+            'verified_at' => now(),
+        ]);
+
+        $booking->update(['payment_status' => 'paid']);
+        app(\App\Services\BookingWorkflowService::class)
+            ->advanceAfterPaymentVerified($booking->fresh()->load('payments'), $this->admin);
+
         $this->withHeader('Authorization', 'Bearer ' . $adminToken)
-            ->putJson('/api/admin/bookings/' . $booking->id . '/pickup')
+            ->putJson('/api/admin/bookings/' . $booking->id . '/pickup', [
+                'identity_verification_status' => 'verified',
+                'license_verification_status' => 'verified',
+                'pickup_mileage' => 1000,
+                'pickup_fuel_level' => 'full',
+            ])
             ->assertOk();
 
         $this->assertDatabaseHas('vehicles', [
@@ -296,7 +378,10 @@ class BookingTest extends TestCase
         ]);
 
         $this->withHeader('Authorization', 'Bearer ' . $adminToken)
-            ->putJson('/api/admin/bookings/' . $booking->id . '/return')
+            ->putJson('/api/admin/bookings/' . $booking->id . '/return', [
+                'return_mileage' => 1100,
+                'return_fuel_level' => 'half',
+            ])
             ->assertOk();
 
         $this->assertDatabaseHas('bookings', [

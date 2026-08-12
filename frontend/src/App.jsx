@@ -38,6 +38,7 @@ import AdminBookings from './pages/admin/AdminBookings';
 import UserManagement from './pages/admin/UserManagement';
 import PaymentsPage from './pages/admin/PaymentsPage';
 import PaymentHistoryPage from './pages/admin/PaymentHistoryPage';
+import PaymentReconciliationPage from './pages/admin/PaymentReconciliationPage';
 import ArchiveIndexPage from './pages/admin/ArchiveIndexPage';
 import ArchiveBookingsPage from './pages/admin/ArchiveBookingsPage';
 import ArchivePaymentsPage from './pages/admin/ArchivePaymentsPage';
@@ -131,6 +132,7 @@ function App() {
           <Route path="users"           element={<UserManagement />} />
           <Route path="customers"       element={<UserManagement />} />
           <Route path="payments"        element={<PaymentsPage />} />
+          <Route path="payments/reconciliation" element={<PaymentReconciliationPage />} />
           <Route path="payment-history" element={<PaymentHistoryPage />} />
           <Route path="reviews"         element={<ReviewsManagement />} />
           <Route path="maintenance"     element={<MaintenancePage />} />

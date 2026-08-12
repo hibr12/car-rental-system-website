@@ -32,16 +32,21 @@ apiClient.interceptors.response.use(
       const data = error.response.data;
 
       if (status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        // Dispatch custom event if app needs to reset auth state
-        window.dispatchEvent(new Event('unauthorized'));
+        const path = error.config?.url || '';
+        const isAuthEntry = /\/auth\/(login|register)$/.test(path);
+        if (!isAuthEntry) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          window.dispatchEvent(new Event('unauthorized'));
+        }
       }
 
       const formattedError = {
         status,
         message: data?.message || 'An unexpected error occurred.',
         errors: data?.errors || null,
+        code: data?.code || null,
+        data: data?.data || null,
         success: false,
       };
 

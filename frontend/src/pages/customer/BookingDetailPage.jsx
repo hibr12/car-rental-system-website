@@ -7,7 +7,6 @@ import {
   MapPin,
   CreditCard,
   CheckCircle2,
-  FileText,
   AlertCircle,
   Loader2,
   XCircle,
@@ -18,27 +17,51 @@ import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
 
-const TIMELINE_STEPS = [
-  { key: 'submitted', label: 'Booking Submitted' },
-  { key: 'branch', label: 'Branch Review' },
-  { key: 'admin', label: 'Admin Review' },
-  { key: 'payment', label: 'Payment' },
-  { key: 'confirmed', label: 'Confirmed' },
-  { key: 'pickup', label: 'Pickup' },
-  { key: 'active', label: 'Active Rental' },
-  { key: 'completed', label: 'Completed' },
-];
+const customerStatusMessage = (booking) => {
+  const status = booking.booking_status || booking.status;
+  const paid = booking.payment_status === 'paid';
 
-const getTimelineIndex = (booking) => {
-  if (!booking) return 0;
-  if (booking.status === 'completed') return 7;
-  if (booking.status === 'active') return 6;
-  if (booking.status === 'confirmed') return 4;
-  if (booking.payment_status === 'paid') return 3;
-  if (booking.admin_approval_status === 'approved') return 3;
-  if (booking.branch_approval_status === 'approved') return 2;
-  if (booking.status === 'rejected' || booking.branch_approval_status === 'rejected' || booking.admin_approval_status === 'rejected') return -1;
-  return 0;
+  if (status === 'pending_branch_approval') {
+    return {
+      title: 'Awaiting Branch Approval',
+      detail: 'Your booking request has been submitted and is waiting for branch approval.',
+    };
+  }
+  if (status === 'payment_required' || status === 'payment_processing') {
+    return paid
+      ? { title: 'Payment Processing', detail: 'Your payment is being verified.' }
+      : { title: 'Payment Required', detail: 'Your booking has been approved. Please complete payment to confirm.' };
+  }
+  if (status === 'pending_payment' || status === 'pending') {
+    return paid
+      ? { title: 'Payment Verified', detail: 'Your payment has been verified.' }
+      : { title: 'Awaiting Payment', detail: 'Complete payment to continue your booking.' };
+  }
+  if (status === 'pending_admin_approval') {
+    return { title: 'Awaiting Final Confirmation', detail: 'Branch approved. Awaiting final confirmation.' };
+  }
+  if (status === 'confirmed') {
+    return { title: 'Booking Confirmed', detail: 'Your booking is confirmed.' };
+  }
+  if (status === 'ready_for_pickup') {
+    return { title: 'Ready for Pickup', detail: 'Your vehicle is ready for pickup.' };
+  }
+  if (status === 'active') {
+    return { title: 'Rental Active', detail: 'Enjoy your rental.' };
+  }
+  if (status === 'return_pending') {
+    return { title: 'Return In Progress', detail: 'Vehicle return is being processed.' };
+  }
+  if (status === 'completed') {
+    return { title: 'Completed', detail: 'Your rental is complete. You can leave a review.' };
+  }
+  if (status === 'cancelled') {
+    return { title: 'Cancelled', detail: booking.cancellation_reason || 'This booking was cancelled.' };
+  }
+  if (status === 'rejected') {
+    return { title: 'Rejected', detail: booking.rejection_reason || 'This booking was rejected.' };
+  }
+  return { title: formatStatus(status), detail: '' };
 };
 
 export const BookingDetailPage = () => {
@@ -107,14 +130,16 @@ export const BookingDetailPage = () => {
 
   if (!booking) return null;
 
-  const timelineIdx = getTimelineIndex(booking);
-  const effectiveIdx = timelineIdx;
-
   const vehicle = booking.vehicle || {};
+  const statusMsg = customerStatusMessage(booking);
+  const timeline = booking.timeline || [];
+  const actions = booking.allowed_actions || [];
+  const canPay = actions.includes('pay');
+  const canCancel = actions.includes('cancel');
+  const canReview = actions.includes('write_review') || (booking.status === 'completed' && !booking.has_review);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Back Button */}
       <button
         onClick={() => navigate('/dashboard/bookings')}
         className="inline-flex items-center gap-2 text-xs font-semibold text-theme-muted hover:text-blue-400 transition-colors"
@@ -123,7 +148,6 @@ export const BookingDetailPage = () => {
         <span>Back to Bookings</span>
       </button>
 
-      {/* Booking Reference Header */}
       <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -131,10 +155,12 @@ export const BookingDetailPage = () => {
             <h1 className="text-2xl font-extrabold text-theme-primary tracking-tight font-mono">
               {booking.booking_reference}
             </h1>
+            <p className="text-sm font-semibold text-theme-primary mt-2">{statusMsg.title}</p>
+            {statusMsg.detail && <p className="text-xs text-theme-muted">{statusMsg.detail}</p>}
           </div>
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${getStatusBadgeStyle(booking.status)}`}>
-              {formatStatus(booking.status)}
+            <span className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${getStatusBadgeStyle(booking.booking_status || booking.status)}`}>
+              {formatStatus(booking.booking_status || booking.status)}
             </span>
             <span className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${getStatusBadgeStyle(booking.payment_status)}`}>
               {formatStatus(booking.payment_status)}
@@ -144,9 +170,7 @@ export const BookingDetailPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Vehicle & Rental Info */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Vehicle Information */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider flex items-center gap-2">
               <Car className="w-4 h-4 text-blue-400" />
@@ -167,11 +191,13 @@ export const BookingDetailPage = () => {
                 <p className="text-xs text-theme-muted">
                   {vehicle.year && `${vehicle.year} • `}{vehicle.category?.name || 'N/A'}
                 </p>
+                {booking.branch?.name && (
+                  <p className="text-xs text-theme-muted">Branch: {booking.branch.name}</p>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Rental Period */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-400" />
@@ -193,7 +219,6 @@ export const BookingDetailPage = () => {
             </div>
           </div>
 
-          {/* Locations */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider flex items-center gap-2">
               <MapPin className="w-4 h-4 text-blue-400" />
@@ -211,7 +236,6 @@ export const BookingDetailPage = () => {
             </div>
           </div>
 
-          {/* Price Breakdown */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-blue-400" />
@@ -228,9 +252,7 @@ export const BookingDetailPage = () => {
               </div>
               <div className="flex justify-between text-xs text-theme-secondary">
                 <span>Subtotal</span>
-                <span className="font-bold text-theme-primary">
-                  {formatCurrency(booking.price_per_day * booking.number_of_days)}
-                </span>
+                <span className="font-bold text-theme-primary">{formatCurrency(booking.subtotal)}</span>
               </div>
               {booking.additional_charges > 0 && (
                 <div className="flex justify-between text-xs text-theme-secondary">
@@ -252,68 +274,41 @@ export const BookingDetailPage = () => {
               </div>
             </div>
           </div>
-
-          {/* Special Requests */}
-          {booking.notes && (
-            <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-400" />
-                Special Requests / Notes
-              </h3>
-              <p className="text-sm text-theme-secondary bg-theme-secondary p-4 rounded-2xl border border-theme italic">
-                {booking.notes}
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Right Column - Timeline & Actions */}
         <div className="space-y-6">
-          {/* Timeline */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider">Booking Timeline</h3>
             <div className="space-y-0">
-              {TIMELINE_STEPS.map((step, idx) => {
-                const isCompleted = idx <= effectiveIdx;
-                const isCurrent = idx === effectiveIdx;
+              {timeline.map((step, idx) => {
+                const isDone = step.state === 'done' || step.state === 'skipped';
+                const isCurrent = step.state === 'current';
+                const isRejected = step.state === 'rejected';
                 return (
                   <div key={step.key} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                          isCurrent
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : isCompleted
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          isRejected
+                            ? 'bg-rose-500/20 text-rose-400'
+                            : isCurrent
+                            ? 'bg-blue-600 text-white'
+                            : isDone
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                             : 'bg-theme-hover text-theme-muted border border-theme'
                         }`}
                       >
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4" />
-                        ) : (
-                          <CircleDot className="w-4 h-4" />
-                        )}
+                        {isDone ? <CheckCircle2 className="w-4 h-4" /> : <CircleDot className="w-4 h-4" />}
                       </div>
-                      {idx < TIMELINE_STEPS.length - 1 && (
-                        <div
-                          className={`w-0.5 h-6 ${
-                            idx < effectiveIdx ? 'bg-emerald-500/40' : 'bg-theme-hover'
-                          }`}
-                        />
+                      {idx < timeline.length - 1 && (
+                        <div className={`w-0.5 h-6 ${isDone ? 'bg-emerald-500/40' : 'bg-theme-hover'}`} />
                       )}
                     </div>
                     <div className="pb-6">
-                      <p
-                        className={`text-xs font-bold ${
-                          isCurrent
-                            ? 'text-blue-400'
-                            : isCompleted
-                            ? 'text-emerald-400'
-                            : 'text-theme-muted'
-                        }`}
-                      >
+                      <p className={`text-xs font-bold ${isCurrent ? 'text-blue-400' : isDone ? 'text-emerald-400' : 'text-theme-muted'}`}>
                         {step.label}
                       </p>
+                      {step.detail && <p className="text-[10px] text-theme-muted mt-0.5">{step.detail}</p>}
                     </div>
                   </div>
                 );
@@ -321,11 +316,10 @@ export const BookingDetailPage = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="bg-theme-card border border-theme p-6 rounded-3xl shadow-xl space-y-3">
             <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider">Actions</h3>
 
-            {booking.payment_status !== 'paid' && (
+            {canPay && (
               <Link
                 to={`/checkout?booking_id=${booking.id}`}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition-all"
@@ -335,7 +329,7 @@ export const BookingDetailPage = () => {
               </Link>
             )}
 
-            {['pending', 'confirmed'].includes(booking.status) && (
+            {canCancel && (
               <button
                 onClick={handleCancelBooking}
                 disabled={cancelling}
@@ -346,7 +340,7 @@ export const BookingDetailPage = () => {
               </button>
             )}
 
-            {booking.status === 'completed' && (
+            {canReview && (
               <Link
                 to="/dashboard/reviews"
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-bold text-xs transition-all"

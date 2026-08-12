@@ -16,7 +16,13 @@ class RentalController extends Controller
     {
         $user  = $request->user();
         $query = Booking::with(['vehicle.category', 'vehicle.primaryImage', 'user', 'branch'])
-            ->whereIn('status', ['confirmed', 'active', 'completed']);
+            ->whereIn('status', [
+                Booking::STATUS_CONFIRMED,
+                Booking::STATUS_READY_FOR_PICKUP,
+                Booking::STATUS_ACTIVE,
+                Booking::STATUS_RETURN_PENDING,
+                Booking::STATUS_COMPLETED,
+            ]);
 
         if ($user->isCustomer()) {
             $query->where('user_id', $user->id);
@@ -50,12 +56,25 @@ class RentalController extends Controller
 
         $this->enforceBranchAccess($user, $booking);
 
-        if ($booking->status !== Booking::STATUS_CONFIRMED) {
-            return response()->json(['success' => false, 'message' => 'Only confirmed bookings can be checked out.'], 422);
+        if (!in_array($booking->normalizeStatus(), [Booking::STATUS_CONFIRMED, Booking::STATUS_READY_FOR_PICKUP], true)) {
+            return response()->json(['success' => false, 'message' => 'Only confirmed or ready-for-pickup bookings can be checked out.'], 422);
         }
 
         if ($booking->payment_status !== Booking::PAYMENT_STATUS_PAID) {
-            return response()->json(['success' => false, 'message' => 'Payment must be completed before check-out.'], 422);
+            return response()->json(['success' => false, 'message' => 'Payment must be completed and verified before check-out.'], 422);
+        }
+
+        $booking->loadMissing('payments');
+        if (!$booking->isPaymentSatisfied()) {
+            return response()->json(['success' => false, 'message' => 'Payment must be completed and verified before check-out.'], 422);
+        }
+
+        if (!$booking->isBranchApproved()) {
+            return response()->json(['success' => false, 'message' => 'Booking cannot be picked up because branch approval is still pending.'], 422);
+        }
+
+        if (!$booking->isAdminApproved()) {
+            return response()->json(['success' => false, 'message' => 'Booking cannot be picked up because admin approval is still pending.'], 422);
         }
 
         $data = $request->validate([

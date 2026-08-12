@@ -9,12 +9,14 @@ export const paymentApi = {
   verify: (txRef) => apiClient.get(`/payments/verify/${encodeURIComponent(txRef)}`),
   getStatus: (id, params = {}) => apiClient.get(`/payments/${id}/status`, { params }),
   verifyById: (id) => apiClient.post(`/payments/${id}/verify`),
-  confirmCash: (id) => apiClient.post(`/admin/payments/${id}/confirm-cash`),
+  confirmCash: (id, payload = {}) => apiClient.post(`/admin/payments/${id}/confirm-cash`, payload),
   archive: (id, reason) => apiClient.put(`/admin/payments/${id}/archive`, { reason }),
   getBookingPaymentStatus: (bookingId, params = {}) =>
     apiClient.get(`/bookings/${bookingId}/payment-status`, { params }),
+  getBookingAttempts: (bookingId) => apiClient.get(`/bookings/${bookingId}/payment-attempts`),
+  getReconciliation: (params = {}) => apiClient.get('/admin/payments/reconciliation', { params }),
   adminMarkAsFailed: (id) => apiClient.put(`/admin/payments/${id}/fail`),
-  adminRefund: (id) => apiClient.put(`/admin/payments/${id}/refund`),
+  adminRefund: (id, payload = {}) => apiClient.put(`/admin/payments/${id}/refund`, payload),
 };
 
 export default paymentApi;

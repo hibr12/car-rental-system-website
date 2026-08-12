@@ -44,19 +44,41 @@ class BookingPolicy
             return (int) $user->branch_id === (int) $booking->branch_id;
         }
 
-        return $user->id === $booking->user_id && in_array($booking->status, ['pending', 'confirmed']);
+        return $user->id === $booking->user_id
+            && in_array($booking->normalizeStatus(), Booking::CANCELLABLE_STATUSES, true);
     }
 
     public function confirm(User $user, Booking $booking): bool
     {
+        $status = $booking->normalizeStatus();
+
         if ($user->isBranchManager()) {
             return (int) $user->branch_id === (int) $booking->branch_id
-                && $booking->branch_approval_status === Booking::APPROVAL_PENDING;
+                && $booking->branch_approval_status === Booking::APPROVAL_PENDING
+                && in_array($status, [
+                    Booking::STATUS_PENDING_BRANCH_APPROVAL,
+                    Booking::STATUS_PAYMENT_VERIFIED,
+                    Booking::STATUS_PENDING,
+                    Booking::STATUS_BRANCH_REVIEW,
+                ], true);
         }
 
         if ($user->isAdmin()) {
-            return $booking->branch_approval_status === Booking::APPROVAL_APPROVED
-                && $booking->admin_approval_status === Booking::APPROVAL_PENDING;
+            if ($booking->branch_approval_status === Booking::APPROVAL_PENDING
+                && in_array($status, [
+                    Booking::STATUS_PENDING_BRANCH_APPROVAL,
+                    Booking::STATUS_PAYMENT_VERIFIED,
+                    Booking::STATUS_PENDING,
+                    Booking::STATUS_BRANCH_REVIEW,
+                ], true)) {
+                return true;
+            }
+
+            return $booking->admin_approval_status === Booking::APPROVAL_PENDING
+                && in_array($status, [
+                    Booking::STATUS_PENDING_ADMIN_APPROVAL,
+                    Booking::STATUS_PENDING_BRANCH_APPROVAL,
+                ], true);
         }
 
         return false;
@@ -64,26 +86,57 @@ class BookingPolicy
 
     public function reject(User $user, Booking $booking): bool
     {
+        $status = $booking->normalizeStatus();
+        $rejectable = [
+            Booking::STATUS_PENDING_BRANCH_APPROVAL,
+            Booking::STATUS_PENDING_ADMIN_APPROVAL,
+            Booking::STATUS_PAYMENT_VERIFIED,
+            Booking::STATUS_PENDING_PAYMENT,
+            Booking::STATUS_PENDING,
+            Booking::STATUS_BRANCH_REVIEW,
+        ];
+
         if ($user->isBranchManager()) {
             return (int) $user->branch_id === (int) $booking->branch_id
-                && $booking->status === Booking::STATUS_PENDING;
+                && in_array($status, $rejectable, true);
         }
 
         if ($user->isAdmin()) {
-            return $booking->status === Booking::STATUS_PENDING;
+            return in_array($status, $rejectable, true);
         }
 
-        return $user->isStaff();
+        return false;
     }
 
-    public function pickup(User $user): bool
+    public function pickup(User $user, ?Booking $booking = null): bool
     {
-        return $user->isAdmin() || $user->isBranchManager() || $user->isStaff();
+        if (!($user->isAdmin() || $user->isBranchManager() || $user->isStaff())) {
+            return false;
+        }
+
+        if ($booking && !$user->isAdmin()) {
+            return (int) $user->branch_id === (int) $booking->branch_id;
+        }
+
+        return true;
     }
 
-    public function returnVehicle(User $user): bool
+    public function returnVehicle(User $user, ?Booking $booking = null): bool
     {
-        return $user->isAdmin() || $user->isBranchManager() || $user->isStaff();
+        if (!($user->isAdmin() || $user->isBranchManager() || $user->isStaff())) {
+            return false;
+        }
+
+        if ($booking && !$user->isAdmin()) {
+            return (int) $user->branch_id === (int) $booking->branch_id;
+        }
+
+        return true;
+    }
+
+    public function preparePickup(User $user, Booking $booking): bool
+    {
+        return $this->pickup($user, $booking);
     }
 
     public function manageAll(User $user): bool

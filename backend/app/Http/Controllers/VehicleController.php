@@ -69,11 +69,8 @@ class VehicleController extends Controller
             $returnDate = Carbon::parse($request->input('return_date'));
 
             $query->whereDoesntHave('bookings', function ($q) use ($pickupDate, $returnDate) {
-                $q->whereIn('status', [
-                    Booking::STATUS_PENDING,
-                    Booking::STATUS_CONFIRMED,
-                    Booking::STATUS_ACTIVE,
-                ])->where(function ($q2) use ($pickupDate, $returnDate) {
+                $q->whereIn('status', Booking::BLOCKING_STATUSES)
+                  ->where(function ($q2) use ($pickupDate, $returnDate) {
                     $q2->whereBetween('pickup_date', [$pickupDate, $returnDate])
                        ->orWhereBetween('return_date', [$pickupDate, $returnDate])
                        ->orWhere(function ($q3) use ($pickupDate, $returnDate) {

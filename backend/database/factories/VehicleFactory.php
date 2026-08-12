@@ -23,6 +23,7 @@ class VehicleFactory extends Factory
 
         return [
             'category_id' => Category::factory(),
+            'branch_id' => \App\Models\Branch::factory(),
             'brand' => $brand,
             'model' => fake()->randomElement($models),
             'year' => fake()->numberBetween(2018, 2026),
