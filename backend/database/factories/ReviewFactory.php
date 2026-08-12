@@ -14,23 +14,40 @@ class ReviewFactory extends Factory
 
     public function definition(): array
     {
+        $rating = fake()->numberBetween(1, 5);
+
         return [
             'user_id' => User::factory(),
             'vehicle_id' => Vehicle::factory(),
             'booking_id' => Booking::factory(),
-            'rating' => fake()->numberBetween(1, 5),
+            'overall_rating' => $rating,
+            'vehicle_rating' => $rating,
+            'cleanliness_rating' => $rating,
+            'staff_rating' => $rating,
+            'value_rating' => $rating,
             'comment' => fake()->paragraph(),
-            'status' => 'approved',
+            'status' => Review::STATUS_PUBLISHED,
         ];
     }
 
-    public function pending(): static
+    public function published(): static
     {
-        return $this->state(fn (array $attributes) => ['status' => 'pending']);
+        return $this->state(fn (array $attributes) => ['status' => Review::STATUS_PUBLISHED]);
     }
 
+    public function hidden(): static
+    {
+        return $this->state(fn (array $attributes) => ['status' => Review::STATUS_HIDDEN]);
+    }
+
+    public function flagged(): static
+    {
+        return $this->state(fn (array $attributes) => ['status' => Review::STATUS_FLAGGED]);
+    }
+
+    /** @deprecated */
     public function approved(): static
     {
-        return $this->state(fn (array $attributes) => ['status' => 'approved']);
+        return $this->published();
     }
 }

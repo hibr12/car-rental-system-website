@@ -7,7 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class BookingCompleted extends Notification
+class ReviewReminder extends Notification
 {
     use Queueable;
 
@@ -26,14 +26,13 @@ class BookingCompleted extends Notification
         $reviewUrl = $frontendUrl . '/dashboard/bookings/' . $this->booking->id . '/review';
 
         return (new MailMessage)
-            ->subject('Rental Complete - ' . $this->booking->booking_reference)
+            ->subject('Reminder: Rate Your Apex Rentals Experience')
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your rental is complete. How was your experience?')
-            ->line('Booking Reference: ' . $this->booking->booking_reference)
+            ->line('We noticed you have not yet reviewed your recent rental.')
+            ->line('Booking: ' . $this->booking->booking_reference)
             ->line('Vehicle: ' . $this->booking->vehicle->brand . ' ' . $this->booking->vehicle->model)
-            ->line('Rental Period: ' . $this->booking->pickup_date->format('M j, Y') . ' to ' . $this->booking->return_date->format('M j, Y'))
             ->action('Rate Your Rental', $reviewUrl)
-            ->line('Thank you for choosing Apex Rentals!');
+            ->line('Your feedback helps us improve our service.');
     }
 
     public function toArray(object $notifiable): array
@@ -41,9 +40,9 @@ class BookingCompleted extends Notification
         return [
             'booking_id' => $this->booking->id,
             'booking_reference' => $this->booking->booking_reference,
-            'title' => 'Rental Complete',
-            'message' => 'Your rental is complete. How was your experience?',
-            'type' => 'booking_completed',
+            'title' => 'Review Reminder',
+            'message' => 'How was your rental experience? Share your feedback.',
+            'type' => 'review_reminder',
             'action_url' => '/dashboard/bookings/' . $this->booking->id . '/review',
             'action_label' => 'Rate Your Rental',
             'created_at' => now()->toISOString(),

@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, ArrowRight, CheckCircle2, Clock, CreditCard, AlertTriangle, Loader2 } from 'lucide-react';
+import { Car, ArrowRight, CheckCircle2, Clock, CreditCard, AlertTriangle, Loader2, ShieldCheck, ShieldX, Star } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
+import reviewApi from '../../api/reviewApi';
+import { licenseApi } from '../../api/licenseApi';
 import useAuthStore from '../../store/authStore';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 
 export const CustomerDashboard = () => {
   const { user } = useAuthStore();
   const [bookings, setBookings] = useState([]);
+  const [eligibleReviews, setEligibleReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [license, setLicense] = useState(undefined); // undefined = loading
 
   useEffect(() => {
     bookingApi
@@ -18,6 +22,14 @@ export const CustomerDashboard = () => {
       })
       .catch((err) => console.error('Failed to load user bookings:', err))
       .finally(() => setLoading(false));
+
+    reviewApi.getEligibleBookings()
+      .then((res) => setEligibleReviews(res.data || []))
+      .catch(() => setEligibleReviews([]));
+
+    licenseApi.getMyLicense()
+      .then((res) => setLicense(res.data))
+      .catch(() => setLicense(null));
   }, []);
 
   const derived = useMemo(() => {
@@ -70,6 +82,9 @@ export const CustomerDashboard = () => {
           <span>Book New Vehicle</span>
         </Link>
       </div>
+
+      {/* Driver's License Status Widget */}
+      <LicenseWidget license={license} />
 
       {/* ACTION REQUIRED alert */}
       {loading ? null : derived.payBookings.length > 0 ? (
@@ -127,6 +142,57 @@ export const CustomerDashboard = () => {
           </div>
         </div>
       ) : null}
+
+      {/* COMPLETED RENTALS — REVIEW */}
+      {!loading && (derived.completedBookings.length > 0 || eligibleReviews.length > 0) && (
+        <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="pb-4 border-b border-theme">
+            <h3 className="text-lg font-bold text-theme-primary">COMPLETED RENTALS</h3>
+            <p className="text-xs text-theme-muted">Share your experience from recent trips</p>
+          </div>
+          <div className="space-y-4">
+            {derived.completedBookings.map((booking) => {
+              const canReview = eligibleReviews.some((b) => b.id === booking.id);
+              const hasReview = booking.has_review || !canReview;
+
+              return (
+                <div key={booking.id} className="bg-theme-secondary border border-theme rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-bold text-theme-primary">
+                        {booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : `Vehicle #${booking.vehicle_id}`}
+                      </p>
+                      <p className="text-xs text-theme-muted">{booking.branch?.name || '—'}</p>
+                      <div className="flex flex-wrap gap-4 text-xs text-theme-muted pt-1">
+                        <span><strong className="text-theme-secondary">Pickup:</strong> {formatDate(booking.pickup_date)}</span>
+                        <span><strong className="text-theme-secondary">Returned:</strong> {formatDate(booking.returned_at || booking.return_date)}</span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Rental Completed
+                      </span>
+                    </div>
+                    <div className="shrink-0">
+                      {canReview ? (
+                        <Link
+                          to={`/dashboard/bookings/${booking.id}/review`}
+                          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs transition-colors"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                          Rate Your Experience
+                        </Link>
+                      ) : hasReview ? (
+                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* MY UPCOMING BOOKINGS */}
       <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-colors duration-200">
@@ -262,5 +328,71 @@ export const CustomerDashboard = () => {
     </div>
   );
 };
+
+// ─── License Widget ─────────────────────────────────────────────────────────
+
+function LicenseWidget({ license }) {
+  // undefined = still loading; null = no license; object = license data
+  if (license === undefined) return null;
+
+  if (!license) {
+    return (
+      <Link
+        to="/dashboard/license"
+        className="flex items-center gap-4 bg-theme-card border border-amber-500/30 rounded-2xl px-5 py-4 hover:border-amber-400/60 transition-colors group"
+        aria-label="Upload your driver's license"
+      >
+        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+          <ShieldX className="w-5 h-5 text-amber-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-theme-primary">Driver's License Required</p>
+          <p className="text-xs text-theme-muted">Upload your license to unlock vehicle bookings.</p>
+        </div>
+        <ArrowRight className="w-4 h-4 text-theme-muted group-hover:text-theme-primary transition-colors" />
+      </Link>
+    );
+  }
+
+  const STATUS = {
+    pending_review: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Pending Verification', border: 'border-amber-500/20' },
+    verified:       { icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Verified', border: 'border-emerald-500/20' },
+    rejected:       { icon: ShieldX, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Rejected', border: 'border-red-500/30' },
+    expired:        { icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10', label: 'Expired', border: 'border-orange-500/30' },
+  };
+
+  const cfg = STATUS[license.status] || STATUS.pending_review;
+  const Icon = cfg.icon;
+
+  return (
+    <Link
+      to="/dashboard/license"
+      className={`flex items-center gap-4 bg-theme-card border ${cfg.border} rounded-2xl px-5 py-4 hover:opacity-90 transition-opacity group`}
+      aria-label={`Driver's license status: ${cfg.label}`}
+    >
+      <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center shrink-0`}>
+        <Icon className={`w-5 h-5 ${cfg.color}`} aria-hidden="true" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-theme-primary flex items-center gap-2">
+          Driver's License
+          <span className={`text-xs font-semibold ${cfg.color}`}>{cfg.label}</span>
+        </p>
+        {license.status === 'verified' && (
+          <p className="text-xs text-theme-muted">
+            Expires: {license.expiry_date ? new Date(license.expiry_date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+          </p>
+        )}
+        {license.status === 'rejected' && (
+          <p className="text-xs text-red-400 truncate">{license.rejection_reason}</p>
+        )}
+        {license.status === 'pending_review' && (
+          <p className="text-xs text-theme-muted">Under review — we'll notify you shortly.</p>
+        )}
+      </div>
+      <ArrowRight className="w-4 h-4 text-theme-muted group-hover:text-theme-primary transition-colors shrink-0" />
+    </Link>
+  );
+}
 
 export default CustomerDashboard;

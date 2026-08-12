@@ -16,19 +16,20 @@ class UpdateReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
-            'comment' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'overall_rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
+            'vehicle_rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
+            'cleanliness_rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
+            'staff_rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
+            'value_rating' => ['sometimes', 'required', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
+            'comment' => ['sometimes', 'nullable', 'string', 'max:' . Review::MAX_COMMENT_LENGTH],
+            'rating' => ['sometimes', 'integer', 'min:' . Review::MIN_RATING, 'max:' . Review::MAX_RATING],
         ];
     }
 
-    public function messages(): array
+    protected function prepareForValidation(): void
     {
-        return [
-            'rating.required' => 'Rating is required.',
-            'rating.integer' => 'Rating must be an integer.',
-            'rating.min' => 'Rating must be at least ' . Review::MIN_RATING . '.',
-            'rating.max' => 'Rating must not exceed ' . Review::MAX_RATING . '.',
-            'comment.max' => 'Comment must not exceed 2000 characters.',
-        ];
+        if ($this->has('rating') && !$this->has('overall_rating')) {
+            $this->merge(['overall_rating' => (int) $this->input('rating')]);
+        }
     }
 }

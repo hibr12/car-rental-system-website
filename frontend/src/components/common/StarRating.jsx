@@ -1,13 +1,13 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 
-export const StarRating = ({ rating = 5, maxRating = 5, size = 'sm', interactive = false, onChange }) => {
+export const StarRating = ({ rating = 5, maxRating = 5, size = 'sm', interactive = false, onChange, light = false }) => {
   const [hoverRating, setHoverRating] = React.useState(0);
 
   const getSizeClass = () => {
     switch (size) {
       case 'lg':
-        return 'w-6 h-6';
+        return 'w-7 h-7';
       case 'md':
         return 'w-5 h-5';
       default:
@@ -16,6 +16,7 @@ export const StarRating = ({ rating = 5, maxRating = 5, size = 'sm', interactive
   };
 
   const currentRating = hoverRating || rating;
+  const emptyClass = light ? 'fill-transparent text-[#CBD5E1]' : 'fill-slate-700 text-slate-600';
 
   return (
     <div className="flex items-center gap-1">
@@ -31,11 +32,12 @@ export const StarRating = ({ rating = 5, maxRating = 5, size = 'sm', interactive
             } ${
               isFilled
                 ? 'fill-amber-400 text-amber-400'
-                : 'fill-slate-700 text-slate-600'
+                : emptyClass
             }`}
             onClick={() => interactive && onChange && onChange(starValue)}
             onMouseEnter={() => interactive && setHoverRating(starValue)}
             onMouseLeave={() => interactive && setHoverRating(0)}
+            aria-label={interactive ? `Rate ${starValue} stars` : undefined}
           />
         );
       })}

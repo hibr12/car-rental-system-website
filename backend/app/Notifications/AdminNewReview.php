@@ -22,15 +22,18 @@ class AdminNewReview extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+
         return (new MailMessage)
-            ->subject('New Review Submitted - ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model)
+            ->subject('New Customer Review Received')
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('A new review has been submitted by a customer.')
-            ->line('Vehicle: ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model)
+            ->line('A new customer review has been received.')
             ->line('Customer: ' . $this->review->user->name)
-            ->line('Rating: ' . $this->review->rating . '/5')
+            ->line('Vehicle: ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model)
+            ->line('Branch: ' . ($this->review->branch->name ?? 'N/A'))
+            ->line('Overall Rating: ' . $this->review->overall_rating . '/5')
             ->line($this->review->comment ? 'Comment: "' . $this->review->comment . '"' : 'No comment provided.')
-            ->action('View Review', url('/api/vehicles/' . $this->review->vehicle_id . '/reviews'))
+            ->action('Manage Reviews', $frontendUrl . '/admin/reviews')
             ->line('You may review and moderate this submission if needed.');
     }
 
@@ -39,11 +42,12 @@ class AdminNewReview extends Notification
         return [
             'review_id' => $this->review->id,
             'vehicle_id' => $this->review->vehicle_id,
+            'branch_id' => $this->review->branch_id,
             'customer_name' => $this->review->user->name,
-            'rating' => $this->review->rating,
+            'overall_rating' => $this->review->overall_rating,
             'vehicle' => $this->review->vehicle->brand . ' ' . $this->review->vehicle->model,
-            'title' => 'New Review Submitted',
-            'message' => $this->review->user->name . ' submitted a ' . $this->review->rating . '/5 review for ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model . '.',
+            'title' => 'New Customer Review',
+            'message' => $this->review->user->name . ' submitted a ' . $this->review->overall_rating . '/5 review.',
             'type' => 'admin_new_review',
             'created_at' => now()->toISOString(),
         ];

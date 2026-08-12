@@ -32,6 +32,11 @@ export const adminApi = {
 
   // Reviews
   getReviews: (params = {}) => apiClient.get('/admin/reviews', { params }),
+  getReviewStats: (params = {}) => apiClient.get('/admin/reviews/stats', { params }),
+  updateReviewStatus: (id, payload) => apiClient.patch(`/admin/reviews/${id}/status`, payload),
+  respondToReview: (id, payload) => apiClient.post(`/admin/reviews/${id}/respond`, payload),
+  getReview: (id) => apiClient.get(`/reviews/${id}`),
+  archiveReview: (id) => apiClient.delete(`/reviews/${id}`),
 };
 
 export default adminApi;

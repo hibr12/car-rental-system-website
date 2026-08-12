@@ -14,6 +14,7 @@ use App\Events\PaymentRefunded;
 use App\Events\PaymentSucceeded;
 use App\Events\ReviewCreated;
 use App\Events\ReviewUpdated;
+use App\Listeners\ScheduleReviewReminder;
 use App\Listeners\SendAdminBookingCancelledNotification;
 use App\Listeners\SendAdminBookingCompletedNotification;
 use App\Listeners\SendAdminBookingConfirmedNotification;
@@ -68,6 +69,7 @@ class EventServiceProvider extends ServiceProvider
         BookingCompleted::class => [
             SendBookingCompletedNotification::class,
             SendAdminBookingCompletedNotification::class,
+            ScheduleReviewReminder::class,
         ],
 
         // ─── Payment Events ─────────────────────────────────────────

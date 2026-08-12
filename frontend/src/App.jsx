@@ -25,8 +25,11 @@ import CustomerBookings from './pages/customer/CustomerBookings';
 import BookingDetailPage from './pages/customer/BookingDetailPage';
 import CustomerProfile from './pages/customer/CustomerProfile';
 import CustomerReviews from './pages/customer/CustomerReviews';
+import BookingReviewPage from './pages/customer/BookingReviewPage';
 import CustomerPayments from './pages/customer/CustomerPayments';
 import NotificationsPage from './pages/customer/NotificationsPage';
+import { DriverLicensePage } from './pages/customer/DriverLicensePage';
+import { LicenseReviewPage } from './pages/admin/LicenseReviewPage';
 
 import CheckoutPage from './pages/payment/CheckoutPage';
 import PaymentStatusPage from './pages/payment/PaymentStatusPage';
@@ -108,9 +111,11 @@ function App() {
           <Route index                  element={<CustomerDashboard />} />
           <Route path="bookings"        element={<CustomerBookings />} />
           <Route path="bookings/:id"    element={<BookingDetailPage />} />
+          <Route path="bookings/:bookingId/review" element={<BookingReviewPage />} />
           <Route path="reviews"         element={<CustomerReviews />} />
           <Route path="notifications"   element={<NotificationsPage />} />
           <Route path="profile"         element={<CustomerProfile />} />
+          <Route path="license"         element={<DriverLicensePage />} />
           <Route path="payments"        element={<CustomerPayments />} />
         </Route>
 
@@ -136,6 +141,7 @@ function App() {
           <Route path="payments/reconciliation" element={<PaymentReconciliationPage />} />
           <Route path="payment-history" element={<PaymentHistoryPage />} />
           <Route path="reviews"         element={<ReviewsManagement />} />
+          <Route path="licenses"        element={<LicenseReviewPage />} />
           <Route path="maintenance"     element={<MaintenancePage />} />
           <Route path="messages"        element={<MessagesPage />} />
           <Route path="categories"      element={<CategoryManagement />} />
@@ -163,6 +169,7 @@ function App() {
           <Route path="maintenance"     element={<MaintenancePage />} />
           <Route path="staff"           element={<StaffManagementPage />} />
           <Route path="transfers"       element={<VehicleTransfersPage />} />
+          <Route path="licenses"        element={<LicenseReviewPage />} />
           <Route path="reports"         element={<ReportsPage />} />
           <Route path="*"               element={<PortalNotFound />} />
         </Route>

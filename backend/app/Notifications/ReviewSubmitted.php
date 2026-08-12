@@ -11,12 +11,9 @@ class ReviewSubmitted extends Notification
 {
     use Queueable;
 
-    public Review $review;
-
-    public function __construct(Review $review)
-    {
-        $this->review = $review;
-    }
+    public function __construct(
+        public Review $review
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -30,10 +27,9 @@ class ReviewSubmitted extends Notification
             ->greeting('Hello ' . $notifiable->name . '!')
             ->line('Your review has been submitted successfully.')
             ->line('Vehicle: ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model)
-            ->line('Rating: ' . $this->review->rating . '/5')
+            ->line('Overall Rating: ' . $this->review->overall_rating . '/5')
             ->line($this->review->comment ? 'Comment: "' . $this->review->comment . '"' : '')
-            ->action('View Vehicle', url('/api/vehicles/' . $this->review->vehicle_id))
-            ->line('Thank you for sharing your feedback!');
+            ->line('Thank you for sharing your feedback with Apex Rentals!');
     }
 
     public function toArray(object $notifiable): array
@@ -41,7 +37,7 @@ class ReviewSubmitted extends Notification
         return [
             'review_id' => $this->review->id,
             'vehicle_id' => $this->review->vehicle_id,
-            'rating' => $this->review->rating,
+            'overall_rating' => $this->review->overall_rating,
             'title' => 'Review Submitted',
             'message' => 'Your review for ' . $this->review->vehicle->brand . ' ' . $this->review->vehicle->model . ' has been submitted.',
             'type' => 'review_submitted',

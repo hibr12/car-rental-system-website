@@ -139,9 +139,14 @@ class Vehicle extends Model
             ->orderByDesc('completed_at');
     }
 
-    public function averageRating()
+    public function averageRating(): float
     {
-        return $this->reviews()->approved()->avg('rating');
+        return (float) ($this->reviews()->publiclyVisible()->avg('overall_rating') ?? 0);
+    }
+
+    public function publishedReviewCount(): int
+    {
+        return $this->reviews()->publiclyVisible()->count();
     }
 
     public function canBeBooked(): bool

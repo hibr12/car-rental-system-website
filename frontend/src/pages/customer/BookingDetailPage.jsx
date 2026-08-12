@@ -389,12 +389,19 @@ export const BookingDetailPage = () => {
 
             {canReview && (
               <Link
-                to="/dashboard/reviews"
+                to={`/dashboard/bookings/${booking.id}/review`}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-bold text-xs transition-all"
               >
                 <Star className="w-4 h-4" />
-                Write Review
+                Rate Your Experience
               </Link>
+            )}
+
+            {booking.has_review && (
+              <span className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
+                <CheckCircle2 className="w-4 h-4" />
+                Reviewed
+              </span>
             )}
 
             <Link

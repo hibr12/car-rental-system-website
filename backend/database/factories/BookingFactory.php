@@ -75,6 +75,10 @@ class BookingFactory extends Factory
 
     public function completed(): static
     {
-        return $this->state(fn (array $attributes) => ['status' => 'completed']);
+        return $this->state(fn (array $attributes) => [
+            'status' => 'completed',
+            'picked_up_at' => now()->subDays(3),
+            'returned_at' => now()->subDay(),
+        ]);
     }
 }

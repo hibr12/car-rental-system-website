@@ -11,11 +11,12 @@ use App\Models\Vehicle;
 use App\Services\BookingWorkflowService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\HasVerifiedLicense;
 use Tests\TestCase;
 
 class BookingWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, HasVerifiedLicense;
 
     private User $customer;
     private User $admin;
@@ -37,6 +38,8 @@ class BookingWorkflowTest extends TestCase
         $this->otherBranch = Branch::factory()->create(['name' => 'Bole Branch', 'code' => 'BOL-01']);
 
         $this->customer = User::factory()->customer()->create();
+        $this->giveVerifiedLicense($this->customer);
+
         $this->admin = User::factory()->admin()->create();
         $this->branchManager = User::factory()->branchManager()->create(['branch_id' => $this->branch->id]);
         $this->otherManager = User::factory()->branchManager()->create(['branch_id' => $this->otherBranch->id]);
@@ -258,15 +261,19 @@ class BookingWorkflowTest extends TestCase
             'status' => Booking::STATUS_COMPLETED,
             'branch_approval_status' => Booking::APPROVAL_APPROVED,
             'payment_status' => Booking::PAYMENT_STATUS_PAID,
+            'picked_up_at' => now()->subDays(2),
+            'returned_at' => now()->subDay(),
         ]);
 
         $token = $this->customer->createToken('t')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->postJson('/api/vehicles/' . $this->vehicle->id . '/reviews', [
-                'booking_id' => $booking->id,
-                'vehicle_id' => $this->vehicle->id,
-                'rating' => 5,
+            ->postJson('/api/bookings/' . $booking->id . '/reviews', [
+                'overall_rating' => 5,
+                'vehicle_rating' => 5,
+                'cleanliness_rating' => 5,
+                'staff_rating' => 5,
+                'value_rating' => 5,
                 'comment' => 'Great rental experience',
             ]);
 

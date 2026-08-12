@@ -8,6 +8,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\DriverLicenseController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
@@ -40,6 +41,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
+Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
 Route::post('/contact-messages',   [ContactMessageController::class, 'store']);
 
@@ -64,6 +66,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{notification}',        [NotificationController::class, 'destroy']);
     });
 
+    // ── Customer: Driver's License ───────────────────────────────
+    Route::prefix('customer/license')->group(function () {
+        Route::get('/',             [DriverLicenseController::class, 'myLicense']);
+        Route::post('/',            [DriverLicenseController::class, 'submit']);
+        Route::post('/documents',   [DriverLicenseController::class, 'updateDocuments']);
+        Route::get('/eligibility',  [DriverLicenseController::class, 'eligibility']);
+    });
+
+    // Secure document serving (customer owns, staff/admin can view).
+    Route::get('/licenses/{license}/document/{side}', [DriverLicenseController::class, 'serveDocument'])
+        ->where('side', 'front|back');
+
     // ── Customer: Bookings ────────────────────────────────────────
     Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
     Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
@@ -84,10 +98,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->middleware('role:admin,branch_manager,staff');
 
     // ── Customer: Reviews ─────────────────────────────────────────
-    Route::get('/reviews',                      [ReviewController::class, 'userReviews']);
-    Route::post('/vehicles/{vehicle}/reviews',  [ReviewController::class, 'store']);
-    Route::put('/reviews/{review}',             [ReviewController::class, 'update']);
-    Route::delete('/reviews/{review}',          [ReviewController::class, 'destroy']);
+    Route::get('/reviews',                              [ReviewController::class, 'userReviews']);
+    Route::get('/reviews/eligible-bookings',             [ReviewController::class, 'eligibleBookings']);
+    Route::get('/reviews/{review}',                     [ReviewController::class, 'show']);
+    Route::get('/bookings/{booking}/review-eligibility', [ReviewController::class, 'eligibility']);
+    Route::post('/bookings/{booking}/reviews',           [ReviewController::class, 'storeForBooking']);
+    Route::post('/vehicles/{vehicle}/reviews',          [ReviewController::class, 'store']);
+    Route::put('/reviews/{review}',                     [ReviewController::class, 'update']);
+    Route::delete('/reviews/{review}',                  [ReviewController::class, 'destroy']);
 
     // ═══════════════════════════════════════════════════════════════
     //  MANAGEMENT ROUTES (admin + branch_manager + fleet_manager + staff)
@@ -119,6 +137,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/{transfer}/cancel',        [VehicleTransferController::class, 'cancel'])->middleware('role:admin,branch_manager');
         Route::put('/{transfer}/in-transit',     [VehicleTransferController::class, 'markInTransit']);
         Route::put('/{transfer}/complete',       [VehicleTransferController::class, 'complete']);
+        Route::put('/{transfer}/execute',        [VehicleTransferController::class, 'executeNow'])->middleware('role:admin');
         Route::get('/{transfer}/history',      [VehicleTransferController::class, 'history']);
     });
 
@@ -193,11 +212,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('admin')->middleware('role:admin,branch_manager')->group(function () {
         Route::get('/reviews',                   [ReviewController::class, 'adminIndex']);
+        Route::get('/reviews/stats',             [ReviewController::class, 'adminStats']);
+        Route::patch('/reviews/{review}/status', [ReviewController::class, 'updateStatus']);
+        Route::post('/reviews/{review}/respond', [ReviewController::class, 'respond']);
     });
 
     // ═══════════════════════════════════════════════════════════════
     //  ADMIN + STAFF BOOKING MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
+
+    // ── Admin + Staff: Driver's License Review ────────────────────
+    Route::prefix('admin')->middleware('role:admin,branch_manager,staff')->group(function () {
+        Route::get('/licenses',                    [DriverLicenseController::class, 'index']);
+        Route::get('/licenses/{license}',          [DriverLicenseController::class, 'show']);
+        Route::post('/licenses/{license}/approve', [DriverLicenseController::class, 'approve']);
+        Route::post('/licenses/{license}/reject',  [DriverLicenseController::class, 'reject']);
+    });
 
     Route::prefix('admin')->middleware('role:admin,branch_manager,staff')->group(function () {
         Route::get('/bookings',                  [BookingController::class, 'adminIndex']);
