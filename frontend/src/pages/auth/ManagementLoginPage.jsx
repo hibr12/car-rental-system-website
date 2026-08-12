@@ -25,7 +25,7 @@ export const ManagementLoginPage = ({ portal = 'admin' }) => {
   const portalHomes = {
     admin: '/admin',
     manager: '/manager',
-    branch: '/manager',
+    branch: '/branch',
     fleet: '/fleet',
     staff: '/staff',
   };

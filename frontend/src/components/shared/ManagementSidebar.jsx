@@ -4,7 +4,7 @@ import {
   Car, LayoutDashboard, Users, CarFront, FolderTree, CalendarCheck,
   CreditCard, Star, Wrench, MessageSquare, BarChart3, LogOut, X, Ship,
   ClipboardList, Building2, ArrowRightLeft, UserCog, TrendingUp, Truck,
-  UserCircle, LogIn, LogOutIcon, Eye, Archive, ShieldCheck, AlertTriangle,
+  UserCircle, LogIn, LogOutIcon, Eye, Archive, ShieldCheck, AlertTriangle, Bell,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -29,17 +29,23 @@ const adminNavItems = [
   { label: 'Archive',          path: '/admin/archive',          icon: Archive },
 ];
 
-const managerNavItems = [
-  { label: 'Dashboard',        path: '/manager',                  icon: LayoutDashboard, exact: true },
-  { label: 'Vehicles',         path: '/manager/vehicles',         icon: CarFront },
-  { label: 'Bookings',         path: '/manager/bookings',         icon: CalendarCheck },
-  { label: 'Payments',         path: '/manager/payments',         icon: CreditCard },
-  { label: 'Payment History',  path: '/manager/payment-history',  icon: CreditCard },
-  { label: 'Staff',            path: '/manager/staff',            icon: Users },
-  { label: 'Licenses',         path: '/manager/licenses',         icon: ShieldCheck },
-  { label: 'Maintenance',      path: '/manager/maintenance',      icon: Wrench },
-  { label: 'Reports',          path: '/manager/reports',          icon: TrendingUp },
+const getBranchNavItems = (base) => [
+  { label: 'Dashboard',        path: base,                      icon: LayoutDashboard, exact: true },
+  { label: 'Bookings',         path: `${base}/bookings`,        icon: CalendarCheck },
+  { label: 'Pickup & Return',  path: `${base}/rentals`,         icon: LogIn },
+  { label: 'Vehicles',         path: `${base}/vehicles`,        icon: CarFront },
+  { label: 'Customers',        path: `${base}/customers`,       icon: Users },
+  { label: 'Payments',         path: `${base}/payments`,        icon: CreditCard },
+  { label: 'Maintenance Req.', path: `${base}/maintenance-requests`, icon: Wrench },
+  { label: 'Transfers',        path: `${base}/transfers`,       icon: ArrowRightLeft },
+  { label: 'Reviews',          path: `${base}/reviews`,         icon: Star },
+  { label: 'Staff',            path: `${base}/staff`,           icon: UserCog },
+  { label: 'Licenses',         path: `${base}/licenses`,        icon: ShieldCheck },
+  { label: 'Reports',          path: `${base}/reports`,         icon: TrendingUp },
+  { label: 'Notifications',  path: `${base}/notifications`,   icon: Bell },
 ];
+
+const managerNavItems = getBranchNavItems('/manager');
 
 const fleetNavItems = [
   { label: 'Fleet Dashboard', path: '/fleet',             icon: LayoutDashboard, exact: true },
@@ -72,8 +78,8 @@ const PORTAL_META = {
 const getNavItemsForPortal = (portal) => {
   switch (portal) {
     case 'admin':   return adminNavItems;
-    case 'manager':
-    case 'branch':  return managerNavItems;
+    case 'manager': return managerNavItems;
+    case 'branch':  return getBranchNavItems('/branch');
     case 'fleet':   return fleetNavItems;
     case 'staff':   return staffNavItems;
     default:        return [];
@@ -86,7 +92,7 @@ const ManagementSidebar = ({ portal = 'admin', isOpen, onClose }) => {
   const { user, logout } = useAuthStore();
   const navItems = getNavItemsForPortal(portal);
   const meta = PORTAL_META[portal] || PORTAL_META.admin;
-  const loginPortal = portal === 'branch' ? 'manager' : portal;
+  const loginPortal = portal === 'branch' ? 'branch' : portal === 'manager' ? 'manager' : portal;
 
   const handleLogout = async () => {
     await logout();

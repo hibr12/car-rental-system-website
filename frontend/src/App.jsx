@@ -7,6 +7,7 @@ import ProtectedRoute from './app/guards/ProtectedRoute';
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
 import ManagerLayout from './layouts/ManagerLayout';
+import BranchLayout from './layouts/BranchLayout';
 import FleetLayout from './layouts/FleetLayout';
 import StaffLayout from './layouts/StaffLayout';
 
@@ -57,6 +58,8 @@ const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
 
 import BranchDashboard from './pages/branch/BranchDashboard';
 import BranchRentalsPage from './pages/branch/BranchRentalsPage';
+import BranchMaintenanceRequests from './pages/branch/BranchMaintenanceRequests';
+import BranchCustomers from './pages/branch/BranchCustomers';
 
 import FleetDashboard from './pages/fleet/FleetDashboard';
 import FleetVehicles from './pages/fleet/FleetVehicles';
@@ -126,7 +129,7 @@ function App() {
         {/* ═══ MANAGEMENT SIGN-IN (must be outside PortalGate) ═══ */}
         <Route path="/admin/login"   element={<ManagementLoginPage portal="admin" />} />
         <Route path="/manager/login" element={<ManagementLoginPage portal="manager" />} />
-        <Route path="/branch/login"  element={<Navigate to="/manager/login" replace />} />
+        <Route path="/branch/login"  element={<ManagementLoginPage portal="branch" />} />
         <Route path="/fleet/login"   element={<ManagementLoginPage portal="fleet" />} />
         <Route path="/staff/login"   element={<ManagementLoginPage portal="staff" />} />
 
@@ -157,29 +160,52 @@ function App() {
           <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* ═══ BRANCH MANAGER PORTAL (/manager) ═══ */}
+        {/* ═══ BRANCH MANAGER PORTAL (/branch) ═══ */}
+        <Route path="/branch" element={<PortalGate portal="branch" layout={BranchLayout} />}>
+          <Route index                  element={<BranchDashboard />} />
+          <Route path="dashboard"       element={<BranchDashboard />} />
+          <Route path="vehicles"        element={<VehicleManagement />} />
+          <Route path="bookings"        element={<AdminBookings />} />
+          <Route path="customers"       element={<BranchCustomers />} />
+          <Route path="rentals"         element={<BranchRentalsPage />} />
+          <Route path="check-in"        element={<BranchRentalsPage />} />
+          <Route path="check-out"       element={<BranchRentalsPage />} />
+          <Route path="payments"        element={<PaymentsPage />} />
+          <Route path="maintenance-requests" element={<BranchMaintenanceRequests />} />
+          <Route path="transfers"       element={<VehicleTransfersPage />} />
+          <Route path="reviews"         element={<ReviewsManagement />} />
+          <Route path="staff"           element={<StaffManagementPage />} />
+          <Route path="licenses"        element={<LicenseReviewPage />} />
+          <Route path="reports"         element={<ReportsPage />} />
+          <Route path="notifications"   element={<NotificationsPage />} />
+          <Route path="*"               element={<PortalNotFound />} />
+        </Route>
+
+        {/* Legacy /manager — backwards compatible */}
         <Route path="/manager" element={<PortalGate portal="manager" layout={ManagerLayout} />}>
           <Route index                  element={<BranchDashboard />} />
           <Route path="dashboard"       element={<BranchDashboard />} />
           <Route path="vehicles"        element={<VehicleManagement />} />
           <Route path="bookings"        element={<AdminBookings />} />
-          <Route path="customers"       element={<UserManagement />} />
+          <Route path="customers"       element={<BranchCustomers />} />
           <Route path="rentals"         element={<BranchRentalsPage />} />
           <Route path="check-in"        element={<BranchRentalsPage />} />
           <Route path="check-out"       element={<BranchRentalsPage />} />
-          <Route path="inspections"     element={<BranchRentalsPage />} />
           <Route path="payments"        element={<PaymentsPage />} />
           <Route path="payment-history" element={<PaymentHistoryPage />} />
           <Route path="maintenance"     element={<MaintenancePage />} />
+          <Route path="maintenance-requests" element={<BranchMaintenanceRequests />} />
           <Route path="staff"           element={<StaffManagementPage />} />
           <Route path="transfers"       element={<VehicleTransfersPage />} />
           <Route path="licenses"        element={<LicenseReviewPage />} />
           <Route path="reports"         element={<ReportsPage />} />
+          <Route path="reviews"         element={<ReviewsManagement />} />
+          <Route path="notifications"   element={<NotificationsPage />} />
           <Route path="*"               element={<PortalNotFound />} />
         </Route>
 
-        {/* Legacy /branch → /manager */}
-        <Route path="/branch/*" element={<LegacyBranchRedirect />} />
+        {/* Legacy /branch/* paths redirect to /branch portal */}
+        <Route path="/branch-old/*" element={<LegacyBranchRedirect />} />
 
         {/* ═══ FLEET MANAGER PORTAL ═══ */}
         <Route path="/fleet" element={<PortalGate portal="fleet" layout={FleetLayout} />}>

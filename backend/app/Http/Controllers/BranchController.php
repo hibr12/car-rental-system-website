@@ -10,12 +10,17 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
+use App\Services\BranchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
 {
+    public function __construct(
+        private BranchService $branchService
+    ) {}
+
     // ─── List / Show ──────────────────────────────────────────────────
 
     public function index(Request $request): JsonResponse
@@ -269,17 +274,50 @@ class BranchController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isAdmin()) {
-            $branchId = $request->input('branch_id');
-            $branch   = Branch::findOrFail($branchId ?? Branch::first()->id);
-        } else {
-            if (!$user->branch_id) {
-                return response()->json(['success' => false, 'message' => 'You are not assigned to a branch.'], 422);
-            }
-            $branch = Branch::findOrFail($user->branch_id);
+        try {
+            $branch = $this->branchService->resolveBranch(
+                $user,
+                $request->input('branch_id') ? (int) $request->input('branch_id') : null
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        return $this->dashboard($branch);
+        return response()->json([
+            'success' => true,
+            'data' => $this->branchService->dashboardStats($branch),
+        ]);
+    }
+
+    public function branchCustomers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->isBranchManager() && !$user->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $branch = $this->branchService->resolveBranch(
+                $user,
+                $request->input('branch_id') ? (int) $request->input('branch_id') : null
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $customers = $this->branchService->branchCustomers($branch, (int) $request->input('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'data' => $customers->items(),
+            'meta' => [
+                'current_page' => $customers->currentPage(),
+                'last_page' => $customers->lastPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+            ],
+        ]);
     }
 
     public function dashboard(Branch $branch): JsonResponse

@@ -11,6 +11,7 @@ use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DriverLicenseController;
 use App\Http\Controllers\FleetController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\MaintenanceRequestController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RentalController;
@@ -286,8 +287,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('branch')->middleware('role:branch_manager,admin')->group(function () {
         Route::get('/dashboard',                 [BranchController::class, 'branchManagerDashboard']);
+        Route::get('/customers',                 [BranchController::class, 'branchCustomers']);
         Route::get('/reports',                   [ReportController::class, 'branchReport']);
         Route::get('/reports/fleet',             [ReportController::class, 'fleetUtilization']);
+    });
+
+    Route::prefix('maintenance-requests')->group(function () {
+        Route::get('/',                          [MaintenanceRequestController::class, 'index'])
+            ->middleware('role:admin,branch_manager,fleet_manager');
+        Route::post('/',                         [MaintenanceRequestController::class, 'store'])
+            ->middleware('role:admin,branch_manager');
+        Route::put('/{maintenanceRequest}/approve', [MaintenanceRequestController::class, 'approve'])
+            ->middleware('role:admin,fleet_manager');
+        Route::put('/{maintenanceRequest}/reject', [MaintenanceRequestController::class, 'reject'])
+            ->middleware('role:admin,fleet_manager');
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -299,7 +312,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/fleet',                     [ReportController::class, 'fleetUtilization']);
     });
 
-    Route::prefix('fleet')->middleware('role:admin,fleet_manager,branch_manager')->group(function () {
+    Route::prefix('fleet')->middleware('role:admin,fleet_manager')->group(function () {
         Route::get('/dashboard',                 [FleetController::class, 'dashboard']);
     });
 
