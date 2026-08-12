@@ -196,9 +196,17 @@ class ReviewService
 
     private function validateReviewOwnership(Review $review, int $userId): void
     {
-        if ($review->user_id !== $userId) {
-            throw new \InvalidArgumentException('You can only manage your own reviews.');
+        if ($review->user_id === $userId) {
+            return;
         }
+
+        // Administrators can manage/delete any review.
+        $user = User::find($userId);
+        if ($user && $user->isAdmin()) {
+            return;
+        }
+
+        throw new \InvalidArgumentException('You can only manage your own reviews.');
     }
 
     private function validateRating(int $rating): void

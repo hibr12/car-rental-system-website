@@ -121,6 +121,24 @@ class Vehicle extends Model
         return $this->hasMany(VehicleTransfer::class);
     }
 
+    public function activeTransfer()
+    {
+        return $this->hasOne(VehicleTransfer::class)
+            ->whereIn('status', [
+                VehicleTransfer::STATUS_PENDING,
+                VehicleTransfer::STATUS_APPROVED,
+                VehicleTransfer::STATUS_IN_TRANSIT,
+            ])
+            ->latest();
+    }
+
+    public function completedTransfers(): HasMany
+    {
+        return $this->hasMany(VehicleTransfer::class)
+            ->where('status', VehicleTransfer::STATUS_COMPLETED)
+            ->orderByDesc('completed_at');
+    }
+
     public function averageRating()
     {
         return $this->reviews()->approved()->avg('rating');

@@ -51,6 +51,9 @@ class Maintenance extends Model
         'description',
         'maintenance_type',
         'cost',
+        // Table columns (migration) use start_date/end_date, so they must be mass-assignable.
+        'start_date',
+        'end_date',
         'mileage',
         'service_date',
         'next_service_date',

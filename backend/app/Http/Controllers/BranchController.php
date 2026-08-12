@@ -9,6 +9,7 @@ use App\Models\Maintenance;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleTransfer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,12 @@ class BranchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $activeTransferStatuses = [
+            VehicleTransfer::STATUS_PENDING,
+            VehicleTransfer::STATUS_APPROVED,
+            VehicleTransfer::STATUS_IN_TRANSIT,
+        ];
+
         $query = Branch::with('manager', 'company')
             ->withCount([
                 'vehicles',
@@ -30,6 +37,8 @@ class BranchController extends Controller
                         User::ROLE_BRANCH_MANAGER,
                     ]);
                 },
+                'vehicleTransfersFrom as outgoing_transfers_count' => fn ($q) => $q->whereIn('status', $activeTransferStatuses),
+                'vehicleTransfersTo as incoming_transfers_count' => fn ($q) => $q->whereIn('status', $activeTransferStatuses),
             ]);
 
         if ($request->has('status')) {
@@ -39,7 +48,17 @@ class BranchController extends Controller
             $query->where('status', 'active');
         }
 
-        $branches = $query->orderBy('name')->get();
+        $branches = $query->orderBy('name')->get()->map(function (Branch $branch) {
+            $branch->pending_transfers_count = VehicleTransfer::query()
+                ->where('status', VehicleTransfer::STATUS_PENDING)
+                ->where(function ($q) use ($branch) {
+                    $q->where('from_branch_id', $branch->id)
+                        ->orWhere('to_branch_id', $branch->id);
+                })
+                ->count();
+
+            return $branch;
+        });
 
         return response()->json(['success' => true, 'data' => $branches]);
     }

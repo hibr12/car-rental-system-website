@@ -114,10 +114,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/',                          [VehicleTransferController::class, 'index']);
         Route::post('/',                         [VehicleTransferController::class, 'store']);
         Route::get('/{transfer}',                [VehicleTransferController::class, 'show']);
-        Route::put('/{transfer}/approve',        [VehicleTransferController::class, 'approve'])->middleware('role:admin');
-        Route::put('/{transfer}/reject',         [VehicleTransferController::class, 'reject'])->middleware('role:admin');
+        Route::put('/{transfer}/approve',        [VehicleTransferController::class, 'approve'])->middleware('role:admin,branch_manager');
+        Route::put('/{transfer}/reject',         [VehicleTransferController::class, 'reject'])->middleware('role:admin,branch_manager');
+        Route::put('/{transfer}/cancel',        [VehicleTransferController::class, 'cancel'])->middleware('role:admin,branch_manager');
         Route::put('/{transfer}/in-transit',     [VehicleTransferController::class, 'markInTransit']);
         Route::put('/{transfer}/complete',       [VehicleTransferController::class, 'complete']);
+        Route::get('/{transfer}/history',      [VehicleTransferController::class, 'history']);
     });
 
     // ── Maintenance ───────────────────────────────────────────────

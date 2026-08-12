@@ -67,7 +67,7 @@ class UserFactory extends Factory
     public function fleetManager(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => User::ROLE_COMPANY_ADMIN,
+            'role' => User::ROLE_FLEET_MANAGER,
         ]);
     }
 }

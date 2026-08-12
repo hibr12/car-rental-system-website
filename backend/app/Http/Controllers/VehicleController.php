@@ -15,7 +15,16 @@ class VehicleController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Vehicle::with(['category', 'images', 'primaryImage', 'branch']);
+        $user = $request->user();
+        $relations = ['category', 'images', 'primaryImage', 'branch'];
+
+        if ($user && !$user->isCustomer()) {
+            $relations[] = 'activeTransfer.fromBranch';
+            $relations[] = 'activeTransfer.toBranch';
+            $query = Vehicle::with($relations)->withCount('completedTransfers');
+        } else {
+            $query = Vehicle::with($relations);
+        }
 
         if ($branchId = $request->input('branch_id')) {
             $query->where('branch_id', $branchId);

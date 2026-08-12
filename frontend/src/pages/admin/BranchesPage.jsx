@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Building2, Plus, Edit2, ToggleLeft, ToggleRight,
-  MapPin, Phone, Mail, Users, Loader2, X, Check
+  MapPin, Phone, Mail, Users, Loader2, X, Check, ArrowRightLeft
 } from 'lucide-react';
 import adminApi from '../../api/adminApi';
 import {
@@ -133,7 +134,7 @@ export default function BranchesPage() {
                 {b.manager && <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 shrink-0" />Manager: {b.manager.name}</div>}
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-4">
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-3">
                 <div className="bg-[#F8FAFC] rounded-lg py-2 border border-[#E2E8F0]">
                   <p className="font-bold text-[#0F172A] text-sm">{b.vehicles_count ?? 0}</p>
                   <p className="text-[#64748B]">Vehicles</p>
@@ -147,6 +148,28 @@ export default function BranchesPage() {
                   <p className="text-[#64748B]">Bookings</p>
                 </div>
               </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-4">
+                <div className="bg-amber-50 rounded-lg py-2 border border-amber-100">
+                  <p className="font-bold text-[#F59E0B] text-sm">{b.pending_transfers_count ?? 0}</p>
+                  <p className="text-[#64748B]">Pending</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg py-2 border border-blue-100">
+                  <p className="font-bold text-[#2563EB] text-sm">{b.incoming_transfers_count ?? 0}</p>
+                  <p className="text-[#64748B]">Incoming</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg py-2 border border-purple-100">
+                  <p className="font-bold text-[#7C3AED] text-sm">{b.outgoing_transfers_count ?? 0}</p>
+                  <p className="text-[#64748B]">Outgoing</p>
+                </div>
+              </div>
+
+              <Link
+                to={`/admin/transfers?branch_id=${b.id}`}
+                className="mb-3 flex items-center justify-center gap-1.5 w-full text-xs font-semibold text-[#2563EB] hover:bg-blue-50 border border-blue-100 rounded-lg py-2 transition-colors"
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5" /> View Transfers
+              </Link>
 
               <div className="flex gap-2 pt-3 border-t border-[#E2E8F0]">
                 <button onClick={() => openEdit(b)}

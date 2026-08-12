@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Car, Image as ImageIcon, Star, Check, AlertCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Plus, Search, Edit, Trash2, Car, ArrowRightLeft, History, Loader2, X } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
+import adminApi from '../../api/adminApi';
+import transferApi from '../../api/transferApi';
 import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
@@ -13,7 +16,18 @@ import {
   ManagementButton,
 } from '../../components/management/ManagementUI';
 
+const TRANSFER_STATUS_STYLES = {
+  pending: 'bg-amber-50 text-[#F59E0B] border border-amber-100',
+  approved: 'bg-blue-50 text-[#2563EB] border border-blue-100',
+  in_transit: 'bg-purple-50 text-[#7C3AED] border border-purple-100',
+};
+
+const INPUT_CLS = 'w-full px-3 py-2 text-sm border border-[#CBD5E1] rounded-lg bg-white text-[#0F172A] focus:outline-none focus:border-[#2563EB]';
+const LABEL_CLS = 'block text-xs font-semibold text-[#334155] mb-1';
+
 export const VehicleManagement = () => {
+  const location = useLocation();
+  const transfersBase = location.pathname.startsWith('/manager') ? '/manager/transfers' : '/admin/transfers';
   const toast = useToast();
   const [vehicles, setVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -49,6 +63,17 @@ export const VehicleManagement = () => {
 
   const [formData, setFormData] = useState(initialForm);
 
+  const [branches, setBranches] = useState([]);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferVehicle, setTransferVehicle] = useState(null);
+  const [transferForm, setTransferForm] = useState({ to_branch_id: '', transfer_date: '', reason: '', notes: '' });
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [transferError, setTransferError] = useState('');
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyVehicle, setHistoryVehicle] = useState(null);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const fetchVehicles = async () => {
     try {
       setLoading(true);
@@ -64,6 +89,7 @@ export const VehicleManagement = () => {
 
   useEffect(() => {
     categoryApi.getAll().then((res) => setCategories(res.data || []));
+    adminApi.getBranches({ status: 'active' }).then((res) => setBranches(res.data || []));
   }, []);
 
   useEffect(() => {
@@ -160,6 +186,68 @@ export const VehicleManagement = () => {
     setFormData({ ...formData, images: updated });
   };
 
+  const openTransferModal = (vehicle) => {
+    setTransferVehicle(vehicle);
+    setTransferForm({
+      to_branch_id: '',
+      transfer_date: new Date().toISOString().split('T')[0],
+      reason: '',
+      notes: '',
+    });
+    setTransferError('');
+    setTransferModalOpen(true);
+  };
+
+  const submitTransfer = async (e) => {
+    e.preventDefault();
+    if (!transferVehicle) return;
+    setTransferSaving(true);
+    setTransferError('');
+    try {
+      await transferApi.create({
+        vehicle_id: transferVehicle.id,
+        to_branch_id: transferForm.to_branch_id,
+        transfer_date: transferForm.transfer_date,
+        reason: transferForm.reason || undefined,
+        notes: transferForm.notes || undefined,
+      });
+      toast.success('Transfer request submitted.');
+      setTransferModalOpen(false);
+      fetchVehicles();
+    } catch (err) {
+      setTransferError(err.message || 'Failed to create transfer request.');
+    } finally {
+      setTransferSaving(false);
+    }
+  };
+
+  const openHistoryModal = async (vehicle) => {
+    setHistoryVehicle(vehicle);
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    setHistoryItems([]);
+    try {
+      const res = await transferApi.getAll({ vehicle_id: vehicle.id, status: 'completed', per_page: 50 });
+      setHistoryItems(res.data || []);
+    } catch {
+      toast.error('Failed to load transfer history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const renderTransferStatus = (vehicle) => {
+    const t = vehicle.active_transfer;
+    if (!t) {
+      return <span className="text-xs text-[#64748B]">None</span>;
+    }
+    return (
+      <span className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase ${TRANSFER_STATUS_STYLES[t.status] || 'bg-[#F8FAFC] text-[#64748B]'}`}>
+        {t.status.replace('_', ' ')}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-8">
       <ManagementPageHeader
@@ -198,9 +286,11 @@ export const VehicleManagement = () => {
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
                   <th className="py-3.5 px-4 font-semibold">Category</th>
+                  <th className="py-3.5 px-4 font-semibold">Branch</th>
                   <th className="py-3.5 px-4 font-semibold">Reg Number</th>
                   <th className="py-3.5 px-4 font-semibold">Price/Day</th>
                   <th className="py-3.5 px-4 font-semibold">Status</th>
+                  <th className="py-3.5 px-4 font-semibold">Transfer</th>
                   <th className="py-3.5 px-4 font-semibold">Featured</th>
                   <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                 </tr>
@@ -230,6 +320,9 @@ export const VehicleManagement = () => {
                     <td className="py-4 px-4 text-xs font-semibold text-[#334155]">
                       {v.category?.name || 'Uncategorized'}
                     </td>
+                    <td className="py-4 px-4 text-xs text-[#334155]">
+                      {v.branch?.name || '—'}
+                    </td>
                     <td className="py-4 px-4 text-xs font-mono text-[#64748B]">
                       {v.registration_number}
                     </td>
@@ -242,6 +335,9 @@ export const VehicleManagement = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4">
+                      {renderTransferStatus(v)}
+                    </td>
+                    <td className="py-4 px-4">
                       {v.featured ? (
                         <span className="px-2 py-0.5 text-[10px] font-semibold uppercase rounded bg-blue-50 text-[#2563EB] border border-blue-100">
                           Featured
@@ -250,13 +346,25 @@ export const VehicleManagement = () => {
                         <span className="text-xs text-[#64748B]">Standard</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-right space-x-2">
-                      <ManagementButton variant="secondary" onClick={() => handleOpenEditModal(v)} title="Edit Vehicle">
-                        <Edit className="w-4 h-4" />
-                      </ManagementButton>
-                      <ManagementButton variant="dangerOutline" onClick={() => handleDeleteVehicle(v.id)} title="Delete Vehicle">
-                        <Trash2 className="w-4 h-4" />
-                      </ManagementButton>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex justify-end gap-1 flex-wrap">
+                        {!v.active_transfer && v.status === 'available' && (
+                          <ManagementButton variant="secondary" onClick={() => openTransferModal(v)} title="Transfer Vehicle">
+                            <ArrowRightLeft className="w-4 h-4" />
+                          </ManagementButton>
+                        )}
+                        {(v.completed_transfers_count > 0 || v.active_transfer) && (
+                          <ManagementButton variant="secondary" onClick={() => openHistoryModal(v)} title="Transfer History">
+                            <History className="w-4 h-4" />
+                          </ManagementButton>
+                        )}
+                        <ManagementButton variant="secondary" onClick={() => handleOpenEditModal(v)} title="Edit Vehicle">
+                          <Edit className="w-4 h-4" />
+                        </ManagementButton>
+                        <ManagementButton variant="dangerOutline" onClick={() => handleDeleteVehicle(v.id)} title="Delete Vehicle">
+                          <Trash2 className="w-4 h-4" />
+                        </ManagementButton>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -468,6 +576,122 @@ export const VehicleManagement = () => {
           </ManagementButton>
         </form>
       </Modal>
+
+      {transferModalOpen && transferVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
+              <h2 className="text-lg font-bold text-[#0F172A]">Transfer Vehicle</h2>
+              <button onClick={() => setTransferModalOpen(false)} className="text-[#64748B] hover:text-[#334155]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={submitTransfer} className="p-6 space-y-4">
+              {transferError && (
+                <div className="bg-red-50 text-[#DC2626] text-sm p-3 rounded-lg border border-red-100">{transferError}</div>
+              )}
+              <div className="text-sm">
+                <p className="font-bold text-[#0F172A]">{transferVehicle.brand} {transferVehicle.model}</p>
+                <p className="text-xs text-[#64748B]">{transferVehicle.registration_number}</p>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Current Branch</label>
+                <input readOnly value={transferVehicle.branch?.name || '—'} className={`${INPUT_CLS} bg-[#F8FAFC]`} />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Destination Branch *</label>
+                <select
+                  required
+                  value={transferForm.to_branch_id}
+                  onChange={e => setTransferForm(p => ({ ...p, to_branch_id: e.target.value }))}
+                  className={INPUT_CLS}
+                >
+                  <option value="">Select branch</option>
+                  {branches.filter(b => String(b.id) !== String(transferVehicle.branch_id)).map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Transfer Date *</label>
+                <input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                  value={transferForm.transfer_date}
+                  onChange={e => setTransferForm(p => ({ ...p, transfer_date: e.target.value }))}
+                  className={INPUT_CLS}
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Reason</label>
+                <textarea
+                  rows={2}
+                  value={transferForm.reason}
+                  onChange={e => setTransferForm(p => ({ ...p, reason: e.target.value }))}
+                  className={`${INPUT_CLS} resize-none`}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <ManagementButton type="button" variant="secondary" onClick={() => setTransferModalOpen(false)} className="flex-1">
+                  Cancel
+                </ManagementButton>
+                <ManagementButton type="submit" disabled={transferSaving} className="flex-1">
+                  {transferSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {transferSaving ? 'Submitting…' : 'Submit Request'}
+                </ManagementButton>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {historyModalOpen && historyVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
+              <div>
+                <h2 className="text-lg font-bold text-[#0F172A]">Transfer History</h2>
+                <p className="text-xs text-[#64748B]">{historyVehicle.brand} {historyVehicle.model}</p>
+              </div>
+              <button onClick={() => setHistoryModalOpen(false)} className="text-[#64748B] hover:text-[#334155]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              {historyLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" /></div>
+              ) : historyItems.length === 0 ? (
+                <p className="text-sm text-[#64748B] text-center py-8">No completed transfers for this vehicle.</p>
+              ) : (
+                <div className="space-y-3">
+                  {historyItems.map(h => (
+                    <div key={h.id} className="flex justify-between items-center border border-[#E2E8F0] rounded-lg p-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#0F172A]">
+                          {(h.from_branch?.name || h.fromBranch?.name || '—')} → {(h.to_branch?.name || h.toBranch?.name || '—')}
+                        </p>
+                        <p className="text-xs text-[#64748B]">
+                          {h.completed_at ? new Date(h.completed_at).toLocaleDateString() : '—'}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-semibold uppercase text-[#16A34A]">Completed</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="pt-4 mt-4 border-t border-[#E2E8F0]">
+                <a
+                  href={`${transfersBase}?vehicle_id=${historyVehicle.id}`}
+                  className="text-xs font-semibold text-[#2563EB] hover:underline"
+                >
+                  View all transfers for this vehicle →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

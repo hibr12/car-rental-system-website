@@ -35,6 +35,32 @@ class VehicleResource extends JsonResource
                 'city' => $this->branch->city,
                 'status' => $this->branch->status,
             ]),
+            'active_transfer' => $this->when(
+                $request->user() && !$request->user()->isCustomer(),
+                fn () => $this->whenLoaded('activeTransfer', function () {
+                    if (!$this->activeTransfer) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $this->activeTransfer->id,
+                        'status' => $this->activeTransfer->status,
+                        'from_branch_id' => $this->activeTransfer->from_branch_id,
+                        'to_branch_id' => $this->activeTransfer->to_branch_id,
+                        'transfer_date' => $this->activeTransfer->transfer_date?->toDateString(),
+                        'from_branch' => $this->activeTransfer->relationLoaded('fromBranch') && $this->activeTransfer->fromBranch
+                            ? ['id' => $this->activeTransfer->fromBranch->id, 'name' => $this->activeTransfer->fromBranch->name]
+                            : null,
+                        'to_branch' => $this->activeTransfer->relationLoaded('toBranch') && $this->activeTransfer->toBranch
+                            ? ['id' => $this->activeTransfer->toBranch->id, 'name' => $this->activeTransfer->toBranch->name]
+                            : null,
+                    ];
+                })
+            ),
+            'completed_transfers_count' => $this->when(
+                $request->user() && !$request->user()->isCustomer(),
+                fn () => $this->whenCounted('completedTransfers')
+            ),
             'category' => new CategoryResource($this->whenLoaded('category')),
             'images' => VehicleImageResource::collection($this->whenLoaded('images')),
             'primary_image' => new VehicleImageResource($this->whenLoaded('primaryImage')),
