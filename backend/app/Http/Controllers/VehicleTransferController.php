@@ -490,6 +490,112 @@ class VehicleTransferController extends Controller
         ]);
     }
 
+    /**
+     * Admin-only: run approve → in-transit → complete in one step.
+     * Moves the vehicle from the source branch to the destination branch immediately.
+     */
+    public function executeNow(Request $request, VehicleTransfer $transfer): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Only administrators can execute instant transfers.'], 403);
+        }
+
+        if (in_array($transfer->status, [
+            VehicleTransfer::STATUS_COMPLETED,
+            VehicleTransfer::STATUS_REJECTED,
+            VehicleTransfer::STATUS_CANCELLED,
+        ], true)) {
+            return response()->json(['success' => false, 'message' => 'This transfer is already finalized.'], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($transfer, $user) {
+                $transferLocked = VehicleTransfer::query()->where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+                $vehicleLocked = Vehicle::query()->where('id', $transferLocked->vehicle_id)->lockForUpdate()->firstOrFail();
+
+                if (in_array($transferLocked->status, [
+                    VehicleTransfer::STATUS_COMPLETED,
+                    VehicleTransfer::STATUS_REJECTED,
+                    VehicleTransfer::STATUS_CANCELLED,
+                ], true)) {
+                    throw new \RuntimeException('This transfer is already finalized.');
+                }
+
+                // Step 1 — Approve if still pending.
+                if (in_array($transferLocked->status, [VehicleTransfer::STATUS_PENDING, 'requested'], true)) {
+                    if ($vehicleLocked->status !== Vehicle::STATUS_AVAILABLE) {
+                        throw new \RuntimeException('Vehicle cannot be transferred because it is currently not available.');
+                    }
+
+                    if (Maintenance::query()->active()->where('vehicle_id', $vehicleLocked->id)->exists()) {
+                        throw new \RuntimeException('Vehicle is currently under maintenance and cannot be transferred.');
+                    }
+
+                    $transferLocked->update([
+                        'status' => VehicleTransfer::STATUS_APPROVED,
+                        'approved_by' => $user->id,
+                        'approved_at' => now(),
+                    ]);
+
+                    $vehicleLocked->update(['status' => Vehicle::STATUS_UNAVAILABLE]);
+                    $transferLocked->refresh();
+                }
+
+                // Step 2 — Mark in transit and move to destination branch.
+                if ($transferLocked->status === VehicleTransfer::STATUS_APPROVED) {
+                    $transferLocked->update([
+                        'status' => VehicleTransfer::STATUS_IN_TRANSIT,
+                        'started_by' => $user->id,
+                        'in_transit_at' => now(),
+                    ]);
+
+                    $vehicleLocked->update([
+                        'branch_id' => $transferLocked->to_branch_id,
+                        'status' => Vehicle::STATUS_UNAVAILABLE,
+                    ]);
+                    $transferLocked->refresh();
+                }
+
+                // Step 3 — Complete arrival at destination.
+                if ($transferLocked->status === VehicleTransfer::STATUS_IN_TRANSIT) {
+                    $transferLocked->update([
+                        'status' => VehicleTransfer::STATUS_COMPLETED,
+                        'completed_by' => $user->id,
+                        'completed_at' => now(),
+                    ]);
+
+                    $vehicleLocked->update([
+                        'branch_id' => $transferLocked->to_branch_id,
+                        'status' => Vehicle::STATUS_AVAILABLE,
+                    ]);
+
+                    app(AuditLogService::class)->log(
+                        $user,
+                        'transfer_executed',
+                        'vehicle_transfer',
+                        $transferLocked->id,
+                        null,
+                        ['status' => VehicleTransfer::STATUS_COMPLETED],
+                        'Admin executed full transfer. Vehicle moved to destination branch.',
+                        $transferLocked->to_branch_id
+                    );
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $fresh = $transfer->fresh()->load(['vehicle', 'fromBranch', 'toBranch']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transfer completed. Vehicle has been moved to the destination branch.',
+            'data' => $fresh,
+        ]);
+    }
+
     public function markInTransit(VehicleTransfer $transfer): JsonResponse
     {
         $user = request()->user();
@@ -549,6 +655,12 @@ class VehicleTransferController extends Controller
                     'in_transit_at' => now(),
                 ]);
 
+                // Vehicle physically leaves the source branch — assign to destination (unavailable until arrival confirmed).
+                $vehicleLocked->update([
+                    'branch_id' => $transferLocked->to_branch_id,
+                    'status' => Vehicle::STATUS_UNAVAILABLE,
+                ]);
+
                 app(AuditLogService::class)->log(
                     $user,
                     'transfer_started',
@@ -593,6 +705,8 @@ class VehicleTransferController extends Controller
                     throw new \RuntimeException('Transfer cannot be cancelled from its current status.');
                 }
 
+                $oldStatus = $transferLocked->status;
+
                 $transferLocked->update([
                     'status' => VehicleTransfer::STATUS_CANCELLED,
                     'cancelled_by' => $user->id,
@@ -600,8 +714,15 @@ class VehicleTransferController extends Controller
                     'cancellation_reason' => $data['reason'] ?? null,
                 ]);
 
-                // If we already approved and set the vehicle unavailable, restore it.
-                if ($transferLocked->status === VehicleTransfer::STATUS_CANCELLED && $vehicleLocked->status === Vehicle::STATUS_UNAVAILABLE) {
+                // Restore vehicle to source branch if transfer had already moved it.
+                if ($oldStatus === VehicleTransfer::STATUS_IN_TRANSIT
+                    && (int) $vehicleLocked->branch_id === (int) $transferLocked->to_branch_id) {
+                    $vehicleLocked->update([
+                        'branch_id' => $transferLocked->from_branch_id,
+                        'status' => Vehicle::STATUS_AVAILABLE,
+                    ]);
+                } elseif ($oldStatus === VehicleTransfer::STATUS_APPROVED
+                    && $vehicleLocked->status === Vehicle::STATUS_UNAVAILABLE) {
                     $vehicleLocked->update(['status' => Vehicle::STATUS_AVAILABLE]);
                 }
 

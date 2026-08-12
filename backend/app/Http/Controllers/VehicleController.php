@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateVehicleRequest;
 use App\Http\Resources\VehicleResource;
 use App\Models\Booking;
 use App\Models\Vehicle;
+use App\Models\VehicleTransfer;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,16 @@ class VehicleController extends Controller
 
             if (!$request->user()?->isAdmin()) {
                 $query->whereHas('branch', fn ($q) => $q->where('status', 'active'));
+
+                // Hide vehicles that are pending transfer away from this branch.
+                $query->whereDoesntHave('transfers', function ($q) use ($branchId) {
+                    $q->where('from_branch_id', $branchId)
+                        ->whereIn('status', [
+                            VehicleTransfer::STATUS_PENDING,
+                            VehicleTransfer::STATUS_APPROVED,
+                            VehicleTransfer::STATUS_IN_TRANSIT,
+                        ]);
+                });
             }
         }
 

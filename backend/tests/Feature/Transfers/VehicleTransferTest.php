@@ -256,8 +256,18 @@ class VehicleTransferTest extends TestCase
         $beforeVehicles = $this->actingAs($this->customer)->getJson('/api/vehicles?branch_id=' . $this->cmc->id . '&available_only=true');
         $this->assertFalse(collect($beforeVehicles->json('data'))->contains(fn ($v) => $v['id'] === $vehicle->id));
 
-        // In transit
+        // In transit — vehicle moves to destination branch (still unavailable).
         $this->actingAs($this->boleManager, 'sanctum')->putJson("/api/vehicle-transfers/{$transferId}/in-transit")->assertStatus(200);
+
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'branch_id' => $this->cmc->id,
+            'status' => Vehicle::STATUS_UNAVAILABLE,
+        ]);
+
+        // Source branch should no longer list this vehicle.
+        $sourceVehicles = $this->actingAs($this->customer)->getJson('/api/vehicles?branch_id=' . $this->bole->id);
+        $this->assertFalse(collect($sourceVehicles->json('data'))->contains(fn ($v) => $v['id'] === $vehicle->id));
 
         // Completed (destination confirms arrival)
         $this->actingAs($this->cmcManager, 'sanctum')->putJson("/api/vehicle-transfers/{$transferId}/complete")->assertStatus(200);
@@ -275,6 +285,45 @@ class VehicleTransferTest extends TestCase
 
         $afterVehicles = $this->actingAs($this->customer)->getJson('/api/vehicles?branch_id=' . $this->cmc->id . '&available_only=true');
         $this->assertTrue(collect($afterVehicles->json('data'))->contains(fn ($v) => $v['id'] === $vehicle->id));
+    }
+
+    public function test_admin_can_execute_full_transfer_in_one_step(): void
+    {
+        $vehicle = Vehicle::factory()->available()->create([
+            'branch_id' => $this->bole->id,
+            'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        $transferDate = now()->addDays(3)->toDateString();
+
+        $created = $this->actingAs($this->boleManager, 'sanctum')->postJson('/api/vehicle-transfers', [
+            'vehicle_id' => $vehicle->id,
+            'to_branch_id' => $this->cmc->id,
+            'transfer_date' => $transferDate,
+        ]);
+        $created->assertStatus(201);
+        $transferId = $created->json('data.id');
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson("/api/vehicle-transfers/{$transferId}/execute")
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('vehicle_transfers', [
+            'id' => $transferId,
+            'status' => 'completed',
+        ]);
+
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'branch_id' => $this->cmc->id,
+            'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        $sourceVehicles = $this->actingAs($this->customer)->getJson('/api/vehicles?branch_id=' . $this->bole->id);
+        $this->assertFalse(collect($sourceVehicles->json('data'))->contains(fn ($v) => $v['id'] === $vehicle->id));
+
+        $destVehicles = $this->actingAs($this->customer)->getJson('/api/vehicles?branch_id=' . $this->cmc->id . '&available_only=true');
+        $this->assertTrue(collect($destVehicles->json('data'))->contains(fn ($v) => $v['id'] === $vehicle->id));
     }
 
     public function test_reject_requires_reason(): void
