@@ -11,9 +11,11 @@ class BookingBranchApprovedAwaitingPayment extends Notification
 {
     use Queueable;
 
-    public function __construct(public Booking $booking)
-    {
-    }
+    /** @param 'branch'|'admin' $approvedBy */
+    public function __construct(
+        public Booking $booking,
+        public string $approvedBy = 'branch',
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -22,12 +24,12 @@ class BookingBranchApprovedAwaitingPayment extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $branchName = $this->booking->branch?->name ?? 'the selected branch';
+        $approverLabel = $this->approverLabel();
 
         return (new MailMessage)
             ->subject('Booking Approved - ' . $this->booking->booking_reference)
             ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your booking has been approved by ' . $branchName . '.')
+            ->line('Your booking has been approved by ' . $approverLabel . '.')
             ->line('Please complete payment to confirm your reservation.')
             ->action('View Booking', url('/api/bookings/' . $this->booking->id))
             ->line('Thank you!');
@@ -35,7 +37,7 @@ class BookingBranchApprovedAwaitingPayment extends Notification
 
     public function toArray(object $notifiable): array
     {
-        $branchName = $this->booking->branch?->name ?? 'your branch';
+        $approverLabel = $this->approverLabel();
 
         $status = $this->booking->status;
         $detail = match ($status) {
@@ -49,10 +51,19 @@ class BookingBranchApprovedAwaitingPayment extends Notification
             'booking_reference' => $this->booking->booking_reference,
             'title' => 'Booking Approved',
             'message' => 'Your booking ' . $this->booking->booking_reference
-                . ' has been approved by ' . $branchName . '. ' . $detail,
-            'type' => 'booking_branch_approved',
+                . ' has been approved by ' . $approverLabel . '. ' . $detail,
+            'type' => $this->approvedBy === 'admin' ? 'booking_admin_approved' : 'booking_branch_approved',
             'created_at' => now()->toISOString(),
         ];
+    }
+
+    private function approverLabel(): string
+    {
+        if ($this->approvedBy === 'admin') {
+            return 'an administrator';
+        }
+
+        return $this->booking->branch?->name ?? 'your branch';
     }
 }
 

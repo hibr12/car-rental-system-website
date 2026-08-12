@@ -305,6 +305,15 @@ class BookingWorkflowService
 
             if ($fresh->status === Booking::STATUS_CONFIRMED || $fresh->status === Booking::STATUS_READY_FOR_PICKUP) {
                 event(new BookingConfirmed($fresh));
+            } elseif (in_array($fresh->status, [
+                Booking::STATUS_PAYMENT_REQUIRED,
+                Booking::STATUS_PAYMENT_PROCESSING,
+            ], true)) {
+                try {
+                    $fresh->user->notify(new BookingBranchApprovedAwaitingPayment($fresh, 'admin'));
+                } catch (\Throwable) {
+                    // Notifications must never break business workflow transitions.
+                }
             }
 
             return $fresh;

@@ -3,20 +3,27 @@
 namespace App\Listeners;
 
 use App\Events\PaymentSucceeded;
-use App\Models\User;
 use App\Notifications\AdminPaymentCompleted;
+use App\Services\NotificationRecipientService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
 class SendAdminPaymentCompletedNotification implements ShouldQueue
 {
+    public function __construct(
+        private NotificationRecipientService $notificationRecipients
+    ) {}
+
     public function handle(PaymentSucceeded $event): void
     {
         try {
-            $admins = User::whereIn('role', ['admin', 'staff'])->get();
+            $booking = $event->booking->loadMissing(['user', 'branch']);
+            $payment = $event->payment->loadMissing(['branch']);
+            $branchId = (int) ($payment->branch_id ?? $booking->branch_id);
+            $recipients = $this->notificationRecipients->adminsAndBranchManagers($branchId);
 
-            foreach ($admins as $admin) {
-                $admin->notify(new AdminPaymentCompleted($event->booking, $event->payment));
+            foreach ($recipients as $recipient) {
+                $recipient->notify(new AdminPaymentCompleted($booking, $payment));
             }
         } catch (\Exception $e) {
             Log::error('Failed to send admin payment completed notification', [
