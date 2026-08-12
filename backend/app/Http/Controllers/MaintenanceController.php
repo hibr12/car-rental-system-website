@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateMaintenanceRequest;
 use App\Http\Resources\MaintenanceResource;
 use App\Models\Maintenance;
 use App\Models\Vehicle;
+use App\Services\BranchScopeService;
 use App\Services\VehicleStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\Gate;
 class MaintenanceController extends Controller
 {
     public function __construct(
-        private VehicleStatusService $vehicleStatusService
+        private VehicleStatusService $vehicleStatusService,
+        private BranchScopeService $branchScope
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -23,10 +25,13 @@ class MaintenanceController extends Controller
         $user  = $request->user();
         $query = Maintenance::with(['vehicle.branch', 'creator'])->latest();
 
-        if ($user->isBranchManager() || ($user->isStaff() && !$user->isAdmin())) {
-            $query->where('branch_id', $user->branch_id);
-        } elseif ($request->has('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+        $requestedBranchId = $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+        $effectiveBranchId = $this->branchScope->resolveBranchFilter($user, $requestedBranchId);
+
+        if ($effectiveBranchId !== null) {
+            $query->where('branch_id', $effectiveBranchId);
+        } elseif ($requestedBranchId && $user->hasCompanyWideAccess()) {
+            $query->where('branch_id', $requestedBranchId);
         }
 
         if ($request->has('status')) {
@@ -81,6 +86,8 @@ class MaintenanceController extends Controller
 
     public function show(Maintenance $maintenance): JsonResponse
     {
+        Gate::authorize('view', $maintenance);
+
         $maintenance->load(['vehicle', 'creator']);
 
         return response()->json([

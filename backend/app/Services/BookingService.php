@@ -6,6 +6,7 @@ use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleTransfer;
 use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -325,6 +326,13 @@ class BookingService
             throw new \InvalidArgumentException('Bookings are not available for inactive branches.');
         }
 
+        if (VehicleTransfer::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->whereIn('status', VehicleTransfer::ACTIVE_STATUSES)
+            ->exists()) {
+            throw new \InvalidArgumentException('Vehicle is not available for booking because it has an active transfer.');
+        }
+
         if (!$vehicle->isRentable()) {
             if ($vehicle->hasExpiredRequiredDocuments()) {
                 throw new \InvalidArgumentException('Vehicle has expired required documents and cannot be booked.');
@@ -334,7 +342,12 @@ class BookingService
                 throw new \InvalidArgumentException('Vehicle is currently under maintenance and cannot be booked.');
             }
 
-            if (in_array($vehicle->status, [Vehicle::STATUS_UNAVAILABLE, Vehicle::STATUS_RETIRED], true)) {
+            if (in_array($vehicle->status, [
+                Vehicle::STATUS_UNAVAILABLE,
+                Vehicle::STATUS_RETIRED,
+                Vehicle::STATUS_TRANSFER_PENDING,
+                Vehicle::STATUS_TRANSFER_IN_TRANSIT,
+            ], true)) {
                 throw new \InvalidArgumentException('Vehicle is not available for booking.');
             }
 

@@ -38,7 +38,7 @@ class PaymentService
 
         if ($user->isAdmin()) {
             // company-wide
-        } elseif ($user->isBranchManager() || $user->isStaff() || $user->isFleetManager()) {
+        } elseif ($user->isBranchManager() || $user->isStaff()) {
             $query->where('branch_id', $user->branch_id);
         } else {
             $query->where('user_id', $user->id);
@@ -90,7 +90,7 @@ class PaymentService
 
         if ($user->isAdmin()) {
             // company-wide
-        } elseif ($user->isBranchManager() || $user->isStaff() || $user->isFleetManager()) {
+        } elseif ($user->isBranchManager() || $user->isStaff()) {
             $query->where('branch_id', $user->branch_id);
         } else {
             $query->where('user_id', $user->id);

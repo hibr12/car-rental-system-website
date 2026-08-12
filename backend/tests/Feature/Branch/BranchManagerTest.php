@@ -181,4 +181,26 @@ class BranchManagerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', MaintenanceRequest::STATUS_APPROVED);
     }
+
+    public function test_admin_can_create_branch_with_manager(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_COMPANY_ADMIN]);
+        $token = $admin->createToken('t')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/admin/branches', [
+                'name' => 'Test Branch',
+                'code' => 'TEST',
+                'address' => 'Test Address',
+                'city' => 'Addis Ababa',
+                'create_manager' => true,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.manager.email', 'test.manager@apexrentals.com');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'test.manager@apexrentals.com',
+            'role' => User::ROLE_BRANCH_MANAGER,
+        ]);
+    }
 }

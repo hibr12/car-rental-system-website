@@ -164,11 +164,7 @@ class Vehicle extends Model
     public function activeTransfer()
     {
         return $this->hasOne(VehicleTransfer::class)
-            ->whereIn('status', [
-                VehicleTransfer::STATUS_PENDING,
-                VehicleTransfer::STATUS_APPROVED,
-                VehicleTransfer::STATUS_IN_TRANSIT,
-            ])
+            ->whereIn('status', VehicleTransfer::ACTIVE_STATUSES)
             ->latest();
     }
 

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role'          => \App\Http\Middleware\RoleMiddleware::class,
             'branch.access' => \App\Http\Middleware\BranchAccessMiddleware::class,
+            'optional.auth' => \App\Http\Middleware\OptionalSanctumAuth::class,
         ]);
 
         $middleware->statefulApi();

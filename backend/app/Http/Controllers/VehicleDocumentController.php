@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\VehicleDocumentResource;
 use App\Models\VehicleDocument;
+use App\Services\BranchScopeService;
 use App\Services\VehicleDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,8 @@ use Illuminate\Http\Request;
 class VehicleDocumentController extends Controller
 {
     public function __construct(
-        private VehicleDocumentService $documentService
+        private VehicleDocumentService $documentService,
+        private BranchScopeService $branchScope
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -19,8 +21,10 @@ class VehicleDocumentController extends Controller
         $user = $request->user();
         $query = VehicleDocument::with(['vehicle.branch', 'creator'])->latest();
 
-        if ($user->isBranchManager() && !$user->isAdmin()) {
+        if ($this->branchScope->isBranchScoped($user) && $user->branch_id) {
             $query->whereHas('vehicle', fn ($q) => $q->where('branch_id', $user->branch_id));
+        } elseif ($request->filled('branch_id') && $user->hasCompanyWideAccess()) {
+            $query->whereHas('vehicle', fn ($q) => $q->where('branch_id', (int) $request->input('branch_id')));
         }
 
         if ($request->filled('vehicle_id')) {

@@ -8,15 +8,18 @@ use App\Http\Resources\VehicleResource;
 use App\Models\Booking;
 use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
+use App\Services\BranchScopeService;
 use App\Services\VehicleStatusService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class VehicleController extends Controller
 {
     public function __construct(
-        private VehicleStatusService $vehicleStatusService
+        private VehicleStatusService $vehicleStatusService,
+        private BranchScopeService $branchScope
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -32,22 +35,33 @@ class VehicleController extends Controller
             $query = Vehicle::with($relations);
         }
 
-        if ($branchId = $request->input('branch_id')) {
-            $query->where('branch_id', $branchId);
+        $requestedBranchId = $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+        $effectiveBranchId = null;
 
-            if (!$request->user()?->isAdmin()) {
-                $query->whereHas('branch', fn ($q) => $q->where('status', 'active'));
+        if ($user && !$user->isCustomer()) {
+            $effectiveBranchId = $this->branchScope->resolveBranchFilter($user, $requestedBranchId);
 
-                // Hide vehicles that are pending transfer away from this branch.
-                $query->whereDoesntHave('transfers', function ($q) use ($branchId) {
-                    $q->where('from_branch_id', $branchId)
-                        ->whereIn('status', [
-                            VehicleTransfer::STATUS_PENDING,
-                            VehicleTransfer::STATUS_APPROVED,
-                            VehicleTransfer::STATUS_IN_TRANSIT,
-                        ]);
-                });
+            if ($effectiveBranchId !== null) {
+                $query->where('branch_id', $effectiveBranchId);
             }
+        } elseif ($requestedBranchId) {
+            $query->where('branch_id', $requestedBranchId);
+        }
+
+        if ($requestedBranchId || ($user && $this->branchScope->isBranchScoped($user))) {
+            if (!$request->user()?->isAdmin()) {
+                $branchIdForTransfer = $effectiveBranchId ?? $requestedBranchId;
+                if ($branchIdForTransfer) {
+                    $query->whereHas('branch', fn ($q) => $q->where('status', 'active'));
+
+                    $query->whereDoesntHave('transfers', function ($q) use ($branchIdForTransfer) {
+                        $q->where('from_branch_id', $branchIdForTransfer)
+                            ->whereIn('status', VehicleTransfer::ACTIVE_STATUSES);
+                    });
+                }
+            }
+        } elseif (!$request->user()?->isAdmin()) {
+            $query->whereHas('branch', fn ($q) => $q->where('status', 'active'));
         }
 
         if ($search = $request->input('search')) {
@@ -88,7 +102,6 @@ class VehicleController extends Controller
             $query->where('status', 'available');
         }
 
-        // Exclude vehicles with overlapping bookings for date range
         if ($request->has('pickup_date') && $request->has('return_date')) {
             $pickupDate = Carbon::parse($request->input('pickup_date'));
             $returnDate = Carbon::parse($request->input('return_date'));
@@ -159,9 +172,15 @@ class VehicleController extends Controller
         ]);
     }
 
-    public function show(Vehicle $vehicle): JsonResponse
+    public function show(Request $request, Vehicle $vehicle): JsonResponse
     {
-        $vehicle->load(['category', 'images', 'primaryImage']);
+        $user = $request->user();
+
+        if ($user && !$user->isCustomer()) {
+            Gate::forUser($user)->authorize('view', $vehicle);
+        }
+
+        $vehicle->load(['category', 'images', 'primaryImage', 'branch']);
 
         return response()->json([
             'success' => true,
@@ -172,11 +191,17 @@ class VehicleController extends Controller
 
     public function store(StoreVehicleRequest $request): JsonResponse
     {
+        Gate::authorize('create', Vehicle::class);
+
+        $user = $request->user();
+        $data = $this->branchScope->forceOwnBranchId($user, $request->validated());
+
+        if (($user->isAdmin() || $user->isFleetManager()) && $request->filled('branch_id')) {
+            $data['branch_id'] = (int) $request->input('branch_id');
+        }
+
         $vehicle = Vehicle::create(
-            array_merge(
-                $request->validated(),
-                ['created_by' => $request->user()->id]
-            )
+            array_merge($data, ['created_by' => $user->id])
         );
 
         if ($request->has('images')) {
@@ -188,7 +213,7 @@ class VehicleController extends Controller
             }
         }
 
-        $vehicle->load(['category', 'images', 'primaryImage']);
+        $vehicle->load(['category', 'images', 'primaryImage', 'branch']);
 
         return response()->json([
             'success' => true,
@@ -199,7 +224,9 @@ class VehicleController extends Controller
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): JsonResponse
     {
-        $validated = $request->validated();
+        Gate::authorize('update', $vehicle);
+
+        $validated = $this->branchScope->stripBranchId($request->user(), $request->validated());
         $user = $request->user();
 
         if (isset($validated['status']) && $validated['status'] !== $vehicle->status) {
@@ -236,17 +263,19 @@ class VehicleController extends Controller
             }
         }
 
-        $vehicle->load(['category', 'images', 'primaryImage']);
+        $vehicle->load(['category', 'images', 'primaryImage', 'branch']);
 
         return response()->json([
             'success' => true,
             'message' => 'Vehicle updated successfully',
-            'data' => new VehicleResource($vehicle->fresh(['category', 'images', 'primaryImage'])),
+            'data' => new VehicleResource($vehicle->fresh(['category', 'images', 'primaryImage', 'branch'])),
         ]);
     }
 
     public function destroy(Vehicle $vehicle): JsonResponse
     {
+        Gate::authorize('delete', $vehicle);
+
         $vehicle->delete();
 
         return response()->json([

@@ -195,6 +195,21 @@ class DatabaseSeeder extends Seeder
                 )->id,
             ]);
         }
+
+        $piassaBranch = Branch::where('code', 'PIASSA')->first();
+        if ($piassaBranch) {
+            $piassaManager = User::updateOrCreate(
+                ['email' => 'piassa.manager@apexrentals.com'],
+                [
+                    'name' => 'Piassa Branch Manager',
+                    'password' => 'password',
+                    'phone' => '+251 11 555 0000',
+                    'role' => User::ROLE_BRANCH_MANAGER,
+                    'branch_id' => $piassaBranch->id,
+                ]
+            );
+            $piassaBranch->update(['manager_id' => $piassaManager->id]);
+        }
     }
 
     private function seedUsers(): void

@@ -149,7 +149,7 @@ class User extends Authenticatable
 
     public function hasBranchAccess($branchId = null): bool
     {
-        if ($this->isAdmin()) {
+        if ($this->isAdmin() || $this->isFleetManager()) {
             return true;
         }
 
@@ -162,6 +162,16 @@ class User extends Authenticatable
         }
 
         return (int) $this->branch_id === (int) $branchId;
+    }
+
+    public function isBranchScoped(): bool
+    {
+        return $this->isBranchManager() || $this->isStaff();
+    }
+
+    public function hasCompanyWideAccess(): bool
+    {
+        return $this->isAdmin() || $this->isFleetManager();
     }
 
     public function scopeInBranch($query, $branchId)

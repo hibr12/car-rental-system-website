@@ -40,11 +40,13 @@ Route::prefix('auth')->group(function () {
 Route::get('/categories',         [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
-Route::get('/vehicles',            [VehicleController::class, 'index']);
-Route::get('/vehicles/{vehicle}',  [VehicleController::class, 'show']);
+Route::get('/vehicles',            [VehicleController::class, 'index'])->middleware('optional.auth');
+Route::get('/vehicles/{vehicle}',  [VehicleController::class, 'show'])->middleware('optional.auth');
 Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
+Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
+    ->middleware('auth:sanctum');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -133,17 +135,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->middleware('role:admin');
 
     // ── Vehicle Transfers ─────────────────────────────────────────
-    Route::prefix('vehicle-transfers')->middleware('role:admin,branch_manager,fleet_manager')->group(function () {
+    Route::prefix('vehicle-transfers')->middleware('role:admin,branch_manager,fleet_manager,staff')->group(function () {
         Route::get('/',                          [VehicleTransferController::class, 'index']);
-        Route::post('/',                         [VehicleTransferController::class, 'store']);
+        Route::post('/',                         [VehicleTransferController::class, 'store'])->middleware('role:admin,branch_manager');
         Route::get('/{transfer}',                [VehicleTransferController::class, 'show']);
-        Route::put('/{transfer}/approve',        [VehicleTransferController::class, 'approve'])->middleware('role:admin,branch_manager');
-        Route::put('/{transfer}/reject',         [VehicleTransferController::class, 'reject'])->middleware('role:admin,branch_manager');
-        Route::put('/{transfer}/cancel',        [VehicleTransferController::class, 'cancel'])->middleware('role:admin,branch_manager');
-        Route::put('/{transfer}/in-transit',     [VehicleTransferController::class, 'markInTransit']);
-        Route::put('/{transfer}/complete',       [VehicleTransferController::class, 'complete']);
+        Route::put('/{transfer}/approve',        [VehicleTransferController::class, 'approve'])->middleware('role:admin,fleet_manager');
+        Route::put('/{transfer}/reject',         [VehicleTransferController::class, 'reject'])->middleware('role:admin,fleet_manager');
+        Route::put('/{transfer}/cancel',         [VehicleTransferController::class, 'cancel'])->middleware('role:admin,branch_manager,fleet_manager');
+        Route::post('/{transfer}/prepare-release', [VehicleTransferController::class, 'prepareRelease'])->middleware('role:admin,branch_manager,staff');
+        Route::put('/{transfer}/in-transit',     [VehicleTransferController::class, 'markInTransit'])->middleware('role:admin,branch_manager,staff');
+        Route::put('/{transfer}/receive',        [VehicleTransferController::class, 'receive'])->middleware('role:admin,branch_manager,staff');
+        Route::put('/{transfer}/complete',       [VehicleTransferController::class, 'complete'])->middleware('role:admin,fleet_manager');
+        Route::put('/{transfer}/fail',           [VehicleTransferController::class, 'markFailed'])->middleware('role:admin,fleet_manager');
         Route::put('/{transfer}/execute',        [VehicleTransferController::class, 'executeNow'])->middleware('role:admin');
-        Route::get('/{transfer}/history',      [VehicleTransferController::class, 'history']);
+        Route::get('/{transfer}/history',        [VehicleTransferController::class, 'history']);
     });
 
     // ── Maintenance ───────────────────────────────────────────────

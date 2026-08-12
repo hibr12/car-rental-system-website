@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\VehicleInspectionResource;
 use App\Models\VehicleInspection;
+use App\Services\BranchScopeService;
 use App\Services\VehicleInspectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,8 @@ use Illuminate\Http\Request;
 class VehicleInspectionController extends Controller
 {
     public function __construct(
-        private VehicleInspectionService $inspectionService
+        private VehicleInspectionService $inspectionService,
+        private BranchScopeService $branchScope
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -20,10 +22,13 @@ class VehicleInspectionController extends Controller
         $query = VehicleInspection::with(['vehicle.branch', 'booking', 'inspector'])
             ->latest();
 
-        if ($user->isBranchManager() && !$user->isAdmin()) {
-            $query->where('branch_id', $user->branch_id);
-        } elseif ($request->filled('branch_id')) {
-            $query->where('branch_id', (int) $request->input('branch_id'));
+        $requestedBranchId = $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+        $effectiveBranchId = $this->branchScope->resolveBranchFilter($user, $requestedBranchId);
+
+        if ($effectiveBranchId !== null) {
+            $query->where('branch_id', $effectiveBranchId);
+        } elseif ($requestedBranchId && $user->hasCompanyWideAccess()) {
+            $query->where('branch_id', $requestedBranchId);
         }
 
         if ($request->filled('vehicle_id')) {
@@ -76,8 +81,10 @@ class VehicleInspectionController extends Controller
         ], 201);
     }
 
-    public function show(VehicleInspection $inspection): JsonResponse
+    public function show(Request $request, VehicleInspection $inspection): JsonResponse
     {
+        $this->branchScope->assertCanAccessBranch($request->user(), $inspection->branch_id);
+
         $inspection->load(['vehicle.branch', 'booking', 'inspector']);
 
         return response()->json([
@@ -88,6 +95,8 @@ class VehicleInspectionController extends Controller
 
     public function complete(Request $request, VehicleInspection $inspection): JsonResponse
     {
+        $this->branchScope->assertCanAccessBranch($request->user(), $inspection->branch_id);
+
         $validated = $request->validate([
             'result' => ['required', 'string', 'in:passed,failed,requires_maintenance'],
             'mileage' => ['nullable', 'integer', 'min:0'],

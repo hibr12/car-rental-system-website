@@ -3,22 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\BranchScopeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class StaffController extends Controller
 {
+    public function __construct(
+        private BranchScopeService $branchScope
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
         $query = User::with('branch')->notCustomer();
 
-        // Branch managers see only their branch staff
-        if ($user->isBranchManager()) {
-            $query->where('branch_id', $user->branch_id);
-        } elseif ($request->has('branch_id') && $user->isAdmin()) {
-            $query->where('branch_id', $request->branch_id);
+        $requestedBranchId = $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+        $effectiveBranchId = $this->branchScope->resolveBranchFilter($user, $requestedBranchId);
+
+        if ($effectiveBranchId !== null) {
+            $query->where('branch_id', $effectiveBranchId);
+        } elseif ($requestedBranchId && $user->isAdmin()) {
+            $query->where('branch_id', $requestedBranchId);
         }
 
         $staff = $query->orderBy('name')->paginate(20);
@@ -38,17 +45,22 @@ class StaffController extends Controller
     {
         $actor = $request->user();
 
+        $allowedRoles = $actor->isBranchManager()
+            ? 'staff'
+            : 'branch_manager,fleet_manager,staff';
+
         $data = $request->validate([
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'email', 'unique:users,email'],
             'password'  => ['required', 'string', 'min:8'],
             'phone'     => ['nullable', 'string', 'max:30'],
-            'role'      => ['required', 'in:branch_manager,fleet_manager,staff'],
+            'role'      => ['required', 'in:' . $allowedRoles],
             'branch_id' => ['required', 'exists:branches,id'],
         ]);
 
-        // Branch managers can only add staff to their own branch
-        if ($actor->isBranchManager() && (int) $data['branch_id'] !== $actor->branch_id) {
+        $data = $this->branchScope->forceOwnBranchId($actor, $data);
+
+        if ($actor->isBranchManager() && (int) $data['branch_id'] !== (int) $actor->branch_id) {
             return response()->json(['success' => false, 'message' => 'You can only add staff to your own branch.'], 403);
         }
 
@@ -72,18 +84,27 @@ class StaffController extends Controller
     {
         $actor = $request->user();
 
-        // Branch managers can only update their own branch's staff
-        if ($actor->isBranchManager() && $user->branch_id !== $actor->branch_id) {
+        if ($actor->isBranchManager() && (int) $user->branch_id !== (int) $actor->branch_id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
+
+        $allowedRoles = $actor->isBranchManager()
+            ? 'staff'
+            : 'branch_manager,fleet_manager,staff';
 
         $data = $request->validate([
             'name'      => ['sometimes', 'string', 'max:255'],
             'email'     => ['sometimes', 'email', 'unique:users,email,' . $user->id],
             'phone'     => ['nullable', 'string', 'max:30'],
-            'role'      => ['sometimes', 'in:branch_manager,fleet_manager,staff'],
+            'role'      => ['sometimes', 'in:' . $allowedRoles],
             'branch_id' => ['sometimes', 'exists:branches,id'],
         ]);
+
+        $data = $this->branchScope->stripBranchId($actor, $data);
+
+        if ($actor->isBranchManager() && isset($data['branch_id']) && (int) $data['branch_id'] !== (int) $actor->branch_id) {
+            return response()->json(['success' => false, 'message' => 'You cannot move staff to another branch.'], 403);
+        }
 
         $user->update($data);
 
@@ -98,7 +119,7 @@ class StaffController extends Controller
     {
         $actor = $request->user();
 
-        if ($actor->isBranchManager() && $user->branch_id !== $actor->branch_id) {
+        if ($actor->isBranchManager() && (int) $user->branch_id !== (int) $actor->branch_id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 

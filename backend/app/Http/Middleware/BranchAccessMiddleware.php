@@ -26,8 +26,8 @@ class BranchAccessMiddleware
             return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        // Admins have company-wide access — skip scoping
-        if ($user->isAdmin()) {
+        // Admins and fleet managers have company-wide access — skip scoping
+        if ($user->isAdmin() || $user->isFleetManager()) {
             return $next($request);
         }
 

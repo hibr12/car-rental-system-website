@@ -19,7 +19,7 @@ class VehiclePolicy
         }
 
         if ($user->isBranchManager() || $user->isStaff()) {
-            return $user->branch_id === $vehicle->branch_id;
+            return (int) $user->branch_id === (int) $vehicle->branch_id;
         }
 
         return true;
@@ -27,12 +27,20 @@ class VehiclePolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin() || $user->isFleetManager();
+        return $user->isAdmin() || $user->isFleetManager() || $user->isBranchManager();
     }
 
     public function update(User $user, Vehicle $vehicle): bool
     {
-        return $user->isAdmin() || $user->isFleetManager();
+        if ($user->isAdmin() || $user->isFleetManager()) {
+            return true;
+        }
+
+        if ($user->isBranchManager()) {
+            return (int) $user->branch_id === (int) $vehicle->branch_id;
+        }
+
+        return false;
     }
 
     public function delete(User $user, Vehicle $vehicle): bool

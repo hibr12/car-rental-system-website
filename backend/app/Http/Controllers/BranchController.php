@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
+use App\Services\BranchManagerProvisioningService;
 use App\Services\BranchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 class BranchController extends Controller
 {
     public function __construct(
-        private BranchService $branchService
+        private BranchService $branchService,
+        private BranchManagerProvisioningService $managerProvisioning
     ) {}
 
     // ─── List / Show ──────────────────────────────────────────────────
@@ -75,6 +77,33 @@ class BranchController extends Controller
         return response()->json(['success' => true, 'data' => $branch]);
     }
 
+    /**
+     * Minimal branch list for transfer destination selection.
+     * Exposes only public operational fields — no fleet, staff, or financial data.
+     */
+    public function transferDestinations(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user || (!$user->isAdmin() && !$user->isFleetManager() && !$user->isBranchManager())) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $query = Branch::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->select(['id', 'name', 'code', 'city', 'address', 'status']);
+
+        if ($user->isBranchManager() && $user->branch_id) {
+            $query->where('id', '!=', $user->branch_id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->get(),
+        ]);
+    }
+
     // ─── Create ───────────────────────────────────────────────────────
 
     public function store(Request $request): JsonResponse
@@ -91,6 +120,10 @@ class BranchController extends Controller
             'opening_time' => ['nullable', 'string'],
             'closing_time' => ['nullable', 'string'],
             'manager_id'   => ['nullable', 'exists:users,id'],
+            'create_manager' => ['sometimes', 'boolean'],
+            'manager_name' => ['nullable', 'string', 'max:255'],
+            'manager_email' => ['nullable', 'email', 'max:255'],
+            'manager_password' => ['nullable', 'string', 'min:6', 'max:255'],
             'status'       => ['sometimes', 'in:active,inactive'],
         ]);
 
@@ -105,23 +138,36 @@ class BranchController extends Controller
             ]
         );
 
-        $branch = Branch::create(array_merge($data, [
+        $branchFields = collect($data)->only([
+            'name', 'address', 'city', 'phone', 'email',
+            'latitude', 'longitude', 'opening_time', 'closing_time', 'status',
+        ])->toArray();
+
+        $branch = Branch::create(array_merge($branchFields, [
             'company_id' => $company->id,
             'code'       => strtoupper($data['code']),
             'status'     => $data['status'] ?? 'active',
         ]));
 
         if (!empty($data['manager_id'])) {
-            User::where('id', $data['manager_id'])->update([
-                'branch_id' => $branch->id,
-                'role'      => User::ROLE_BRANCH_MANAGER,
-            ]);
+            $this->managerProvisioning->assignManager(
+                $branch,
+                User::findOrFail($data['manager_id']),
+                $request->user()
+            );
+        } elseif ($request->boolean('create_manager', true)) {
+            $this->managerProvisioning->provision($branch, array_filter([
+                'name' => $data['manager_name'] ?? null,
+                'email' => $data['manager_email'] ?? null,
+                'password' => $data['manager_password'] ?? null,
+                'phone' => $data['phone'] ?? null,
+            ]), $request->user());
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Branch created successfully.',
-            'data'    => $branch->load('manager'),
+            'data'    => $branch->fresh()->load('manager'),
         ], 201);
     }
 
@@ -148,24 +194,25 @@ class BranchController extends Controller
             $data['code'] = strtoupper($data['code']);
         }
 
-        DB::transaction(function () use ($branch, $data) {
+        DB::transaction(function () use ($branch, $data, $request) {
             if (array_key_exists('manager_id', $data)) {
-                // Remove old manager's branch manager role if replaced
-                if ($branch->manager_id && $branch->manager_id !== $data['manager_id']) {
+                if ($data['manager_id']) {
+                    $this->managerProvisioning->assignManager(
+                        $branch,
+                        User::findOrFail($data['manager_id']),
+                        $request->user()
+                    );
+                } elseif ($branch->manager_id) {
                     User::where('id', $branch->manager_id)
                         ->where('role', User::ROLE_BRANCH_MANAGER)
                         ->update(['role' => User::ROLE_BRANCH_STAFF]);
-                }
-
-                if ($data['manager_id']) {
-                    User::where('id', $data['manager_id'])->update([
-                        'branch_id' => $branch->id,
-                        'role'      => User::ROLE_BRANCH_MANAGER,
-                    ]);
+                    $branch->update(['manager_id' => null]);
                 }
             }
 
-            $branch->update($data);
+            $branch->update(collect($data)->except([
+                'manager_id', 'create_manager', 'manager_name', 'manager_email', 'manager_password',
+            ])->toArray());
         });
 
         return response()->json([

@@ -23,6 +23,8 @@ const LABEL_CLS = 'block text-xs font-semibold text-[#334155] mb-1';
 const EMPTY_FORM = {
   name: '', code: '', address: '', city: '',
   phone: '', email: '', opening_time: '', closing_time: '', status: 'active',
+  create_manager: true,
+  manager_name: '', manager_email: '', manager_password: '',
 };
 
 export default function BranchesPage() {
@@ -55,6 +57,10 @@ export default function BranchesPage() {
       phone: b.phone || '', email: b.email || '',
       opening_time: b.opening_time || '', closing_time: b.closing_time || '',
       status: b.status,
+      create_manager: false,
+      manager_name: b.manager?.name || '',
+      manager_email: b.manager?.email || '',
+      manager_password: '',
     });
     setError('');
     setShowModal(true);
@@ -255,6 +261,44 @@ export default function BranchesPage() {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                </div>
+              )}
+
+              {!editing && (
+                <div className="space-y-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-[#334155]">
+                    <input
+                      type="checkbox"
+                      checked={form.create_manager}
+                      onChange={(e) => setForm(p => ({ ...p, create_manager: e.target.checked }))}
+                    />
+                    Create branch manager account
+                  </label>
+                  {form.create_manager && (
+                    <>
+                      <p className="text-xs text-[#64748B]">
+                        Default login: <strong>{form.code ? `${form.code.toLowerCase()}.manager@apexrentals.com` : '{code}.manager@apexrentals.com'}</strong> / password: <strong>password</strong>
+                      </p>
+                      <div>
+                        <label className={LABEL_CLS}>Manager Name (optional)</label>
+                        <input value={form.manager_name} onChange={e => setForm(p => ({...p, manager_name: e.target.value}))} className={INPUT_CLS} placeholder="Auto-generated from branch name" />
+                      </div>
+                      <div>
+                        <label className={LABEL_CLS}>Manager Email (optional)</label>
+                        <input type="email" value={form.manager_email} onChange={e => setForm(p => ({...p, manager_email: e.target.value}))} className={INPUT_CLS} placeholder="Auto-generated from branch code" />
+                      </div>
+                      <div>
+                        <label className={LABEL_CLS}>Manager Password (optional)</label>
+                        <input type="password" value={form.manager_password} onChange={e => setForm(p => ({...p, manager_password: e.target.value}))} className={INPUT_CLS} placeholder="Defaults to password" />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {editing && form.manager_email && (
+                <div className="text-xs text-[#64748B] bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  Current manager: <strong>{form.manager_name}</strong> ({form.manager_email})
                 </div>
               )}
 

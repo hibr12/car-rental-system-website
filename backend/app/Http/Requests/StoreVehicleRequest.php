@@ -31,6 +31,7 @@ class StoreVehicleRequest extends FormRequest
             'status' => ['sometimes', 'string', 'in:available,rented,reserved,maintenance,unavailable'],
             'featured' => ['sometimes', 'boolean'],
             'location' => ['nullable', 'string', 'max:255'],
+            'branch_id' => ['sometimes', 'integer', 'exists:branches,id'],
             'images' => ['sometimes', 'array', 'max:10'],
             'images.*.image_url' => ['required', 'string', 'max:500'],
             'images.*.is_primary' => ['sometimes', 'boolean'],

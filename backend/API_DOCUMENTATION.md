@@ -1,5 +1,7 @@
 # API Documentation
 
+> **Full system flow (Branch, Booking, Payment, Transfer):** see [APEX_RENTALS_API_FLOW.md](./APEX_RENTALS_API_FLOW.md)
+
 ## Authentication
 
 ### Register
