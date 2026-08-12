@@ -43,4 +43,16 @@ return [
 
     'payment_deadline_minutes' => (int) env('BOOKING_PAYMENT_DEADLINE_MINUTES', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Driver's License — minimum holding period
+    |--------------------------------------------------------------------------
+    |
+    | Set to 0 to disable the minimum holding period check.
+    | Example: 365 = license must have been held for at least 1 year.
+    |
+    */
+
+    'minimum_license_holding_days' => (int) env('LICENSE_MIN_HOLDING_DAYS', 0),
+
 ];

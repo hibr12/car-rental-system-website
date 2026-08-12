@@ -8,11 +8,12 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\HasVerifiedLicense;
 use Tests\TestCase;
 
 class BookingTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, HasVerifiedLicense;
 
     private User $customer;
     private User $admin;
@@ -25,6 +26,7 @@ class BookingTest extends TestCase
 
         $this->admin = User::factory()->admin()->create();
         $this->customer = User::factory()->customer()->create();
+        $this->giveVerifiedLicense($this->customer);
 
         $category = Category::factory()->create();
 

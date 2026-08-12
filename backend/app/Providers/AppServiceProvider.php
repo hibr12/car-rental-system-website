@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\ContactMessage;
+use App\Models\DriverLicense;
 use App\Models\Maintenance;
 use App\Models\Payment;
 use App\Models\Review;
@@ -13,6 +14,7 @@ use App\Models\Vehicle;
 use App\Policies\BookingPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ContactMessagePolicy;
+use App\Policies\DriverLicensePolicy;
 use App\Policies\MaintenancePolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ReviewPolicy;
@@ -47,5 +49,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Review::class, ReviewPolicy::class);
         Gate::policy(Maintenance::class, MaintenancePolicy::class);
         Gate::policy(ContactMessage::class, ContactMessagePolicy::class);
+        Gate::policy(DriverLicense::class, DriverLicensePolicy::class);
     }
 }

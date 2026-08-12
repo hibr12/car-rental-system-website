@@ -5,11 +5,12 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\HasVerifiedLicense;
 use Tests\TestCase;
 
 class BookingApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, HasVerifiedLicense;
 
     private User $customer;
     private Vehicle $vehicle;
@@ -19,6 +20,8 @@ class BookingApiTest extends TestCase
         parent::setUp();
 
         $this->customer = User::factory()->create(['role' => 'customer']);
+        $this->giveVerifiedLicense($this->customer);
+
         $this->vehicle = Vehicle::factory()->create([
             'status' => 'available',
             'rental_price_per_day' => 100.00,

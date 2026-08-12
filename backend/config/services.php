@@ -59,4 +59,14 @@ return [
         'webhook_secret' => env('CHAPA_WEBHOOK_SECRET', env('CHAPA_SECRET_KEY')),
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+        'key' => env('CLOUDINARY_KEY'),
+        'secret' => env('CLOUDINARY_SECRET'),
+        'license_folder' => env('CLOUDINARY_LICENSE_FOLDER', 'apex-rentals/licenses'),
+        'enabled' => filled(env('CLOUDINARY_CLOUD_NAME'))
+            && filled(env('CLOUDINARY_KEY'))
+            && filled(env('CLOUDINARY_SECRET')),
+    ],
+
 ];

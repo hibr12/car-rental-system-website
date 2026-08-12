@@ -11,13 +11,15 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Services\DriverLicenseService;
 
 class BookingService
 {
     private const MAX_REFERENCE_RETRIES = 5;
 
     public function __construct(
-        private BookingWorkflowService $workflow
+        private BookingWorkflowService $workflow,
+        private DriverLicenseService $licenseService
     ) {}
 
     public function createBooking(array $data, int $userId): Booking
@@ -27,6 +29,12 @@ class BookingService
 
         $vehicle = $this->findVehicleOrFail($data['vehicle_id']);
         $this->validateVehicle($vehicle);
+
+        // License eligibility check — only for customer-initiated bookings.
+        // Staff/admin creating bookings on behalf of customers bypass this check.
+        if ($user->isCustomer()) {
+            $this->validateLicenseEligibility($user, $vehicle);
+        }
 
         if (!empty($data['branch_id']) && (int) $data['branch_id'] !== (int) $vehicle->branch_id) {
             throw new \InvalidArgumentException('The selected vehicle does not belong to the chosen branch.');
@@ -278,6 +286,20 @@ class BookingService
     {
         if (!$user->isCustomer() && !$user->isStaff() && !$user->isAdmin()) {
             throw new \InvalidArgumentException('User is not authorized to create bookings.');
+        }
+    }
+
+    private function validateLicenseEligibility(User $customer, Vehicle $vehicle): void
+    {
+        // If the vehicle does not require a license, skip the check.
+        if (isset($vehicle->requires_license) && !$vehicle->requires_license) {
+            return;
+        }
+
+        $eligibility = $this->licenseService->checkEligibility($customer, $vehicle);
+
+        if (!$eligibility['eligible']) {
+            throw new \InvalidArgumentException($eligibility['reason']);
         }
     }
 
