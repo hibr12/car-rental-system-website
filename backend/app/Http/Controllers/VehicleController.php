@@ -8,12 +8,17 @@ use App\Http\Resources\VehicleResource;
 use App\Models\Booking;
 use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
+use App\Services\VehicleStatusService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VehicleController extends Controller
 {
+    public function __construct(
+        private VehicleStatusService $vehicleStatusService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -194,7 +199,32 @@ class VehicleController extends Controller
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): JsonResponse
     {
-        $vehicle->update($request->validated());
+        $validated = $request->validated();
+        $user = $request->user();
+
+        if (isset($validated['status']) && $validated['status'] !== $vehicle->status) {
+            $this->vehicleStatusService->transition(
+                $vehicle,
+                $validated['status'],
+                $user,
+                'Manual vehicle status update'
+            );
+            unset($validated['status']);
+        }
+
+        if (isset($validated['mileage']) && (int) $validated['mileage'] !== (int) $vehicle->mileage) {
+            $this->vehicleStatusService->updateMileage(
+                $vehicle,
+                (int) $validated['mileage'],
+                $user,
+                $request->boolean('mileage_correction')
+            );
+            unset($validated['mileage']);
+        }
+
+        if (!empty($validated)) {
+            $vehicle->update($validated);
+        }
 
         if ($request->has('images')) {
             $vehicle->images()->delete();

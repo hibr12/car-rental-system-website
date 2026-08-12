@@ -61,6 +61,10 @@ import BranchRentalsPage from './pages/branch/BranchRentalsPage';
 import FleetDashboard from './pages/fleet/FleetDashboard';
 import FleetVehicles from './pages/fleet/FleetVehicles';
 import FleetMaintenance from './pages/fleet/FleetMaintenance';
+import FleetReports from './pages/fleet/FleetReports';
+import FleetInspections from './pages/fleet/FleetInspections';
+import FleetDocuments from './pages/fleet/FleetDocuments';
+import FleetDamage from './pages/fleet/FleetDamage';
 
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffBookings from './pages/staff/StaffBookings';
@@ -183,6 +187,11 @@ function App() {
           <Route path="dashboard"       element={<FleetDashboard />} />
           <Route path="vehicles"        element={<FleetVehicles />} />
           <Route path="maintenance"     element={<FleetMaintenance />} />
+          <Route path="transfers"       element={<VehicleTransfersPage />} />
+          <Route path="inspections"    element={<FleetInspections />} />
+          <Route path="documents"      element={<FleetDocuments />} />
+          <Route path="damage"         element={<FleetDamage />} />
+          <Route path="reports"         element={<FleetReports />} />
           <Route path="*"               element={<PortalNotFound />} />
         </Route>
 

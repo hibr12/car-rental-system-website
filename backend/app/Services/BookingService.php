@@ -325,15 +325,19 @@ class BookingService
             throw new \InvalidArgumentException('Bookings are not available for inactive branches.');
         }
 
-        if ($vehicle->status === 'maintenance') {
-            throw new \InvalidArgumentException('Vehicle is currently under maintenance and cannot be booked.');
-        }
+        if (!$vehicle->isRentable()) {
+            if ($vehicle->hasExpiredRequiredDocuments()) {
+                throw new \InvalidArgumentException('Vehicle has expired required documents and cannot be booked.');
+            }
 
-        if ($vehicle->status === 'unavailable') {
-            throw new \InvalidArgumentException('Vehicle is marked as unavailable and cannot be booked.');
-        }
+            if ($vehicle->status === Vehicle::STATUS_MAINTENANCE) {
+                throw new \InvalidArgumentException('Vehicle is currently under maintenance and cannot be booked.');
+            }
 
-        if ($vehicle->status !== 'available') {
+            if (in_array($vehicle->status, [Vehicle::STATUS_UNAVAILABLE, Vehicle::STATUS_RETIRED], true)) {
+                throw new \InvalidArgumentException('Vehicle is not available for booking.');
+            }
+
             throw new \InvalidArgumentException('Vehicle is not available for booking.');
         }
     }

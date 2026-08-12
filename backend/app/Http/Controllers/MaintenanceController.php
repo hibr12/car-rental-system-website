@@ -7,19 +7,23 @@ use App\Http\Requests\UpdateMaintenanceRequest;
 use App\Http\Resources\MaintenanceResource;
 use App\Models\Maintenance;
 use App\Models\Vehicle;
+use App\Services\VehicleStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class MaintenanceController extends Controller
 {
+    public function __construct(
+        private VehicleStatusService $vehicleStatusService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
         $query = Maintenance::with(['vehicle.branch', 'creator'])->latest();
 
-        // Scope branch managers/staff to their branch only
-        if (!$user->isAdmin()) {
+        if ($user->isBranchManager() || ($user->isStaff() && !$user->isAdmin())) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->has('branch_id')) {
             $query->where('branch_id', $request->branch_id);
@@ -57,7 +61,13 @@ class MaintenanceController extends Controller
         $maintenance = Maintenance::create(array_merge($request->validated(), ['created_by' => $request->user()->id]));
 
         if ($maintenance->vehicle) {
-            $maintenance->vehicle->update(['status' => 'maintenance']);
+            $this->vehicleStatusService->transition(
+                $maintenance->vehicle,
+                Vehicle::STATUS_MAINTENANCE,
+                $request->user(),
+                'Maintenance scheduled',
+                true
+            );
         }
 
         $maintenance->load(['vehicle', 'creator']);
@@ -89,7 +99,13 @@ class MaintenanceController extends Controller
         $maintenance->update($request->validated());
 
         if ($maintenance->status === 'completed' && $maintenance->vehicle) {
-            $maintenance->vehicle->update(['status' => 'available']);
+            $this->vehicleStatusService->transition(
+                $maintenance->vehicle,
+                Vehicle::STATUS_INSPECTION_REQUIRED,
+                $request->user(),
+                'Maintenance completed — inspection required',
+                true
+            );
         }
 
         $maintenance->load(['vehicle', 'creator']);

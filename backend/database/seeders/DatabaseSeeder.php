@@ -132,13 +132,24 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $admin = User::where('email', 'admin@carrental.com')->first();
         $boleBranch = Branch::where('code', 'BOLE')->first();
         $cmcBranch = Branch::where('code', 'CMC')->first();
+        $kazBranch = Branch::where('code', 'KAZ')->first()
+            ?? Branch::where('code', 'KAZANCHIS')->first();
         $airportBranch = Branch::where('code', 'AIRPORT')->first();
 
-        if ($boleBranch && $admin) {
-            $boleBranch->update(['manager_id' => $admin->id]);
+        if ($boleBranch) {
+            $boleManager = User::updateOrCreate(
+                ['email' => 'bole.manager@apexrentals.com'],
+                [
+                    'name' => 'Bole Branch Manager',
+                    'password' => 'password',
+                    'phone' => '+251 11 111 0000',
+                    'role' => User::ROLE_BRANCH_MANAGER,
+                    'branch_id' => $boleBranch->id,
+                ]
+            );
+            $boleBranch->update(['manager_id' => $boleManager->id]);
         }
 
         if ($cmcBranch) {
@@ -154,6 +165,20 @@ class DatabaseSeeder extends Seeder
                     ]
                 )->id,
             ]);
+        }
+
+        if ($kazBranch) {
+            $kazManager = User::updateOrCreate(
+                ['email' => 'kazanchis.manager@apexrentals.com'],
+                [
+                    'name' => 'Kazanchis Branch Manager',
+                    'password' => 'password',
+                    'phone' => '+251 11 444 0000',
+                    'role' => User::ROLE_BRANCH_MANAGER,
+                    'branch_id' => $kazBranch->id,
+                ]
+            );
+            $kazBranch->update(['manager_id' => $kazManager->id]);
         }
 
         if ($airportBranch) {
@@ -190,7 +215,8 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Fleet Manager',
                 'password' => 'password',
                 'phone' => '+251 11 123 4568',
-                'role' => User::ROLE_COMPANY_ADMIN,
+                'role' => User::ROLE_FLEET_MANAGER,
+                'branch_id' => null,
             ]
         );
 

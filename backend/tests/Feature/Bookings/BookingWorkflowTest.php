@@ -252,7 +252,7 @@ class BookingWorkflowTest extends TestCase
         ]);
 
         $this->assertEquals(Booking::STATUS_COMPLETED, $result->status);
-        $this->assertEquals('available', $result->vehicle->status);
+        $this->assertEquals(Vehicle::STATUS_RETURN_PENDING_INSPECTION, $result->vehicle->status);
     }
 
     public function test_completed_booking_allows_review(): void

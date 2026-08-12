@@ -9,6 +9,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DriverLicenseController;
+use App\Http\Controllers\FleetController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
@@ -17,6 +18,9 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\VehicleDamageController;
+use App\Http\Controllers\VehicleDocumentController;
+use App\Http\Controllers\VehicleInspectionController;
 use App\Http\Controllers\VehicleTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -150,6 +154,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{maintenance}',          [MaintenanceController::class, 'destroy']);
     });
 
+    // ── Fleet lifecycle: inspections, documents, damage ─────────
+    Route::prefix('vehicle-inspections')->middleware('role:admin,fleet_manager,branch_manager,staff')->group(function () {
+        Route::get('/',                          [VehicleInspectionController::class, 'index']);
+        Route::post('/',                         [VehicleInspectionController::class, 'store']);
+        Route::get('/{inspection}',              [VehicleInspectionController::class, 'show']);
+        Route::put('/{inspection}/complete',     [VehicleInspectionController::class, 'complete']);
+    });
+
+    Route::prefix('vehicle-documents')->middleware('role:admin,fleet_manager,branch_manager')->group(function () {
+        Route::get('/',                          [VehicleDocumentController::class, 'index']);
+        Route::post('/',                         [VehicleDocumentController::class, 'store']);
+        Route::put('/{document}',                [VehicleDocumentController::class, 'update']);
+        Route::delete('/{document}',             [VehicleDocumentController::class, 'destroy']);
+    });
+
+    Route::prefix('vehicle-damages')->middleware('role:admin,fleet_manager,branch_manager,staff')->group(function () {
+        Route::get('/',                          [VehicleDamageController::class, 'index']);
+        Route::post('/',                         [VehicleDamageController::class, 'store']);
+        Route::put('/{damage}',                  [VehicleDamageController::class, 'update']);
+    });
+
     // ── Rentals & Check-in/Check-out ─────────────────────────────
     Route::prefix('rentals')->group(function () {
         Route::get('/',                          [RentalController::class, 'index']);
@@ -273,6 +298,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/branch',                    [ReportController::class, 'branchReport']);
         Route::get('/fleet',                     [ReportController::class, 'fleetUtilization']);
     });
+
+    Route::prefix('fleet')->middleware('role:admin,fleet_manager,branch_manager')->group(function () {
+        Route::get('/dashboard',                 [FleetController::class, 'dashboard']);
+    });
+
     Route::get('/reports/revenue', [ReportController::class, 'companyRevenue'])
         ->middleware(['role:admin']);
 

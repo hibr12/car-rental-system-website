@@ -12,6 +12,9 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\VehicleDamageService;
+use App\Services\VehicleInspectionService;
+use App\Services\VehicleStatusService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +25,9 @@ use Illuminate\Support\Facades\Log;
 class BookingWorkflowService
 {
     public function __construct(
-        private AuditLogService $auditLogService
+        private AuditLogService $auditLogService,
+        private VehicleInspectionService $inspectionService,
+        private VehicleStatusService $vehicleStatusService
     ) {}
 
     public function requiresAdminApproval(Booking $booking): bool
@@ -394,6 +399,15 @@ class BookingWorkflowService
         return DB::transaction(function () use ($booking, $actor) {
             $old = $booking->status;
             $booking->update(['status' => Booking::STATUS_READY_FOR_PICKUP]);
+            if ($booking->vehicle && $booking->vehicle->status === Vehicle::STATUS_RESERVED) {
+                $this->vehicleStatusService->transition(
+                    $booking->vehicle,
+                    Vehicle::STATUS_READY_FOR_PICKUP,
+                    $actor,
+                    'Booking prepared for pickup',
+                    true
+                );
+            }
             $fresh = $booking->fresh()->load(['vehicle', 'user', 'branch', 'payments']);
             $this->audit($actor, $fresh, 'pickup_prepared', $old, $fresh->status, 'Marked ready for pickup');
 
@@ -535,13 +549,28 @@ class BookingWorkflowService
 
             $vehicleStatus = $requiresMaintenance
                 ? Vehicle::STATUS_MAINTENANCE
-                : Vehicle::STATUS_AVAILABLE;
+                : Vehicle::STATUS_RETURN_PENDING_INSPECTION;
 
             $vehicleUpdate = ['status' => $vehicleStatus];
             if (isset($data['return_mileage'])) {
                 $vehicleUpdate['mileage'] = (int) $data['return_mileage'];
             }
             $booking->vehicle->update($vehicleUpdate);
+
+            if (!$requiresMaintenance) {
+                $this->inspectionService->createPostReturnInspection($booking->fresh(), $actor);
+            }
+
+            if ($requiresMaintenance && (!empty($data['new_damage']) || !empty($data['damage_notes']))) {
+                app(VehicleDamageService::class)->create([
+                    'vehicle_id' => $booking->vehicle_id,
+                    'booking_id' => $booking->id,
+                    'damage_type' => 'return_damage',
+                    'description' => $data['damage_notes'] ?? $data['new_damage'] ?? 'Damage reported on return.',
+                    'severity' => $data['damage_severity'] ?? 'medium',
+                    'repair_status' => 'pending',
+                ], $actor);
+            }
 
             $fresh = $booking->fresh()->load(['vehicle', 'user', 'branch', 'payments']);
             $this->audit($actor, $fresh, 'booking_completed', $old, $fresh->status, 'Vehicle returned and booking completed');

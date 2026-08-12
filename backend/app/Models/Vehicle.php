@@ -13,18 +13,42 @@ class Vehicle extends Model
 
     public const STATUS_AVAILABLE = 'available';
     public const STATUS_RESERVED = 'reserved';
+    public const STATUS_READY_FOR_PICKUP = 'ready_for_pickup';
     public const STATUS_RENTED = 'rented';
+    public const STATUS_RETURN_PENDING_INSPECTION = 'return_pending_inspection';
+    public const STATUS_INSPECTION_REQUIRED = 'inspection_required';
     public const STATUS_MAINTENANCE = 'maintenance';
     public const STATUS_UNAVAILABLE = 'unavailable';
+    public const STATUS_TRANSFER_PENDING = 'transfer_pending';
+    public const STATUS_TRANSFER_IN_TRANSIT = 'transfer_in_transit';
     public const STATUS_TRANSFERRED = 'transferred';
+    public const STATUS_RETIRED = 'retired';
 
     public const STATUSES = [
         self::STATUS_AVAILABLE,
         self::STATUS_RESERVED,
+        self::STATUS_READY_FOR_PICKUP,
         self::STATUS_RENTED,
+        self::STATUS_RETURN_PENDING_INSPECTION,
+        self::STATUS_INSPECTION_REQUIRED,
         self::STATUS_MAINTENANCE,
         self::STATUS_UNAVAILABLE,
+        self::STATUS_TRANSFER_PENDING,
+        self::STATUS_TRANSFER_IN_TRANSIT,
         self::STATUS_TRANSFERRED,
+        self::STATUS_RETIRED,
+    ];
+
+    /** Statuses that block customer booking */
+    public const NON_RENTABLE_STATUSES = [
+        self::STATUS_MAINTENANCE,
+        self::STATUS_UNAVAILABLE,
+        self::STATUS_RETIRED,
+        self::STATUS_TRANSFER_PENDING,
+        self::STATUS_TRANSFER_IN_TRANSIT,
+        self::STATUS_RETURN_PENDING_INSPECTION,
+        self::STATUS_INSPECTION_REQUIRED,
+        self::STATUS_RENTED,
     ];
 
     protected $fillable = [
@@ -44,6 +68,7 @@ class Vehicle extends Model
         'purchase_price',
         'rental_price_per_day',
         'status',
+        'condition',
         'featured',
         'location',
         'created_by',
@@ -121,6 +146,21 @@ class Vehicle extends Model
         return $this->hasMany(VehicleTransfer::class);
     }
 
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(VehicleInspection::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(VehicleDocument::class);
+    }
+
+    public function damages(): HasMany
+    {
+        return $this->hasMany(VehicleDamage::class);
+    }
+
     public function activeTransfer()
     {
         return $this->hasOne(VehicleTransfer::class)
@@ -151,7 +191,50 @@ class Vehicle extends Model
 
     public function canBeBooked(): bool
     {
-        return in_array($this->status, [self::STATUS_AVAILABLE, self::STATUS_RESERVED]);
+        return $this->isRentable();
+    }
+
+    public function isRentable(): bool
+    {
+        if (!$this->branch_id) {
+            return false;
+        }
+
+        if (in_array($this->status, self::NON_RENTABLE_STATUSES, true)) {
+            return false;
+        }
+
+        if ($this->hasExpiredRequiredDocuments()) {
+            return false;
+        }
+
+        return in_array($this->status, [self::STATUS_AVAILABLE, self::STATUS_RESERVED], true);
+    }
+
+    public function hasExpiredRequiredDocuments(): bool
+    {
+        return $this->documents()
+            ->where('is_required', true)
+            ->where(function ($q) {
+                $q->where('status', VehicleDocument::STATUS_EXPIRED)
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('expiry_date')
+                            ->whereDate('expiry_date', '<', now()->toDateString());
+                    });
+            })
+            ->exists();
+    }
+
+    public function hasBlockingActiveBooking(): bool
+    {
+        return $this->bookings()
+            ->whereIn('status', [
+                Booking::STATUS_CONFIRMED,
+                Booking::STATUS_READY_FOR_PICKUP,
+                Booking::STATUS_ACTIVE,
+                Booking::STATUS_RETURN_PENDING,
+            ])
+            ->exists();
     }
 
     public function isAvailable(): bool

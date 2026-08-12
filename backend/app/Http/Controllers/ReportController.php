@@ -154,8 +154,10 @@ class ReportController extends Controller
         $user = $request->user();
         $query = Vehicle::with('branch:id,name,code');
 
-        if (!$user->isAdmin()) {
+        if ($user->isBranchManager() && !$user->isAdmin()) {
             $query->where('branch_id', $user->branch_id);
+        } elseif ($request->filled('branch_id')) {
+            $query->where('branch_id', (int) $request->input('branch_id'));
         }
 
         $vehicles = $query->select('status', DB::raw('count(*) as count'))
