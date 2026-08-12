@@ -116,21 +116,23 @@ export const VehiclesPage = () => {
       </div>
 
       {/* Main Grid: Filters + Vehicles */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        {/* Left Sidebar Filter */}
-        <div className="lg:col-span-1">
-          <VehicleFilter
-            filters={filters}
-            onChange={handleFilterChange}
-            onReset={handleResetFilters}
-            categories={categories}
-            branches={branches}
-            showDates
-          />
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Left column stretches to match vehicle list height so sticky works */}
+        <aside className="lg:col-span-1">
+          <div className="lg:sticky lg:top-24 lg:z-10">
+            <VehicleFilter
+              filters={filters}
+              onChange={handleFilterChange}
+              onReset={handleResetFilters}
+              categories={categories}
+              branches={branches}
+              showDates
+            />
+          </div>
+        </aside>
 
-        {/* Right Vehicles Catalog */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Right Vehicles Catalog — scrolls with the page */}
+        <div className="lg:col-span-3 space-y-6 min-w-0">
           {/* Results Stats */}
           <div className="flex items-center justify-between text-xs text-theme-muted bg-theme-card border border-theme px-4 py-3 rounded-xl">
             <span>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Car, Menu, X, User, LogOut, LayoutDashboard, Shield, Wrench, UserCheck, ChevronDown, Sun, Moon } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import NotificationBell from '../common/NotificationBell';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -94,7 +95,9 @@ export const Navbar = () => {
           </button>
 
           {isAuthenticated ? (
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              <div className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-3 p-1.5 pl-3 rounded-full bg-theme-secondary border border-theme hover:border-theme-hover transition-all text-theme-secondary hover:text-theme-primary"
@@ -130,14 +133,24 @@ export const Navbar = () => {
                   </Link>
 
                   {user?.role === 'customer' && (
-                    <Link
-                      to="/dashboard/profile"
-                      onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
-                    >
-                      <User className="w-4 h-4 text-theme-muted" />
-                      <span>My Profile</span>
-                    </Link>
+                    <>
+                      <Link
+                        to="/dashboard/profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+                      >
+                        <User className="w-4 h-4 text-theme-muted" />
+                        <span>My Profile</span>
+                      </Link>
+                      <Link
+                        to="/dashboard/license"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0M9 14h6m-6 3h3" /></svg>
+                        <span>Driver's License</span>
+                      </Link>
+                    </>
                   )}
 
                   <button
@@ -149,6 +162,7 @@ export const Navbar = () => {
                   </button>
                 </div>
               )}
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
