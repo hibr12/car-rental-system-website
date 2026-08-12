@@ -6,6 +6,7 @@ use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +59,21 @@ class BookingService
             ]);
             $approvals = $this->workflow->resolveInitialApprovals($draft);
 
+            $branchAutoApproved = $approvals['branch_approval_status'] !== Booking::APPROVAL_PENDING;
+            $initialStatus = Booking::STATUS_PENDING_BRANCH_APPROVAL;
+            $initialPaymentStatus = Booking::PAYMENT_STATUS_NOT_REQUIRED;
+
+            if ($branchAutoApproved) {
+                if ($approvals['admin_approval_required']) {
+                    $initialStatus = Booking::STATUS_PENDING_ADMIN_APPROVAL;
+                    $initialPaymentStatus = Booking::PAYMENT_STATUS_NOT_REQUIRED;
+                } else {
+                    // Operationally approved — payment is required to confirm the booking.
+                    $initialStatus = Booking::STATUS_PAYMENT_REQUIRED;
+                    $initialPaymentStatus = Booking::PAYMENT_STATUS_PENDING;
+                }
+            }
+
             $booking = Booking::create([
                 'booking_reference' => $bookingReference,
                 'user_id' => $userId,
@@ -73,18 +89,32 @@ class BookingService
                 'additional_charges' => $additionalCharges,
                 'discount' => $discount,
                 'total_price' => $totalPrice,
-                'status' => Booking::STATUS_PENDING_BRANCH_APPROVAL,
-                'payment_status' => Booking::PAYMENT_STATUS_NOT_REQUIRED,
+                'status' => $initialStatus,
+                'payment_status' => $initialPaymentStatus,
                 'branch_approval_status' => $approvals['branch_approval_status'],
                 'admin_approval_status' => $approvals['admin_approval_status'],
                 'admin_approval_required' => $approvals['admin_approval_required'],
                 'notes' => $data['notes'] ?? null,
             ]);
 
+            // Temporarily reserve the vehicle when we have already passed operational approval.
+            if (in_array($initialStatus, [Booking::STATUS_PAYMENT_REQUIRED, Booking::STATUS_PENDING_ADMIN_APPROVAL], true)) {
+                $booking->vehicle->update(['status' => Vehicle::STATUS_RESERVED]);
+            }
+
             return $booking->load('vehicle', 'user', 'branch');
         });
 
         event(new BookingCreated($booking));
+
+        // After automatic operational approval, the customer must immediately know payment is required.
+        if ($booking->status === Booking::STATUS_PAYMENT_REQUIRED && $booking->payment_status === Booking::PAYMENT_STATUS_PENDING) {
+            try {
+                $booking->user->notify(new BookingBranchApprovedAwaitingPayment($booking));
+            } catch (\Throwable) {
+                // Notifications must not break booking creation.
+            }
+        }
 
         Log::info('Booking created successfully', [
             'booking_id' => $booking->id,
@@ -302,7 +332,7 @@ class BookingService
     private function validateNoOverlap(int $vehicleId, Carbon $pickupDate, Carbon $returnDate, ?int $excludeBookingId = null): void
     {
         if ($this->hasOverlap($vehicleId, $pickupDate, $returnDate, $excludeBookingId)) {
-            throw new \InvalidArgumentException('Vehicle is already booked for the selected dates.');
+            throw new \InvalidArgumentException('This vehicle is unavailable for the selected dates.');
         }
     }
 

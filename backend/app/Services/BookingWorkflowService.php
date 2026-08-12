@@ -7,6 +7,7 @@ use App\Events\BookingCompleted;
 use App\Events\BookingConfirmed;
 use App\Events\BookingPickedUp;
 use App\Events\BookingRejected;
+use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\User;
@@ -56,10 +57,13 @@ class BookingWorkflowService
         $needsAdmin = $this->requiresAdminApproval($booking);
 
         return [
-            'branch_approval_status' => Booking::APPROVAL_PENDING,
-            'admin_approval_status' => $needsAdmin
+            // Branch operational approval is automatic for normal bookings.
+            // Branch manager intervention is only needed for exceptions we already
+            // route through "admin approval required" thresholds.
+            'branch_approval_status' => $needsAdmin
                 ? Booking::APPROVAL_PENDING
                 : Booking::APPROVAL_NOT_REQUIRED,
+            'admin_approval_status' => $needsAdmin ? Booking::APPROVAL_PENDING : Booking::APPROVAL_NOT_REQUIRED,
             'admin_approval_required' => $needsAdmin,
         ];
     }
@@ -192,6 +196,20 @@ class BookingWorkflowService
             $this->audit($approver, $fresh, 'branch_approved', $old, $fresh->status, $booking->isPaymentSatisfied()
                 ? 'Branch approved booking — already paid'
                 : 'Branch approved booking — payment now required');
+
+            // Customer needs clear next step immediately after branch approval.
+            // Only notify when the booking is still waiting on payment (or final admin confirmation).
+            if (in_array($fresh->status, [
+                Booking::STATUS_PAYMENT_REQUIRED,
+                Booking::STATUS_PAYMENT_PROCESSING,
+                Booking::STATUS_PENDING_ADMIN_APPROVAL,
+            ], true)) {
+                try {
+                    $fresh->user->notify(new BookingBranchApprovedAwaitingPayment($fresh));
+                } catch (\Throwable) {
+                    // Notifications must never break business workflow transitions.
+                }
+            }
 
             if ($fresh->status === Booking::STATUS_CONFIRMED || $fresh->status === Booking::STATUS_READY_FOR_PICKUP) {
                 event(new BookingConfirmed($fresh));
@@ -629,7 +647,6 @@ class BookingWorkflowService
             && $booking->isAdminApproved()
             && in_array($status, [
                 Booking::STATUS_PAYMENT_REQUIRED,
-                Booking::STATUS_PAYMENT_PROCESSING,
                 Booking::STATUS_PENDING_PAYMENT,
                 Booking::STATUS_PENDING,
                 Booking::STATUS_PAYMENT_VERIFIED,
@@ -743,7 +760,7 @@ class BookingWorkflowService
                 },
                 'detail' => match ($booking->branch_approval_status) {
                     Booking::APPROVAL_APPROVED => 'Approved',
-                    Booking::APPROVAL_NOT_REQUIRED => 'Not required',
+                    Booking::APPROVAL_NOT_REQUIRED => 'Approved',
                     Booking::APPROVAL_REJECTED => 'Rejected',
                     default => 'Waiting for branch approval',
                 },

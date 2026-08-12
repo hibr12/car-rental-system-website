@@ -9,15 +9,22 @@ use Illuminate\Support\Str;
 
 class ChapaService
 {
+    private string $mode;
     private string $secretKey;
     private string $baseUrl;
     private string $webhookSecret;
 
     public function __construct()
     {
+        $this->mode = strtolower(trim((string) config('services.chapa.mode', 'test')));
         $this->secretKey = (string) config('services.chapa.secret_key');
         $this->baseUrl = rtrim((string) config('services.chapa.base_url', 'https://api.chapa.co'), '/');
         $this->webhookSecret = (string) config('services.chapa.webhook_secret', $this->secretKey);
+    }
+
+    public function getMode(): string
+    {
+        return $this->mode;
     }
 
     /**
@@ -75,7 +82,12 @@ class ChapaService
             throw new \RuntimeException('Payment initialization failed. Invalid response from payment gateway.');
         }
 
-        Log::info('[Chapa] Initialize transaction', ['tx_ref' => $payload['tx_ref']]);
+        Log::info('[Chapa] Initialize transaction', [
+            'mode' => $this->mode,
+            'tx_ref' => $payload['tx_ref'],
+            'amount' => $payload['amount'],
+            'currency' => $payload['currency'] ?? 'ETB',
+        ]);
 
         return [
             'checkout_url' => $data['data']['checkout_url'],
@@ -97,7 +109,7 @@ class ChapaService
             throw new \RuntimeException('Chapa secret key is not configured on the server.');
         }
 
-        Log::info('[Chapa] Verify transaction', ['tx_ref' => $txRef]);
+        Log::info('[Chapa] Verify transaction', ['mode' => $this->mode, 'tx_ref' => $txRef]);
 
         try {
             $response = Http::withHeaders([
@@ -167,10 +179,13 @@ class ChapaService
         }
 
         Log::info('[Chapa] Verification result', [
+            'mode' => $this->mode,
             'tx_ref' => $txRef,
             'status' => $status,
             'amount' => $payload['amount'] ?? null,
             'currency' => $payload['currency'] ?? null,
+            // gateway_reference logged for reconciliation; no secrets logged.
+            'reference' => $payload['reference'] ?? null,
         ]);
 
         return [

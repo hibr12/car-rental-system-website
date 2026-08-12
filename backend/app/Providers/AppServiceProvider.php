@@ -18,6 +18,7 @@ use App\Policies\PaymentPolicy;
 use App\Policies\ReviewPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VehiclePolicy;
+use App\Services\ChapaConfigValidator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +31,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Validate Chapa configuration at boot so misconfigured environments
+        // fail loudly instead of silently using wrong credentials.
+        // In 'live' mode, missing or test-looking keys throw immediately.
+        // Skip during unit tests (RefreshDatabase truncates config each run).
+        if (!$this->app->runningUnitTests()) {
+            app(ChapaConfigValidator::class)->validate();
+        }
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Vehicle::class, VehiclePolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);

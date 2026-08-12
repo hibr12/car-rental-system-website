@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, AlertCircle, CheckCircle, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
@@ -34,6 +34,13 @@ export const RentalCalculator = ({ vehicle }) => {
   const estimatedSubtotal = useMemo(() => {
     return rentalDays * (vehicle?.rental_price_per_day || 0);
   }, [rentalDays, vehicle]);
+
+  useEffect(() => {
+    if (!bookingSuccess) return;
+    // After creation, go to the customer dashboard so payment is visible immediately.
+    const t = setTimeout(() => navigate('/dashboard'), 1200);
+    return () => clearTimeout(t);
+  }, [bookingSuccess, navigate]);
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
@@ -85,6 +92,9 @@ export const RentalCalculator = ({ vehicle }) => {
           </span>
           <h3 className="text-2xl font-bold text-theme-primary">Your Journey Awaits!</h3>
           <p className="text-sm text-theme-muted">
+            Your vehicle has been reserved. Payment status will appear on your dashboard.
+          </p>
+          <p className="text-sm text-theme-muted">
             Reference Number: <span className="font-mono font-bold text-blue-400">{bookingSuccess.booking_reference}</span>
           </p>
         </div>
@@ -106,16 +116,10 @@ export const RentalCalculator = ({ vehicle }) => {
 
         <div className="pt-2 flex flex-col gap-3">
           <button
-            onClick={() => navigate(`/checkout?booking_id=${bookingSuccess.id}`)}
+            onClick={() => navigate('/dashboard')}
             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-theme-primary font-bold text-sm transition-all shadow-lg"
           >
-            Proceed to Payment
-          </button>
-          <button
-            onClick={() => navigate('/dashboard/bookings')}
-            className="w-full py-2.5 rounded-xl border border-theme text-theme-muted hover:text-theme-primary text-xs"
-          >
-            View My Bookings
+            Go to Dashboard
           </button>
           <button
             onClick={() => setBookingSuccess(null)}

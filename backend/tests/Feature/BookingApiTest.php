@@ -50,7 +50,7 @@ class BookingApiTest extends TestCase
                 ],
             ]);
 
-        $this->assertEquals('pending_branch_approval', $response->json('data.status'));
-        $this->assertEquals('not_required', $response->json('data.payment_status'));
+        $this->assertEquals('payment_required', $response->json('data.status'));
+        $this->assertEquals('pending', $response->json('data.payment_status'));
     }
 }

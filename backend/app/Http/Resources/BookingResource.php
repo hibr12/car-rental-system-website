@@ -25,6 +25,20 @@ class BookingResource extends JsonResource
 
         $normalizedStatus = $this->normalizeStatus();
 
+        $nextAction = match (true) {
+            $this->payment_status === 'cash_pending' => 'CASH_VERIFICATION_REQUIRED',
+            in_array($this->payment_status, ['failed', 'invalid'], true) => 'PAYMENT_FAILED',
+            $normalizedStatus === 'pending_admin_approval'
+                || $normalizedStatus === 'pending_branch_approval' => 'WAITING_MANUAL_APPROVAL',
+            $normalizedStatus === 'payment_processing' => 'PAYMENT_PROCESSING',
+            $normalizedStatus === 'payment_required' => 'PAYMENT_REQUIRED',
+            $normalizedStatus === 'confirmed' => 'READY_FOR_PICKUP',
+            $normalizedStatus === 'ready_for_pickup' => 'READY_FOR_PICKUP',
+            $normalizedStatus === 'active' => 'ACTIVE',
+            $normalizedStatus === 'completed' => 'COMPLETED',
+            default => null,
+        };
+
         return [
             'id' => $this->id,
             'booking_reference' => $this->booking_reference,
@@ -86,6 +100,7 @@ class BookingResource extends JsonResource
             'archive_reason' => $this->archive_reason,
             'allowed_actions' => $workflow->allowedActions($this->resource, $actor),
             'timeline' => $workflow->buildTimeline($this->resource),
+            'next_action' => $nextAction,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

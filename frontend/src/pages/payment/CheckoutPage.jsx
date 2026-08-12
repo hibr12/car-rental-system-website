@@ -138,7 +138,9 @@ export const CheckoutPage = () => {
     }
   }, [bookingId, toast]);
 
-  // After return from Chapa (or unpaid pending booking), auto-verify once
+  // After return from Chapa, auto-verify once.
+  // Important: do not treat booking.payment_status === 'pending' as "processing"
+  // unless an actual payment attempt exists (tx_ref / payment row).
   useEffect(() => {
     if (!booking || verifyStarted.current || loading) return;
 
@@ -147,11 +149,17 @@ export const CheckoutPage = () => {
     const hasPendingForThisBooking =
       pendingTx && (!pendingBooking || String(pendingBooking) === String(bookingId));
 
-    const needsVerify =
-      hasPendingForThisBooking ||
-      (booking.payment_status === 'pending' && booking.payment_status !== 'paid');
+    const hasOnlineAttempt =
+      booking?.payment
+      && booking.payment.payment_method === 'online_payment'
+      && ['pending', 'processing'].includes(booking.payment.status)
+      && (booking.payment.transaction_reference || pendingTx);
 
-    if (needsVerify && booking.payment_status !== 'paid') {
+    const needsVerify =
+      booking.payment_status !== 'paid'
+      && (hasPendingForThisBooking || hasOnlineAttempt);
+
+    if (needsVerify) {
       verifyStarted.current = true;
       // Prefer dedicated status page when we have tx_ref
       if (hasPendingForThisBooking) {
@@ -178,7 +186,8 @@ export const CheckoutPage = () => {
           payment_method: 'cash',
         });
         toast.success('Cash payment selected. Payment will be confirmed by the branch after cash is received.');
-        navigate('/dashboard/bookings');
+        // Customer can now see "Cash awaiting verification" on the booking detail page.
+        navigate(`/dashboard/bookings/${booking.id}`);
       } catch (err) {
         const msg = err.message || 'Failed to record payment.';
         if (msg.includes('already been paid')) {
@@ -263,11 +272,15 @@ export const CheckoutPage = () => {
 
   const isPaid = booking.payment_status === 'paid';
   const isCashPending = booking.payment_status === 'cash_pending';
-  const isPaymentProcessing =
-    !isPaid &&
-    (verifying ||
-      booking.payment_status === 'pending' ||
-      sessionStorage.getItem('pending_payment_tx_ref'));
+  const onlineAttemptStatus = booking?.payment?.payment_method === 'online_payment'
+    ? booking?.payment?.status
+    : null;
+  const hasOnlineProcessingAttempt =
+    !isPaid
+    && (onlineAttemptStatus === 'processing' || onlineAttemptStatus === 'pending')
+    && (booking?.payment?.transaction_reference || sessionStorage.getItem('pending_payment_tx_ref'));
+
+  const isPaymentProcessing = !isPaid && (verifying || hasOnlineProcessingAttempt);
   const payableStatuses = [
     'payment_required',
     'payment_processing',

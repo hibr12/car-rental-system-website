@@ -36,10 +36,27 @@ return [
     ],
 
     'chapa' => [
+        // 'test' or 'live' — switching this (with matching credentials) is the ONLY change
+        // required to move between Chapa TEST and Chapa LIVE environments.
+        'mode' => env('CHAPA_MODE', 'test'),
+
+        // Secret key — NEVER expose in VITE_* or frontend code.
         'secret_key' => env('CHAPA_SECRET_KEY'),
+
+        // Chapa REST API base URL (same host for both modes; key determines environment).
         'base_url' => env('CHAPA_BASE_URL', 'https://api.chapa.co'),
+
+        // Server-side callback: Chapa POSTs here after payment completes.
+        'callback_url' => env('CHAPA_CALLBACK_URL', rtrim(env('APP_URL', 'http://localhost:8000'), '/') . '/api/payments/callback'),
+
+        // Browser redirect: customer lands here after Chapa checkout.
+        'return_url' => env('CHAPA_RETURN_URL', rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/payments/status'),
+
+        // Webhook endpoint registered in Chapa dashboard.
+        'webhook_url' => env('CHAPA_WEBHOOK_URL', rtrim(env('APP_URL', 'http://localhost:8000'), '/') . '/api/payments/chapa/webhook'),
+
+        // Webhook HMAC secret — defaults to secret_key when not separately configured.
         'webhook_secret' => env('CHAPA_WEBHOOK_SECRET', env('CHAPA_SECRET_KEY')),
-        'return_url' => env('CHAPA_RETURN_URL') ?: (rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/payments/status'),
     ],
 
 ];

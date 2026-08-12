@@ -162,11 +162,14 @@ class PaymentService
         }
 
         $user = User::find($userId);
-        $frontend = rtrim((string) (config('services.chapa.return_url') ?: (env('FRONTEND_URL', 'http://localhost:5173') . '/payments/status')), '/');
 
-        // Always land on payment status page with booking + tx_ref for reliable verification
-        $returnUrl = $frontend
-            . (str_contains($frontend, '?') ? '&' : '?')
+        // All URLs come from config (driven by env vars) — no hardcoding.
+        $returnBase = rtrim((string) config('services.chapa.return_url', 'http://localhost:5173/payments/status'), '/');
+        $callbackUrl = (string) config('services.chapa.callback_url', rtrim(config('app.url', 'http://localhost:8000'), '/') . '/api/payments/callback');
+
+        // Always append booking_id + tx_ref so the status page can verify reliably.
+        $returnUrl = $returnBase
+            . (str_contains($returnBase, '?') ? '&' : '?')
             . http_build_query([
                 'booking_id' => $booking->id,
                 'tx_ref' => $txRef,
@@ -182,7 +185,7 @@ class PaymentService
                 'last_name' => explode(' ', $user->name)[1] ?? '',
                 'title' => 'Car Rental',
                 'description' => 'Payment for booking ' . $booking->booking_reference,
-                'callback_url' => url('/api/payments/callback'),
+                'callback_url' => $callbackUrl,
                 'return_url' => $returnUrl,
             ]);
 

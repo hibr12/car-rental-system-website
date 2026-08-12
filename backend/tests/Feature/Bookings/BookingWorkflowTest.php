@@ -103,9 +103,9 @@ class BookingWorkflowTest extends TestCase
             ]);
 
         $response->assertCreated();
-        $this->assertEquals(Booking::STATUS_PENDING_BRANCH_APPROVAL, $response->json('data.status'));
-        $this->assertEquals(Booking::PAYMENT_STATUS_NOT_REQUIRED, $response->json('data.payment_status'));
-        $this->assertEquals(Booking::APPROVAL_PENDING, $response->json('data.branch_approval_status'));
+        $this->assertEquals(Booking::STATUS_PAYMENT_REQUIRED, $response->json('data.status'));
+        $this->assertEquals(Booking::PAYMENT_STATUS_PENDING, $response->json('data.payment_status'));
+        $this->assertEquals(Booking::APPROVAL_NOT_REQUIRED, $response->json('data.branch_approval_status'));
     }
 
     public function test_unpaid_booking_can_be_branch_approved(): void

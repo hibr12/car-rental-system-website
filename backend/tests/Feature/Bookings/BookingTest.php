@@ -73,8 +73,8 @@ class BookingTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'user_id' => $this->customer->id,
             'vehicle_id' => $this->vehicle->id,
-            'status' => 'pending_branch_approval',
-            'payment_status' => 'not_required',
+            'status' => 'payment_required',
+            'payment_status' => 'pending',
         ]);
     }
 
@@ -134,7 +134,7 @@ class BookingTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Vehicle is already booked for the selected dates.',
+                'message' => 'This vehicle is unavailable for the selected dates.',
             ]);
     }
 

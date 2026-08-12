@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import PortalGate from './app/guards/PortalGate';
@@ -32,25 +32,25 @@ import CheckoutPage from './pages/payment/CheckoutPage';
 import PaymentStatusPage from './pages/payment/PaymentStatusPage';
 import BookingConfirmationPage from './pages/payment/BookingConfirmationPage';
 
-import AdminDashboard from './pages/admin/AdminDashboard';
-import VehicleManagement from './pages/admin/VehicleManagement';
-import AdminBookings from './pages/admin/AdminBookings';
-import UserManagement from './pages/admin/UserManagement';
-import PaymentsPage from './pages/admin/PaymentsPage';
-import PaymentHistoryPage from './pages/admin/PaymentHistoryPage';
-import PaymentReconciliationPage from './pages/admin/PaymentReconciliationPage';
-import ArchiveIndexPage from './pages/admin/ArchiveIndexPage';
-import ArchiveBookingsPage from './pages/admin/ArchiveBookingsPage';
-import ArchivePaymentsPage from './pages/admin/ArchivePaymentsPage';
-import MaintenancePage from './pages/admin/MaintenancePage';
-import MessagesPage from './pages/admin/MessagesPage';
-import CategoryManagement from './pages/admin/CategoryManagement';
-import ReviewsManagement from './pages/admin/ReviewsManagement';
-import AnalyticsPage from './pages/admin/AnalyticsPage';
-import BranchesPage from './pages/admin/BranchesPage';
-import VehicleTransfersPage from './pages/admin/VehicleTransfersPage';
-import StaffManagementPage from './pages/admin/StaffManagementPage';
-import ReportsPage from './pages/admin/ReportsPage';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const VehicleManagement = lazy(() => import('./pages/admin/VehicleManagement'));
+const AdminBookings = lazy(() => import('./pages/admin/AdminBookings'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'));
+const PaymentHistoryPage = lazy(() => import('./pages/admin/PaymentHistoryPage'));
+const PaymentReconciliationPage = lazy(() => import('./pages/admin/PaymentReconciliationPage'));
+const ArchiveIndexPage = lazy(() => import('./pages/admin/ArchiveIndexPage'));
+const ArchiveBookingsPage = lazy(() => import('./pages/admin/ArchiveBookingsPage'));
+const ArchivePaymentsPage = lazy(() => import('./pages/admin/ArchivePaymentsPage'));
+const MaintenancePage = lazy(() => import('./pages/admin/MaintenancePage'));
+const MessagesPage = lazy(() => import('./pages/admin/MessagesPage'));
+const CategoryManagement = lazy(() => import('./pages/admin/CategoryManagement'));
+const ReviewsManagement = lazy(() => import('./pages/admin/ReviewsManagement'));
+const AnalyticsPage = lazy(() => import('./pages/admin/AnalyticsPage'));
+const BranchesPage = lazy(() => import('./pages/admin/BranchesPage'));
+const VehicleTransfersPage = lazy(() => import('./pages/admin/VehicleTransfersPage'));
+const StaffManagementPage = lazy(() => import('./pages/admin/StaffManagementPage'));
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
 
 import BranchDashboard from './pages/branch/BranchDashboard';
 import BranchRentalsPage from './pages/branch/BranchRentalsPage';
@@ -80,6 +80,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<div className="p-8 text-sm text-theme-muted">Loading...</div>}>
       <Routes>
 
         {/* ═══ CUSTOMER / PUBLIC ═══ */}
@@ -197,6 +198,7 @@ function App() {
         {/* Customer 404 only — management unknown routes handled inside each portal */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

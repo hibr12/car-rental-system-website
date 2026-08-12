@@ -6,6 +6,7 @@ import {
   Calendar,
   MapPin,
   CreditCard,
+  Clock,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -137,10 +138,12 @@ export const BookingDetailPage = () => {
   const canPay = actions.includes('pay');
   const canCancel = actions.includes('cancel');
   const canReview = actions.includes('write_review') || (booking.status === 'completed' && !booking.has_review);
+  const isPaymentFailed = booking.payment_status === 'failed' || booking.payment_status === 'invalid';
   const paymentStateMessage = (() => {
     if (booking.payment_status === 'paid') return 'Payment successful and verified.';
     if (booking.payment_status === 'cash_pending') return 'Cash payment is waiting for branch verification.';
     if (booking.payment_status === 'failed' || booking.payment_status === 'invalid') return 'Payment failed. Try payment again.';
+    if (booking.status === 'payment_processing') return 'Your payment is being verified. Please check the status shortly.';
     if (canPay) return 'Your booking has been approved. Complete payment to confirm your reservation.';
     if ((booking.booking_status || booking.status) === 'pending_branch_approval') return 'Payment will be available after branch approval.';
     return 'Payment status will update automatically when verification completes.';
@@ -304,7 +307,17 @@ export const BookingDetailPage = () => {
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
               >
                 <CreditCard className="w-4 h-4" />
-                Pay Now
+                {isPaymentFailed ? 'Try Payment Again' : 'Pay Now'}
+              </Link>
+            )}
+
+            {booking.status === 'payment_processing' && (
+              <Link
+                to={`/payments/status?booking_id=${booking.id}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-theme text-theme-muted hover:text-theme-primary text-xs font-bold transition-all"
+              >
+                <Clock className="w-4 h-4" />
+                Check Payment Status
               </Link>
             )}
           </div>
@@ -359,7 +372,7 @@ export const BookingDetailPage = () => {
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition-all"
               >
                 <CreditCard className="w-4 h-4" />
-                Pay Now
+                {isPaymentFailed ? 'Try Payment Again' : 'Pay Now'}
               </Link>
             )}
 
