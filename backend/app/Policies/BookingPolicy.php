@@ -26,6 +26,10 @@ class BookingPolicy
             return true;
         }
 
+        if ($user->isBranchManager()) {
+            return $user->branch_id === $booking->branch_id || $user->id === $booking->user_id;
+        }
+
         return $user->id === $booking->user_id;
     }
 

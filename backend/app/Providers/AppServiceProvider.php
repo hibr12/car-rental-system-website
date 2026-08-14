@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Booking;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\ContactMessage;
 use App\Models\DriverLicense;
@@ -12,6 +13,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Policies\BookingPolicy;
+use App\Policies\BranchPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ContactMessagePolicy;
 use App\Policies\DriverLicensePolicy;

@@ -27,7 +27,7 @@ class MaintenancePolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'fleet_manager']);
+        return in_array($user->role, ['admin', 'fleet_manager', 'branch_manager']);
     }
 
     public function update(User $user, Maintenance $maintenance): bool

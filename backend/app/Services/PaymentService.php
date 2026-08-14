@@ -8,6 +8,8 @@ use App\Events\PaymentRefunded;
 use App\Events\PaymentSucceeded;
 use App\Exceptions\PaymentVerificationRetryableException;
 use App\Models\Booking;
+use App\Models\CustomNotification;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -966,6 +968,15 @@ class PaymentService
             }
 
             event(new PaymentRefunded($payment->booking, $payment));
+
+            $this->createNotification(
+                $payment->user_id,
+                'payment_refunded',
+                'Payment Refunded',
+                "Payment for reservation #{$payment->booking->booking_reference} has been refunded.",
+                Booking::class,
+                $payment->booking_id
+            );
 
             return $payment->fresh();
         });

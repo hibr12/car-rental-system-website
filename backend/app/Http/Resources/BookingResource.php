@@ -48,6 +48,7 @@ class BookingResource extends JsonResource
             'customer' => new UserResource($this->whenLoaded('user')),
             'vehicle_id' => $this->vehicle_id,
             'vehicle' => new VehicleResource($this->whenLoaded('vehicle')),
+            'branch' => new BranchResource($this->whenLoaded('branch')),
             'pickup_location' => $this->pickup_location,
             'return_location' => $this->return_location,
             'pickup_date' => $this->pickup_date?->toISOString(),

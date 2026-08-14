@@ -15,6 +15,7 @@ class StoreVehicleRequest extends FormRequest
     {
         return [
             'category_id' => ['required', 'exists:categories,id'],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'brand' => ['required', 'string', 'max:255'],
             'model' => ['required', 'string', 'max:255'],
             'year' => ['required', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],

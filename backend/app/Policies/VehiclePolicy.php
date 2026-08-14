@@ -47,4 +47,9 @@ class VehiclePolicy
     {
         return $user->isAdmin();
     }
+
+    public function manageAvailability(User $user): bool
+    {
+        return in_array($user->role, ['admin', 'fleet_manager', 'branch_manager']);
+    }
 }

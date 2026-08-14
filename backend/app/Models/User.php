@@ -190,6 +190,21 @@ class User extends Authenticatable
         ]);
     }
 
+    public function isBranchManager(): bool
+    {
+        return $this->role === 'branch_manager';
+    }
+
+    public function hasVerifiedLicense(): bool
+    {
+        return $this->license_status === 'verified';
+    }
+
+    public function hasBranch(): bool
+    {
+        return $this->branch_id !== null;
+    }
+
     public static function factory(): UserFactory
     {
         return new UserFactory();

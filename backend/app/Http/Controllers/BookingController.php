@@ -40,6 +40,8 @@ class BookingController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
+        $bookings = $query->orderBy('created_at', 'desc')->paginate(15);
+
         return response()->json([
             'success' => true,
             'message' => 'Bookings retrieved successfully',
