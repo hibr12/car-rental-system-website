@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient from './client';
 
 const notificationApi = {
   getAll: (params = {}) => apiClient.get('/notifications', { params }),

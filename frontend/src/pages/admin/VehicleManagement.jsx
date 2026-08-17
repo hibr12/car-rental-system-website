@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Car, ArrowRightLeft, History, Loader2, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Car, ArrowRightLeft, History, Loader2, X, Filter, ChevronDown } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import adminApi from '../../api/adminApi';
@@ -36,6 +36,7 @@ export const VehicleManagement = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [branchFilter, setBranchFilter] = useState('');
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -77,7 +78,7 @@ export const VehicleManagement = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const res = await vehicleApi.getAll({ search, page, per_page: 10 });
+      const res = await vehicleApi.getAll({ search, page, per_page: 10, branch_id: branchFilter || undefined });
       setVehicles(res.data || []);
       if (res.meta) setMeta(res.meta);
     } catch (err) {
@@ -94,13 +95,14 @@ export const VehicleManagement = () => {
 
   useEffect(() => {
     fetchVehicles();
-  }, [search, page]);
+  }, [search, page, branchFilter]);
 
   const handleOpenCreateModal = () => {
     setEditingVehicle(null);
     setFormData({
       ...initialForm,
       category_id: categories[0]?.id || '',
+      branch_id: branches[0]?.id || '',
     });
     setModalOpen(true);
   };
@@ -109,6 +111,7 @@ export const VehicleManagement = () => {
     setEditingVehicle(vehicle);
     setFormData({
       category_id: vehicle.category?.id || categories[0]?.id || '',
+      branch_id: vehicle.branch_id || '',
       brand: vehicle.brand || '',
       model: vehicle.model || '',
       year: vehicle.year || new Date().getFullYear(),
@@ -139,6 +142,7 @@ export const VehicleManagement = () => {
       const payload = {
         ...formData,
         category_id: parseInt(formData.category_id, 10),
+        branch_id: formData.branch_id ? parseInt(formData.branch_id, 10) : undefined,
         year: parseInt(formData.year, 10),
         seats: parseInt(formData.seats, 10),
         rental_price_per_day: parseFloat(formData.rental_price_per_day),
@@ -262,15 +266,32 @@ export const VehicleManagement = () => {
       />
 
       <ManagementCard padding={false} className="p-4 sm:p-5">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by brand, model, registration..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB]"
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by brand, model, registration..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-4 pr-4 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] appearance-none bg-no-repeat bg-right"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")", backgroundSize: "1.5rem", backgroundPosition: "right 0.5rem center" }}
+            >
+              <option value="">All Branches</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </ManagementCard>
 
@@ -415,7 +436,7 @@ export const VehicleManagement = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="block text-[#334155] font-semibold mb-1">Year *</label>
               <input
@@ -436,6 +457,21 @@ export const VehicleManagement = () => {
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[#334155] font-semibold mb-1">Branch *</label>
+              <select
+                value={formData.branch_id}
+                onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                className="w-full bg-white border border-[#CBD5E1] rounded-xl p-2.5 text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+              >
+                <option value="">Select Branch</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
                   </option>
                 ))}
               </select>

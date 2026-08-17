@@ -19,12 +19,14 @@ class RoleMiddleware
             ], 403);
         }
 
+        $allowedRoles = explode(',', $roles);
+
         // super_admin inherits admin-level route access
-        if (in_array('admin', $roles, true) && $user->role === 'super_admin') {
+        if (in_array('admin', $allowedRoles, true) && $user->role === 'super_admin') {
             return $next($request);
         }
 
-        if (!in_array($user->role, $roles, true)) {
+        if (!in_array($user->role, $allowedRoles, true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Insufficient permissions.',

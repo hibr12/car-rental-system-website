@@ -14,10 +14,20 @@ class UpdateVehicleRequest extends FormRequest
     public function rules(): array
     {
         $vehicle = $this->route('vehicle');
+        $user = $this->user();
+        $isAdminOrFleet = $user && in_array($user->role, [
+            \App\Models\User::ROLE_COMPANY_ADMIN,
+            \App\Models\User::ROLE_FLEET_MANAGER,
+            \App\Models\User::ROLE_SUPER_ADMIN,
+        ]);
+
+        $branchIdRule = $isAdminOrFleet
+            ? ['sometimes', 'required', 'exists:branches,id']
+            : ['sometimes', 'nullable', 'exists:branches,id'];
 
         return [
             'category_id' => ['sometimes', 'exists:categories,id'],
-            'branch_id' => ['sometimes', 'nullable', 'exists:branches,id'],
+            'branch_id' => $branchIdRule,
             'brand' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'string', 'max:255'],
             'year' => ['sometimes', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],

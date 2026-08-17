@@ -190,11 +190,6 @@ class User extends Authenticatable
         ]);
     }
 
-    public function isBranchManager(): bool
-    {
-        return $this->role === 'branch_manager';
-    }
-
     public function hasVerifiedLicense(): bool
     {
         return $this->license_status === 'verified';

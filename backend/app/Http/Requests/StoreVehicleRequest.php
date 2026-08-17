@@ -13,9 +13,20 @@ class StoreVehicleRequest extends FormRequest
 
     public function rules(): array
     {
+        $user = $this->user();
+        $isAdminOrFleet = $user && in_array($user->role, [
+            \App\Models\User::ROLE_COMPANY_ADMIN,
+            \App\Models\User::ROLE_FLEET_MANAGER,
+            \App\Models\User::ROLE_SUPER_ADMIN,
+        ]);
+
+        $branchIdRule = $isAdminOrFleet
+            ? ['required', 'exists:branches,id']
+            : ['nullable', 'exists:branches,id'];
+
         return [
             'category_id' => ['required', 'exists:categories,id'],
-            'branch_id' => ['nullable', 'exists:branches,id'],
+            'branch_id' => $branchIdRule,
             'brand' => ['required', 'string', 'max:255'],
             'model' => ['required', 'string', 'max:255'],
             'year' => ['required', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
@@ -32,7 +43,6 @@ class StoreVehicleRequest extends FormRequest
             'status' => ['sometimes', 'string', 'in:available,rented,reserved,maintenance,unavailable'],
             'featured' => ['sometimes', 'boolean'],
             'location' => ['nullable', 'string', 'max:255'],
-            'branch_id' => ['sometimes', 'integer', 'exists:branches,id'],
             'images' => ['sometimes', 'array', 'max:10'],
             'images.*.image_url' => ['required', 'string', 'max:500'],
             'images.*.is_primary' => ['sometimes', 'boolean'],
@@ -44,6 +54,8 @@ class StoreVehicleRequest extends FormRequest
         return [
             'category_id.required' => 'Category is required.',
             'category_id.exists' => 'The selected category does not exist.',
+            'branch_id.required' => 'Branch is required for this vehicle.',
+            'branch_id.exists' => 'The selected branch does not exist.',
             'brand.required' => 'Brand is required.',
             'model.required' => 'Model is required.',
             'year.required' => 'Year is required.',

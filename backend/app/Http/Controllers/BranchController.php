@@ -33,11 +33,18 @@ class BranchController extends Controller
             VehicleTransfer::STATUS_IN_TRANSIT,
         ];
 
+        $monthStart = now()->startOfMonth();
+        $monthEnd = now()->endOfMonth();
+
         $query = Branch::with('manager', 'company')
             ->withCount([
                 'vehicles',
                 'vehicles as available_vehicles_count' => fn ($q) => $q->where('status', 'available'),
+                'vehicles as maintenance_vehicles_count' => fn ($q) => $q->where('status', 'maintenance'),
+                'vehicles as rented_vehicles_count' => fn ($q) => $q->where('status', 'rented'),
                 'bookings',
+                'bookings as active_bookings_count' => fn ($q) => $q->where('status', 'active'),
+                'bookings as pending_bookings_count' => fn ($q) => $q->where('status', 'pending'),
                 'users as staff_count' => function ($q) {
                     $q->whereIn('role', [
                         User::ROLE_BRANCH_STAFF,
@@ -51,11 +58,10 @@ class BranchController extends Controller
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } elseif (!$request->user()?->isAdmin()) {
-            // Public/customer requests only see active branches by default
             $query->where('status', 'active');
         }
 
-        $branches = $query->orderBy('name')->get()->map(function (Branch $branch) {
+        $branches = $query->orderBy('name')->get()->map(function (Branch $branch) use ($monthStart, $monthEnd) {
             $branch->pending_transfers_count = VehicleTransfer::query()
                 ->where('status', VehicleTransfer::STATUS_PENDING)
                 ->where(function ($q) use ($branch) {
@@ -63,6 +69,19 @@ class BranchController extends Controller
                         ->orWhere('to_branch_id', $branch->id);
                 })
                 ->count();
+
+            $branch->maintenance_count = Maintenance::where('branch_id', $branch->id)
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->count();
+
+            $branch->monthly_revenue = (float) Payment::where('branch_id', $branch->id)
+                ->where('status', 'paid')
+                ->whereBetween('paid_at', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $branch->total_revenue = (float) Payment::where('branch_id', $branch->id)
+                ->where('status', 'paid')
+                ->sum('amount');
 
             return $branch;
         });

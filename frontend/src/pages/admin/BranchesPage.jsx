@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Building2, Plus, Edit2, ToggleLeft, ToggleRight,
-  MapPin, Phone, Mail, Users, Loader2, X, Check, ArrowRightLeft
+  MapPin, Phone, Mail, Users, Loader2, X, Check, ArrowRightLeft,
+  Car, Wrench, DollarSign, TrendingUp
 } from 'lucide-react';
 import adminApi from '../../api/adminApi';
+import { formatCurrency } from '../../utils/formatters';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -143,7 +145,7 @@ export default function BranchesPage() {
               <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-3">
                 <div className="bg-[#F8FAFC] rounded-lg py-2 border border-[#E2E8F0]">
                   <p className="font-bold text-[#0F172A] text-sm">{b.vehicles_count ?? 0}</p>
-                  <p className="text-[#64748B]">Vehicles</p>
+                  <p className="text-[#64748B]">Total Vehicles</p>
                 </div>
                 <div className="bg-[#F8FAFC] rounded-lg py-2 border border-[#E2E8F0]">
                   <p className="font-bold text-[#0F172A] text-sm">{b.staff_count ?? 0}</p>
@@ -151,7 +153,37 @@ export default function BranchesPage() {
                 </div>
                 <div className="bg-[#F8FAFC] rounded-lg py-2 border border-[#E2E8F0]">
                   <p className="font-bold text-[#0F172A] text-sm">{b.bookings_count ?? 0}</p>
-                  <p className="text-[#64748B]">Bookings</p>
+                  <p className="text-[#64748B]">Total Bookings</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-3">
+                <div className="bg-green-50 rounded-lg py-2 border border-green-100">
+                  <p className="font-bold text-[#16A34A] text-sm">{b.available_vehicles_count ?? 0}</p>
+                  <p className="text-[#64748B]">Available</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg py-2 border border-orange-100">
+                  <p className="font-bold text-[#F59E0B] text-sm">{b.rented_vehicles_count ?? 0}</p>
+                  <p className="text-[#64748B]">Rented</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg py-2 border border-amber-100">
+                  <p className="font-bold text-[#F59E0B] text-sm">{b.maintenance_vehicles_count ?? 0}</p>
+                  <p className="text-[#64748B]">Maintenance</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] mb-3">
+                <div className="bg-blue-50 rounded-lg py-2 border border-blue-100">
+                  <p className="font-bold text-[#2563EB] text-sm">{b.active_bookings_count ?? 0}</p>
+                  <p className="text-[#64748B]">Active</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg py-2 border border-purple-100">
+                  <p className="font-bold text-[#7C3AED] text-sm">{b.pending_bookings_count ?? 0}</p>
+                  <p className="text-[#64748B]">Pending</p>
+                </div>
+                <div className="bg-emerald-50 rounded-lg py-2 border border-emerald-100">
+                  <p className="font-bold text-[#10B981] text-sm">{b.monthly_revenue ? formatCurrency(b.monthly_revenue) : '$0'}</p>
+                  <p className="text-[#64748B]">Month Rev.</p>
                 </div>
               </div>
 

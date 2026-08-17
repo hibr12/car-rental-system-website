@@ -1,6 +1,23 @@
-import apiClient from './axios';
+import apiClient from './client';
 
-const licenseApi = {
+export const licenseApi = {
+  // Customer endpoints
+  getMyLicense: () => apiClient.get('/customer/license'),
+  submit: (data) => apiClient.post('/customer/license', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  updateDocuments: (data) => apiClient.post('/customer/license/documents', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  eligibility: (vehicleId) => apiClient.get('/customer/license/eligibility', { params: { vehicle_id: vehicleId } }),
+
+  // Admin/Staff endpoints
+  adminList: (params = {}) => apiClient.get('/admin/licenses', { params }),
+  adminShow: (id) => apiClient.get(`/admin/licenses/${id}`),
+  approve: (id) => apiClient.post(`/admin/licenses/${id}/approve`),
+  reject: (id, reason) => apiClient.post(`/admin/licenses/${id}/reject`, { reason }),
+
+  // Legacy/alias endpoints (for backward compatibility)
   get: () => apiClient.get('/customer/license'),
   upload: (data) => apiClient.post('/customer/license', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -8,8 +25,6 @@ const licenseApi = {
   update: (data) => apiClient.put('/customer/license', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  getPending: () => apiClient.get('/licenses/pending'),
-  verify: (userId, data) => apiClient.put(`/licenses/${userId}/verify`, data),
 };
 
 export default licenseApi;
