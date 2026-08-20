@@ -32,9 +32,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login',    [AuthController::class, 'login']);
-    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum');
-    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:sanctum');
-    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:web');
+    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
+    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');
 });
 
 Route::get('/categories',         [CategoryController::class, 'index']);
@@ -46,7 +46,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
-    ->middleware('auth:sanctum');
+    ->middleware('auth:web');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -62,7 +62,7 @@ Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
 //  AUTHENTICATED ROUTES
 // ════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:web'])->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {

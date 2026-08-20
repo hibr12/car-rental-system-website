@@ -24,14 +24,15 @@ class AuthController extends Controller
             'role' => 'customer',
         ]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Create a session for the user (cookie-based auth)
+        Auth::login($user);
+        $request->session()->regenerate();
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful',
             'data' => [
                 'user' => new UserResource($user),
-                'token' => $token,
             ],
         ], 201);
     }
@@ -45,22 +46,24 @@ class AuthController extends Controller
             ], 401);
         }
 
+        $request->session()->regenerate();
+
         $user = User::with('branch')->where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
                 'user'  => new UserResource($user),
-                'token' => $token,
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,
