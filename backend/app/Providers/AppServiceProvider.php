@@ -23,7 +23,10 @@ use App\Policies\ReviewPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VehiclePolicy;
 use App\Services\ChapaConfigValidator;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +38,43 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Rate Limiters
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many login attempts. Please try again in 1 minute.',
+                ], 429));
+        });
+
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(3)
+                ->by($request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many registration attempts. Please try again in 1 minute.',
+                ], 429));
+        });
+
+        RateLimiter::for('forgot-password', function (Request $request) {
+            return Limit::perMinute(2)
+                ->by($request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many password reset requests. Please try again in 1 minute.',
+                ], 429));
+        });
+
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests. Please try again later.',
+                ], 429));
+        });
+
         // Validate Chapa configuration at boot so misconfigured environments
         // fail loudly instead of silently using wrong credentials.
         // In 'live' mode, missing or test-looking keys throw immediately.

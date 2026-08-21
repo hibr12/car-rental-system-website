@@ -30,8 +30,8 @@ use Illuminate\Support\Facades\Route;
 // ════════════════════════════════════════════════════════════════════
 
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:web');
     Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
     Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');

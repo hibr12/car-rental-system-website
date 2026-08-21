@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\CustomNotification;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\ProcessedWebhook;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -496,13 +497,49 @@ class PaymentService
             return;
         }
 
+        $eventType = $payload['event'] ?? $payload['type'] ?? null;
+        // Create a unique event ID for idempotency (tx_ref + event_type)
+        $eventId = 'chapa:' . $txRef . ':' . ($eventType ?? 'unknown');
+
+        // Check if already processed (idempotency)
+        $alreadyProcessed = DB::transaction(function () use ($eventId) {
+            return ProcessedWebhook::where('source', 'chapa')
+                ->where('event_id', $eventId)
+                ->lockForUpdate()
+                ->exists();
+        });
+
+        if ($alreadyProcessed) {
+            Log::info('Duplicate webhook ignored (idempotent)', ['event_id' => $eventId]);
+            return;
+        }
+
         Log::info('Chapa webhook received', [
             'tx_ref' => $txRef,
-            'event' => $payload['event'] ?? $payload['type'] ?? null,
+            'event' => $eventType,
         ]);
 
-        // Always re-query Chapa — never trust webhook body alone
-        $this->verifyPayment($txRef, null, 'webhook');
+        // Process and record as processed atomically
+        DB::transaction(function () use ($payload, $rawBody, $eventId, $eventType, $txRef) {
+            // Re-check inside transaction to prevent race condition
+            if (ProcessedWebhook::where('source', 'chapa')
+                ->where('event_id', $eventId)
+                ->exists()) {
+                return;
+            }
+
+            // Always re-query Chapa — never trust webhook body alone
+            $this->verifyPayment($txRef, null, 'webhook');
+
+            // Record as processed
+            ProcessedWebhook::create([
+                'source' => 'chapa',
+                'event_id' => $eventId,
+                'event_type' => $eventType,
+                'payload' => $payload,
+                'processed_at' => now(),
+            ]);
+        });
     }
 
     public function processPayment(array $data, int $userId): Payment

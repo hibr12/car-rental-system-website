@@ -9,6 +9,9 @@ export const useAuthStore = create((set) => ({
   error: null,
 
   initAuth: async () => {
+    // Clear old token-based auth data (from previous version)
+    localStorage.removeItem('auth_token');
+    
     const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
     if (!user) {
       set({ user: null, isAuthenticated: false, isInitializing: false });
