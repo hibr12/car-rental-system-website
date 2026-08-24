@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Booking;
-use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\ContactMessage;
@@ -314,8 +313,6 @@ class DatabaseSeeder extends Seeder
 
         foreach ($vehicles as $vehicleData) {
             $category = $categories[$vehicleData['category_slug']] ?? $categories->first();
-            $branchLocation = $vehicleData['location'] ?? 'Main Branch';
-            $branchId = $branchMap[$branchLocation] ?? $mainBranch?->id;
             unset($vehicleData['category_slug']);
 
             $location = $vehicleData['location'];
@@ -538,9 +535,13 @@ class DatabaseSeeder extends Seeder
                 'vehicle_id' => $booking->vehicle_id,
                 'booking_id' => $booking->id,
                 'branch_id' => $booking->branch_id,
-                'rating' => $rating,
+                'overall_rating' => $rating,
+                'vehicle_rating' => $rating,
+                'cleanliness_rating' => max(3, $rating - (rand(0, 1))),
+                'staff_rating' => min(5, $rating + (rand(0, 1))),
+                'value_rating' => $rating,
                 'comment' => $comments[array_rand($comments)],
-                'status' => 'approved',
+                'status' => 'published',
             ]);
         }
     }

@@ -96,6 +96,7 @@ class Booking extends Model
     /** Statuses from which a customer/staff may still cancel */
     public const CANCELLABLE_STATUSES = [
         self::STATUS_PENDING_PAYMENT,
+        self::STATUS_PAYMENT_REQUIRED,
         self::STATUS_PAYMENT_VERIFIED,
         self::STATUS_PENDING_BRANCH_APPROVAL,
         self::STATUS_PENDING_ADMIN_APPROVAL,

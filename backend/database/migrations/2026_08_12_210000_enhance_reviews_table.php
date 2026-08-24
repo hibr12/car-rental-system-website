@@ -9,9 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Drop the existing check constraint first
-        DB::statement('ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_status_check');
-        
+        // Drop the existing check constraint first.
+        // SQLite does not support named CHECK constraints via ALTER TABLE
+        // (none are created locally), so only constraint-aware drivers run it.
+        $isSqlite = in_array(DB::connection()->getDriverName(), ['sqlite'], true);
+        if (!$isSqlite) {
+            DB::statement('ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_status_check');
+        }
+
         Schema::table('reviews', function (Blueprint $table) {
             $table->unsignedTinyInteger('overall_rating')->nullable()->after('branch_id');
         });
@@ -62,8 +67,10 @@ return new class extends Migration
             $table->timestamp('review_reminder_sent_at')->nullable()->after('returned_at');
         });
         
-        // Add new check constraint with updated allowed values
-        DB::statement("ALTER TABLE reviews ADD CONSTRAINT reviews_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'published', 'hidden'))");
+        // Add new check constraint with updated allowed values (see note above).
+        if (!$isSqlite) {
+            DB::statement("ALTER TABLE reviews ADD CONSTRAINT reviews_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'published', 'hidden'))");
+        }
     }
 
     public function down(): void
@@ -97,7 +104,9 @@ return new class extends Migration
         });
         
         // Restore original check constraint
-        DB::statement('ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_status_check');
-        DB::statement("ALTER TABLE reviews ADD CONSTRAINT reviews_status_check CHECK (status IN ('pending', 'approved', 'rejected'))");
+        if (!$isSqlite) {
+            DB::statement('ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_status_check');
+            DB::statement("ALTER TABLE reviews ADD CONSTRAINT reviews_status_check CHECK (status IN ('pending', 'approved', 'rejected'))");
+        }
     }
 };
