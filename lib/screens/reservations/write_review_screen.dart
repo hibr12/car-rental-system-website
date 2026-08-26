@@ -16,31 +16,39 @@ class WriteReviewScreen extends StatefulWidget {
 }
 
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
-  double _rating = 0;
-  final TextEditingController _reviewController = TextEditingController();
+  double _overallRating = 5;
+  double _vehicleRating = 5;
+  double _cleanlinessRating = 5;
+  double _staffRating = 5;
+  double _valueRating = 5;
+
+  final TextEditingController _commentController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
-    _reviewController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
   Future<void> _submitReview() async {
-    if (_rating == 0) {
+    if (_overallRating < 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a rating.')),
+        const SnackBar(content: Text('Please select an overall rating.')),
       );
       return;
     }
 
     setState(() => _isSubmitting = true);
 
-    final res = await ReviewRepository.instance.addReview(
-      vehicleId: widget.booking.vehicle.id,
+    final res = await ReviewRepository.instance.storeForBooking(
       bookingId: widget.booking.id,
-      rating: _rating.round(), // Backend requires int 1-5
-      comment: _reviewController.text.trim(),
+      overallRating: _overallRating.round(),
+      vehicleRating: _vehicleRating.round(),
+      cleanlinessRating: _cleanlinessRating.round(),
+      staffRating: _staffRating.round(),
+      valueRating: _valueRating.round(),
+      comment: _commentController.text.trim(),
     );
 
     if (!mounted) return;
@@ -49,13 +57,12 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     if (res.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Thank you for your review!'),
+          content: Text('Thank you! Your review has been submitted.'),
           backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context, true);
     } else {
-      // Handle 422 (already reviewed / booking not completed) and 403
       final errorMsg = res.error?.friendlyMessage ??
           'Failed to submit review. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,62 +82,101 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.pagePadding),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.md),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              child: Image.network(
-                widget.booking.vehicle.imageUrls.first,
-                width: 160,
-                height: 100,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 160,
-                  height: 100,
-                  color: AppColors.textTertiary,
-                  child: const Icon(Icons.image_not_supported, size: 32),
-                ),
+            // Vehicle card header
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    child: Image.network(
+                      widget.booking.vehicle.imageUrls.first,
+                      width: 80,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 80,
+                        height: 60,
+                        color: AppColors.surfaceElevated,
+                        child: const Icon(Icons.directions_car, size: 24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.booking.vehicle.fullName,
+                          style: AppTypography.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Booking Ref: ${widget.booking.bookingReference.isNotEmpty ? widget.booking.bookingReference : widget.booking.id}',
+                          style: AppTypography.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Text(widget.booking.vehicle.fullName,
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Overall rating
+            Text('Overall Experience',
                 style: AppTypography.textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Trip ended on ${widget.booking.returnDate.toString().split(' ')[0]}',
-              style: AppTypography.textTheme.bodyMedium,
+            const SizedBox(height: AppSpacing.sm),
+            Center(
+              child: RatingBar.builder(
+                initialRating: _overallRating,
+                minRating: 1,
+                direction: Axis.horizontal,
+                allowHalfRating: false,
+                itemCount: 5,
+                itemSize: 36,
+                itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                itemBuilder: (context, _) =>
+                    const Icon(Icons.star, color: AppColors.warning),
+                onRatingUpdate: (rating) =>
+                    setState(() => _overallRating = rating),
+              ),
             ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Text('How was your trip?',
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Detailed sub-ratings
+            Text('Category Ratings',
                 style: AppTypography.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.md),
-            RatingBar.builder(
-              initialRating: 0,
-              minRating: 1,
-              direction: Axis.horizontal,
-              allowHalfRating: false, // Backend requires integer 1-5
-              itemCount: 5,
-              itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-              itemBuilder: (context, _) =>
-                  const Icon(Icons.star, color: AppColors.warning),
-              onRatingUpdate: (rating) {
-                setState(() => _rating = rating);
-              },
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Share your experience',
-                  style: AppTypography.textTheme.titleMedium),
-            ),
+            _buildRatingRow('Vehicle Condition', _vehicleRating, (r) => setState(() => _vehicleRating = r)),
+            _buildRatingRow('Cleanliness', _cleanlinessRating, (r) => setState(() => _cleanlinessRating = r)),
+            _buildRatingRow('Staff & Service', _staffRating, (r) => setState(() => _staffRating = r)),
+            _buildRatingRow('Value for Money', _valueRating, (r) => setState(() => _valueRating = r)),
+
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Comment
+            Text('Comments & Feedback',
+                style: AppTypography.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             TextField(
-              controller: _reviewController,
-              maxLines: 5,
+              controller: _commentController,
+              maxLines: 4,
+              maxLength: 1000,
               decoration: InputDecoration(
                 hintText:
-                    'What did you like about this vehicle? Would you recommend it?',
+                    'Share your feedback about the car, pickup experience, or any tips for other renters.',
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
@@ -149,6 +195,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.xxxl),
+
             PrimaryButton(
               text: 'Submit Review',
               isLoading: _isSubmitting,
@@ -156,6 +203,31 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRatingRow(
+      String title, double currentRating, ValueChanged<double> onUpdate) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: AppTypography.textTheme.bodyLarge),
+          RatingBar.builder(
+            initialRating: currentRating,
+            minRating: 1,
+            direction: Axis.horizontal,
+            allowHalfRating: false,
+            itemCount: 5,
+            itemSize: 22,
+            itemPadding: const EdgeInsets.symmetric(horizontal: 2.0),
+            itemBuilder: (context, _) =>
+                const Icon(Icons.star, color: AppColors.warning),
+            onRatingUpdate: onUpdate,
+          ),
+        ],
       ),
     );
   }

@@ -4,6 +4,9 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 
+/// Driver requirements, aligned with the backend's actual verification
+/// rules: a submitted driver's license (front + back) that our team
+/// verifies before bookings are allowed.
 class DriverRequirementsScreen extends StatelessWidget {
   const DriverRequirementsScreen({super.key});
 
@@ -20,65 +23,37 @@ class DriverRequirementsScreen extends StatelessWidget {
             Text('Who can drive?', style: AppTypography.textTheme.displaySmall),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'To rent a vehicle on DriveEase, you must meet the following criteria to ensure safety and compliance.',
+              'To rent and drive with Apex Rentals you need an account and a '
+              'verified driver\'s license. Here is how it works.',
               style: AppTypography.textTheme.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.xxl),
             _buildRequirement(
-              icon: LucideIcons.userCheck,
-              title: 'Age Requirement',
-              description:
-                  'You must be at least 21 years old to rent standard vehicles. For luxury and performance vehicles, the minimum age is 25.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildRequirement(
               icon: LucideIcons.fileBadge,
-              title: 'Valid Driver\'s License',
+              title: 'Submit your license',
               description:
-                  'You must possess a valid driver\'s license that is not suspended, confiscated, or expired. Temporary licenses are not accepted.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildRequirement(
-              icon: LucideIcons.creditCard,
-              title: 'Payment Method',
-              description:
-                  'A major credit card in your name must be provided for the reservation and security deposit. Debit cards may have additional restrictions.',
+                  'Upload clear photos or scans of the front and back of your valid driver\'s license from Profile → Driver\'s License. Accepted formats: JPG, PNG, WEBP, or PDF up to 5 MB each.',
             ),
             const SizedBox(height: AppSpacing.xl),
             _buildRequirement(
               icon: LucideIcons.shieldCheck,
-              title: 'Clean Driving Record',
+              title: 'Get it verified',
               description:
-                  'You must not have any major moving violations, DUIs, or reckless driving incidents within the past 3 years.',
+                  'Our team reviews your documents. You will receive a notification once your license is approved. Bookings require a verified license.',
             ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(LucideIcons.info, color: AppColors.primary),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Identity Verification',
-                            style: AppTypography.textTheme.titleMedium),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Before your first trip, you may be asked to upload a photo of your license and a selfie for identity verification.',
-                          style: AppTypography.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: AppSpacing.xl),
+            _buildRequirement(
+              icon: LucideIcons.fileBadge,
+              title: 'Matching license category',
+              description:
+                  'Your license category must qualify for the vehicle you book — categories include automobile, motorcycle, minibus, commercial, and heavy vehicles.',
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _buildRequirement(
+              icon: LucideIcons.calendarCheck,
+              title: 'Valid for the rental period',
+              description:
+                  'Your license must remain valid through your rental dates. An expired license blocks new bookings until you upload your renewed one.',
             ),
           ],
         ),
@@ -86,34 +61,41 @@ class DriverRequirementsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRequirement(
-      {required IconData icon,
-      required String title,
-      required String description}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 24),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildRequirement({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(title, style: AppTypography.textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.xs),
-              Text(description, style: AppTypography.textTheme.bodyLarge),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Icon(icon, size: 20, color: AppColors.primary),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                  child: Text(title,
+                      style: AppTypography.textTheme.titleLarge)),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.sm),
+          Text(description, style: AppTypography.textTheme.bodyMedium),
+        ],
+      ),
     );
   }
 }

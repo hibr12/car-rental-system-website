@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/vehicle_model.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -27,6 +28,24 @@ class VehicleCard extends StatelessWidget {
       return _buildHorizontalCard(context);
     }
     return _buildVerticalCard(context);
+  }
+
+  /// Rating badge — hidden entirely when no review aggregates exist
+  /// (the backend does not expose rating on the vehicle resource).
+  Widget _ratingBadge({TextStyle? style}) {
+    if (!vehicle.hasRating) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(LucideIcons.star, size: 14, color: AppColors.warning),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          vehicle.rating.toStringAsFixed(1),
+          style:
+              style ?? AppTypography.textTheme.labelSmall?.copyWith(color: AppColors.textPrimary),
+        ),
+      ],
+    );
   }
 
   Widget _buildVerticalCard(BuildContext context) {
@@ -98,42 +117,44 @@ class VehicleCard extends StatelessWidget {
                           ),
                   ),
                 ),
-                Positioned(
-                  top: AppSpacing.sm,
-                  right: AppSpacing.sm,
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(LucideIcons.heart,
-                        size: 18, color: AppColors.textSecondary),
-                  ),
-                ),
-                if (vehicle.category == 'Electric')
+                // Featured badge — a real backend flag.
+                if (vehicle.isFeatured)
                   Positioned(
                     top: AppSpacing.sm,
                     left: AppSpacing.sm,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary,
+                        color: AppColors.primary.withOpacity(0.9),
                         borderRadius:
                             BorderRadius.circular(AppSpacing.radiusSm),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(LucideIcons.zap,
-                              size: 12, color: AppColors.surface),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text('EV',
-                              style: AppTypography.textTheme.labelSmall
-                                  ?.copyWith(
-                                      color: AppColors.surface, fontSize: 10)),
-                        ],
+                      child: Text('Featured',
+                          style: AppTypography.textTheme.labelSmall
+                              ?.copyWith(color: AppColors.surface)),
+                    ),
+                  ),
+                if (!vehicle.isAvailable)
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(AppSpacing.radiusLg)),
+                      child: Container(
+                        color: AppColors.surface.withOpacity(0.55),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.textPrimary.withOpacity(0.75),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusSm),
+                          ),
+                          child: Text('Unavailable',
+                              style: AppTypography.textTheme.labelMedium
+                                  ?.copyWith(color: AppColors.surface)),
+                        ),
                       ),
                     ),
                   ),
@@ -162,19 +183,7 @@ class VehicleCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xs),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(LucideIcons.star,
-                              size: 14, color: AppColors.warning),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            vehicle.rating.toString(),
-                            style: AppTypography.textTheme.labelSmall
-                                ?.copyWith(color: AppColors.textPrimary),
-                          ),
-                        ],
-                      ),
+                      _ratingBadge(),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -194,7 +203,7 @@ class VehicleCard extends StatelessWidget {
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: '\$${vehicle.pricePerDay.toInt()}',
+                                text: Formatters.etb(vehicle.pricePerDay),
                                 style: (isCompact
                                         ? AppTypography.textTheme.titleLarge
                                         : AppTypography
@@ -216,14 +225,19 @@ class VehicleCard extends StatelessWidget {
                           vertical: isCompact ? 4 : 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
+                          color: vehicle.isAvailable
+                              ? AppColors.primaryLight
+                              : AppColors.backgroundSecondary,
                           borderRadius:
                               BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
-                          'Book',
-                          style: AppTypography.textTheme.labelMedium
-                              ?.copyWith(color: AppColors.primary),
+                          vehicle.isAvailable ? 'Book' : 'Unavailable',
+                          style: AppTypography.textTheme.labelMedium?.copyWith(
+                            color: vehicle.isAvailable
+                                ? AppColors.primary
+                                : AppColors.textTertiary,
+                          ),
                         ),
                       ),
                     ],
@@ -262,15 +276,15 @@ class VehicleCard extends StatelessWidget {
                   height: double.infinity,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: AppColors.textTertiary,
-                    highlightColor: AppColors.textTertiary,
+                    baseColor: AppColors.border,
+                    highlightColor: AppColors.surface,
                     child: Container(color: AppColors.surface, width: 125),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: 125,
-                    color: AppColors.textTertiary,
+                    color: AppColors.backgroundSecondary,
                     child: const Icon(LucideIcons.imageOff,
-                        color: AppColors.surface),
+                        color: AppColors.textTertiary),
                   ),
                 ),
               ),
@@ -297,8 +311,7 @@ class VehicleCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
-                        const Icon(LucideIcons.heart,
-                            size: 18, color: AppColors.textTertiary),
+                        _ratingBadge(),
                       ],
                     ),
                     Text(
@@ -316,7 +329,7 @@ class VehicleCard extends StatelessWidget {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: '\$${vehicle.pricePerDay.toInt()}',
+                                  text: Formatters.etb(vehicle.pricePerDay),
                                   style: AppTypography.textTheme.titleLarge
                                       ?.copyWith(color: AppColors.primary),
                                 ),
@@ -327,19 +340,6 @@ class VehicleCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(LucideIcons.star,
-                                size: 14, color: AppColors.warning),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              vehicle.rating.toString(),
-                              style: AppTypography.textTheme.labelSmall
-                                  ?.copyWith(color: AppColors.textPrimary),
-                            ),
-                          ],
                         ),
                       ],
                     ),

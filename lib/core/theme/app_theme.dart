@@ -139,6 +139,55 @@ class AppTheme {
         thickness: 1,
         space: AppSpacing.xl,
       ),
+
+      // Snackbars float above content with brand-consistent shaping.
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: AppTypography.textTheme.bodyMedium?.copyWith(
+          color: AppColors.surface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        ),
+      ),
+
+      // Dialogs & sheets share the card language.
+      dialogTheme: DialogTheme(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        titleTextStyle: AppTypography.textTheme.headlineMedium,
+        contentTextStyle: AppTypography.textTheme.bodyMedium,
+      ),
+
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.background,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.radiusXl),
+          ),
+        ),
+      ),
+
+      tabBarTheme: const TabBarTheme(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.textTertiary,
+        indicatorColor: AppColors.primary,
+        dividerColor: AppColors.border,
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primary,
+        linearTrackColor: AppColors.border,
+      ),
+
+      radioTheme: const RadioThemeData(fillColor: WidgetStatePropertyAll(AppColors.primary)),
+      checkboxTheme: const CheckboxThemeData(fillColor: WidgetStatePropertyAll(AppColors.primary)),
     );
   }
 }

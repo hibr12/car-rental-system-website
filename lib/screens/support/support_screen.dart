@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
-import '../../core/routes/app_routes.dart';
 import '../../data/repositories/contact_repository.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
@@ -22,6 +20,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
   bool _isSending = false;
+  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -86,25 +85,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 style: AppTypography.textTheme.displayMedium),
             const SizedBox(height: AppSpacing.lg),
             _buildSearchBox(),
-            const SizedBox(height: AppSpacing.xxxl),
-            Text('Contact Us', style: AppTypography.textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.md),
-            _buildContactCard(
-              context,
-              icon: LucideIcons.messageCircle,
-              title: 'Live Chat',
-              subtitle: 'Typically responds in 5 minutes',
-              onTap: () => context.push(AppRoutes.chat),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildContactCard(
-              context,
-              icon: LucideIcons.phoneCall,
-              title: 'Roadside Assistance',
-              subtitle: '24/7 emergency support',
-              onTap: () => _showRoadsideDialog(context),
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
+            const SizedBox(height: AppSpacing.xxl),
             Text('Send us a Message',
                 style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
@@ -113,34 +94,9 @@ class _SupportScreenState extends State<SupportScreen> {
             Text('Frequently Asked Questions',
                 style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
-            _buildFaqList(),
+            _buildFaqList(_searchQuery),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showRoadsideDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Roadside Assistance'),
-        content: const Text(
-            'For immediate 24/7 emergency support, please call:\n\n1-800-DRIVE-NOW\n(1-800-374-8366)'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening dialer...')),
-              );
-            },
-            child: const Text('Call Now',
-                style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
       ),
     );
   }
@@ -152,56 +108,14 @@ class _SupportScreenState extends State<SupportScreen> {
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         border: Border.all(color: AppColors.border),
       ),
-      child: const TextField(
-        decoration: InputDecoration(
+      child: TextField(
+        onChanged: (value) => setState(() => _searchQuery = value),
+        decoration: const InputDecoration(
           hintText: 'Search for help...',
           prefixIcon: Icon(LucideIcons.search, color: AppColors.textTertiary),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(
               horizontal: AppSpacing.md, vertical: AppSpacing.md),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactCard(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              ),
-              child: Icon(icon, color: AppColors.primary),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: AppTypography.textTheme.titleLarge),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(subtitle, style: AppTypography.textTheme.bodyMedium),
-                ],
-              ),
-            ),
-            const Icon(LucideIcons.chevronRight, color: AppColors.textTertiary),
-          ],
         ),
       ),
     );
@@ -296,23 +210,53 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  Widget _buildFaqList() {
+  Widget _buildFaqList(String query) {
     final faqs = [
       {
         'q': 'How do I cancel my reservation?',
         'a':
-            'You can cancel your reservation for free up to 24 hours before your trip starts.'
+            'Open your booking from the Bookings tab and tap "Cancel Reservation" while it is still awaiting payment or approval.'
       },
       {
-        'q': 'What happens if I return the car late?',
-        'a': 'Late returns are subject to a fee of \$50 per hour.'
-      },
-      {
-        'q': 'How does insurance work?',
+        'q': 'How do I pay for my booking?',
         'a':
-            'All trips include standard liability coverage. You can upgrade this during checkout.'
+            'Pay securely online with Chapa (Telebirr, cards, and bank transfer) or choose "Pay with Cash at Branch" and settle at the counter — staff will confirm your payment.'
+      },
+      {
+        'q': 'Do I need a driver license to book?',
+        'a':
+            'Yes. Upload your driver license (front and back) from Profile → Driver\'s License. Your booking requires a verified license, and some vehicles require specific license categories.'
+      },
+      {
+        'q': 'How do refunds work?',
+        'a':
+            'If you cancel a booking that was already paid, our team reviews and processes your refund. Contact support with your booking reference for assistance.'
       },
     ];
+
+    final filtered = query.trim().isEmpty
+        ? faqs
+        : faqs
+            .where((faq) =>
+                faq['q']!.toLowerCase().contains(query.toLowerCase()) ||
+                faq['a']!.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+
+    if (filtered.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Text(
+          'No answers match "$query". Send us a message below and we will help.',
+          style: AppTypography.textTheme.bodyMedium
+              ?.copyWith(color: AppColors.textSecondary),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -321,7 +265,7 @@ class _SupportScreenState extends State<SupportScreen> {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        children: faqs.map((faq) {
+        children: filtered.map((faq) {
           return ExpansionTile(
             title: Text(faq['q']!, style: AppTypography.textTheme.titleMedium),
             children: [

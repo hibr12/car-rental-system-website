@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/transaction_model.dart';
 import '../../widgets/states/empty_state_widget.dart';
 import '../../widgets/states/error_state_widget.dart';
@@ -65,7 +65,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   onRetry: _fetchTransactions,
                 )
               : _transactions.isEmpty
-                  ? EmptyStateWidget(
+                  ? const EmptyStateWidget(
                       icon: LucideIcons.receipt,
                       title: 'No Transactions Yet',
                       message:
@@ -88,28 +88,27 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Widget _buildTransactionCard(BuildContext context, Transaction txn) {
-    final dateFormat = DateFormat('MMM d, yyyy');
-
     IconData icon;
     Color iconColor;
 
-    switch (txn.type) {
-      case TransactionType.payment:
-        icon = LucideIcons.arrowUpRight;
-        iconColor = AppColors.error;
-        break;
-      case TransactionType.refund:
-        icon = LucideIcons.arrowDownLeft;
-        iconColor = AppColors.success;
-        break;
-      case TransactionType.deposit:
-        icon = LucideIcons.shieldCheck;
-        iconColor = AppColors.info;
-        break;
-      case TransactionType.fee:
-        icon = LucideIcons.alertCircle;
-        iconColor = AppColors.warning;
-        break;
+    if (txn.status.isRefundFamily) {
+      icon = LucideIcons.arrowDownLeft;
+      iconColor = AppColors.success;
+    } else if (txn.status.isSuccessful) {
+      icon = LucideIcons.arrowUpRight;
+      iconColor = AppColors.primary;
+    } else {
+      switch (txn.status) {
+        case TransactionStatus.failed:
+        case TransactionStatus.invalid:
+        case TransactionStatus.cancelled:
+          icon = LucideIcons.alertCircle;
+          iconColor = AppColors.error;
+          break;
+        default:
+          icon = LucideIcons.clock;
+          iconColor = AppColors.warning;
+      }
     }
 
     return InkWell(
@@ -143,7 +142,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '${txn.typeLabel} • ${dateFormat.format(txn.date)}',
+                    '${txn.paymentMethod} • ${Formatters.date(txn.date)}',
                     style: AppTypography.textTheme.bodySmall,
                   ),
                 ],
@@ -153,18 +152,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${txn.type == TransactionType.refund ? '+' : '-'}\$${txn.amount.toStringAsFixed(2)}',
+                  Formatters.etb(txn.amount),
                   style: AppTypography.textTheme.titleMedium?.copyWith(
-                    color: txn.type == TransactionType.refund
-                        ? AppColors.success
-                        : AppColors.textPrimary,
+                    color: txn.status.isSuccessful
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  txn.statusLabel,
+                  txn.status.label,
                   style: AppTypography.textTheme.labelSmall?.copyWith(
-                    color: txn.status == TransactionStatus.successful
+                    color: txn.status.isSuccessful
                         ? AppColors.success
                         : AppColors.textSecondary,
                   ),

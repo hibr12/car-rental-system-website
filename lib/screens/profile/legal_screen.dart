@@ -28,20 +28,20 @@ class LegalScreen extends StatelessWidget {
               ),
               _MenuItem(
                 icon: LucideIcons.shield,
-                title: 'Insurance Policy',
-                subtitle: 'Coverage plans and protection',
+                title: 'Insurance & Liability',
+                subtitle: 'Coverage basics and responsibilities',
                 onTap: () => context.push(AppRoutes.insurancePolicy),
               ),
               _MenuItem(
                 icon: LucideIcons.xCircle,
                 title: 'Cancellation Policy',
-                subtitle: 'Refunds and cancellation fees',
+                subtitle: 'How cancellation works',
                 onTap: () => context.push(AppRoutes.cancellationPolicy),
               ),
               _MenuItem(
                 icon: LucideIcons.userCheck,
                 title: 'Driver Requirements',
-                subtitle: 'Age, license, and rules',
+                subtitle: 'License verification and categories',
                 onTap: () => context.push(AppRoutes.driverRequirements),
               ),
             ],
@@ -51,7 +51,11 @@ class LegalScreen extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
             child: Text(
-              'Privacy Policy\n\nBy using DriveEase, you consent to our data collection practices as detailed in our full Privacy Policy document available on our website. We collect necessary information to facilitate rentals and verify identity.',
+              'Privacy\n\nApex Rentals collects only the information needed to '
+              'manage your rentals — your account details, contact information, '
+              'and driver\'s license documents for verification. License '
+              'documents are accessible only to you and authorized staff. For '
+              'questions about your data, contact our support team.',
               style: AppTypography.textTheme.bodyMedium
                   ?.copyWith(color: AppColors.textSecondary),
             ),

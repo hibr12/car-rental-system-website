@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/api/api_client.dart';
 import '../../data/api/token_storage.dart';
+import '../../data/repositories/user_repository.dart';
 
 /// Lightweight, synchronous auth state holder.
 ///
@@ -53,5 +54,22 @@ class AuthState {
       // ignore: unawaited_futures
       TokenStorage.deleteToken();
     };
+  }
+
+  /// Checks a persisted token against the server (`GET /auth/me`).
+  ///
+  /// Returns false (and clears the session) when the token is expired or
+  /// revoked. Network failures do NOT clear the session — the user stays
+  /// logged in and individual requests will surface connectivity errors.
+  static Future<bool> validateSession() async {
+    if (!isAuthenticated) return false;
+    final res = await UserRepository.instance.getCurrentUser();
+    if (res.success) return true;
+    final status = res.error?.statusCode ?? 0;
+    if (status == 401 || status == 403) {
+      await clear();
+      return false;
+    }
+    return true;
   }
 }

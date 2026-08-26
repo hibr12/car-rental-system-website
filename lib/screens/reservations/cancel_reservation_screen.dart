@@ -70,8 +70,15 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
   Future<void> _performCancel() async {
     setState(() => _isCancelling = true);
 
-    final res =
-        await BookingRepository.instance.cancelBooking(widget.booking.id);
+    // Backend accepts an optional reason (max 500 chars).
+    var reason = _selectedReason ?? '';
+    if (_selectedReason == 'Other' && _detailsController.text.trim().isNotEmpty) {
+      reason = '${_selectedReason!}: ${_detailsController.text.trim()}';
+    }
+    if (reason.length > 500) reason = reason.substring(0, 500);
+
+    final res = await BookingRepository.instance
+        .cancelBooking(widget.booking.id, reason: reason);
 
     if (!mounted) return;
     setState(() => _isCancelling = false);
@@ -151,7 +158,9 @@ class _CancelReservationScreenState extends State<CancelReservationScreen> {
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
-                      'Since you are cancelling more than 24 hours before your trip, you will receive a full refund.',
+                      'If you have already paid, our team will review your '
+                      'refund after the cancellation. Contact support for '
+                      'assistance.',
                       style: AppTypography.textTheme.bodyMedium
                           ?.copyWith(color: AppColors.textPrimary),
                     ),

@@ -119,6 +119,8 @@ class VehicleRepository {
     String? transmission,
     String? status,
     bool? featured,
+    int? minSeats,
+    String? branchId,
     VehicleSort sort = VehicleSort.newest,
     VehicleFilter filter = VehicleFilter.empty,
   }) async {
@@ -156,14 +158,20 @@ class VehicleRepository {
           resolvedTransmission != 'any') {
         queryParams['transmission'] = resolvedTransmission;
       }
+      final resolvedMinSeats = minSeats ?? filter.minSeats;
+      if (resolvedMinSeats != null && resolvedMinSeats > 0) {
+        queryParams['min_seats'] = resolvedMinSeats.toString();
+      }
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
       if (featured != null) {
         queryParams['featured'] = featured ? 'true' : 'false';
       }
-      // minSeats has no direct backend param today; skip silently to avoid
-      // faking support (documented in BACKEND_MISSING_FEATURES).
+      // Backend `VehicleController::index` accepts a numeric branch filter.
+      if (branchId != null && branchId.isNotEmpty && branchId != '0') {
+        queryParams['branch_id'] = branchId;
+      }
 
       final json =
           await _api.get(ApiEndpoints.vehicles, queryParams: queryParams);

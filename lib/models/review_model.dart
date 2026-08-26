@@ -1,30 +1,39 @@
-/// Backend review statuses: pending, approved, rejected.
+/// Review statuses from `ReviewResource` — published, hidden, flagged,
+/// archived. (Legacy pending/approved/rejected constants are deprecated
+/// server-side and mapped defensively.)
 enum ReviewStatus {
-  pending,
-  approved,
-  rejected;
+  published,
+  hidden,
+  flagged,
+  archived;
 
   static ReviewStatus parse(String? v) {
     switch (v?.toLowerCase()) {
-      case 'pending':
-        return ReviewStatus.pending;
-      case 'approved':
-        return ReviewStatus.approved;
-      case 'rejected':
-        return ReviewStatus.rejected;
+      case 'published':
+      case 'approved': // legacy alias
+        return ReviewStatus.published;
+      case 'hidden':
+        return ReviewStatus.hidden;
+      case 'flagged':
+        return ReviewStatus.flagged;
+      case 'archived':
+      case 'rejected': // legacy alias → treated as no longer visible
+        return ReviewStatus.archived;
       default:
-        return ReviewStatus.pending;
+        return ReviewStatus.published;
     }
   }
 
   String get label {
     switch (this) {
-      case ReviewStatus.pending:
-        return 'Pending';
-      case ReviewStatus.approved:
-        return 'Approved';
-      case ReviewStatus.rejected:
-        return 'Rejected';
+      case ReviewStatus.published:
+        return 'Published';
+      case ReviewStatus.hidden:
+        return 'Hidden';
+      case ReviewStatus.flagged:
+        return 'Under Review';
+      case ReviewStatus.archived:
+        return 'Archived';
     }
   }
 }
@@ -37,7 +46,13 @@ class Review {
   final String userName;
   final String userProfileImageUrl;
   final double rating;
+  final int? vehicleRating;
+  final int? cleanlinessRating;
+  final int? staffRating;
+  final int? valueRating;
   final String comment;
+  final String? adminResponse;
+  final bool isEditable;
   final DateTime date;
   final ReviewStatus status;
 
@@ -49,15 +64,18 @@ class Review {
     required this.userName,
     required this.userProfileImageUrl,
     required this.rating,
+    this.vehicleRating,
+    this.cleanlinessRating,
+    this.staffRating,
+    this.valueRating,
     required this.comment,
+    this.adminResponse,
+    this.isEditable = false,
     required this.date,
-    this.status = ReviewStatus.approved,
+    this.status = ReviewStatus.published,
   });
 
   /// Parse a Review from Laravel's ReviewResource JSON.
-  ///
-  /// ReviewResource fields: id, user (nested), vehicle_id, booking_id, rating,
-  /// comment, status, created_at, updated_at.
   factory Review.fromJson(Map<String, dynamic> json) {
     final user = json['user'];
     final userMap = user is Map<String, dynamic> ? user : <String, dynamic>{};
@@ -69,8 +87,14 @@ class Review {
       userId: userMap['id']?.toString() ?? '',
       userName: (userMap['name'] as String?)?.trim() ?? 'Anonymous',
       userProfileImageUrl: (userMap['profile_photo'] as String?) ?? '',
-      rating: _parseDouble(json['rating']),
+      rating: _parseDouble(json['overall_rating'] ?? json['rating']),
+      vehicleRating: _parseInt(json['vehicle_rating']),
+      cleanlinessRating: _parseInt(json['cleanliness_rating']),
+      staffRating: _parseInt(json['staff_rating']),
+      valueRating: _parseInt(json['value_rating']),
       comment: json['comment']?.toString() ?? '',
+      adminResponse: json['admin_response']?.toString(),
+      isEditable: json['is_editable'] as bool? ?? false,
       date: _parseDate(json['created_at']),
       status: ReviewStatus.parse(json['status'] as String?),
     );
@@ -91,5 +115,13 @@ class Review {
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
+  }
+  
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

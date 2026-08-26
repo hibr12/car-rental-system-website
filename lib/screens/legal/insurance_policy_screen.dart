@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 
+/// Informational insurance summary.
+///
+/// The backend has no insurance product/tier system — the app must not
+/// invent purchasable coverage plans. This page explains the baseline
+/// expectations and points customers to support for specifics.
 class InsurancePolicyScreen extends StatelessWidget {
   const InsurancePolicyScreen({super.key});
 
@@ -10,121 +16,102 @@ class InsurancePolicyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Insurance Policy')),
+      appBar: AppBar(title: const Text('Insurance & Liability')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.pagePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Coverage Plans', style: AppTypography.textTheme.displaySmall),
+            Text('Insurance Basics',
+                style: AppTypography.textTheme.displaySmall),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'We offer three tiers of protection for your peace of mind.',
-              style: AppTypography.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildPlanCard(
-              title: 'Minimum Protection',
-              price: 'Included',
-              features: [
-                'State minimum liability coverage',
-                '\$3,000 max out-of-pocket for vehicle damage',
-                '24/7 customer support',
-              ],
-              isPopular: false,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildPlanCard(
-              title: 'Standard Protection',
-              price: '\$15 / day',
-              features: [
-                '\$1M liability coverage',
-                '\$500 max out-of-pocket for vehicle damage',
-                '24/7 roadside assistance',
-              ],
-              isPopular: true,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildPlanCard(
-              title: 'Premium Protection',
-              price: '\$25 / day',
-              features: [
-                '\$1M liability coverage',
-                '\$0 out-of-pocket for vehicle damage',
-                '24/7 roadside assistance',
-                'Personal effects coverage',
-              ],
-              isPopular: false,
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Text('What is not covered?',
-                style: AppTypography.textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              '• Damage caused by prohibited use of the vehicle (e.g., off-roading, racing)\n'
-              '• Damage to the interior of the vehicle (e.g., spills, tears, burns)\n'
-              '• Wear and tear from normal use\n'
-              '• Loss of personal property (unless Premium Protection is selected)\n'
-              '• Damage caused by an unauthorized driver',
+              'Every rental vehicle is insured in line with Ethiopian legal '
+              'requirements. The exact coverage that applies to your rental '
+              'is confirmed at pickup and recorded on your rental agreement.',
               style: AppTypography.textTheme.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.xxl),
+            _buildSection(
+              icon: LucideIcons.shieldCheck,
+              title: 'Before you drive',
+              points: [
+                'Inspect the vehicle with branch staff and note any existing damage before leaving the branch.',
+                'Confirm the fuel level and mileage recorded at checkout.',
+                'Make sure your driver license is verified in this app.',
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _buildSection(
+              icon: LucideIcons.alertTriangle,
+              title: 'Customer responsibility',
+              points: [
+                'Drive within Ethiopian traffic law — fines and penalties for violations are the renter\'s responsibility.',
+                'Only drivers approved on the booking may operate the vehicle.',
+                'Report any accident or damage to the branch immediately.',
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _buildSection(
+              icon: LucideIcons.fileX,
+              title: 'Not covered',
+              points: [
+                'Damage from prohibited use such as off-road driving or racing.',
+                'Interior damage beyond normal wear (spills, tears, burns).',
+                'Loss of personal belongings.',
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxxl),
+            Text(
+              'Questions about coverage limits, deductibles, or additional '
+              'protection? Contact our team and we will walk you through '
+              'the details before you book.',
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanCard(
-      {required String title,
-      required String price,
-      required List<String> features,
-      required bool isPopular}) {
+  Widget _buildSection({
+    required IconData icon,
+    required String title,
+    required List<String> points,
+  }) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isPopular ? AppColors.primaryLight : AppColors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(
-            color: isPopular ? AppColors.primary : AppColors.border,
-            width: isPopular ? 2 : 1),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isPopular) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-              ),
-              child: Text('Most Popular',
-                  style: AppTypography.textTheme.labelSmall
-                      ?.copyWith(color: AppColors.surface)),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AppTypography.textTheme.titleLarge),
-              Text(price,
-                  style: AppTypography.textTheme.titleMedium
-                      ?.copyWith(color: AppColors.primary)),
+              Icon(icon, size: 20, color: AppColors.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                  child: Text(title,
+                      style: AppTypography.textTheme.titleLarge)),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          ...features.map((f) => Padding(
+          ...points.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.check_circle,
                         size: 16, color: AppColors.success),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                         child:
-                            Text(f, style: AppTypography.textTheme.bodyMedium)),
+                            Text(p, style: AppTypography.textTheme.bodyMedium)),
                   ],
                 ),
               )),

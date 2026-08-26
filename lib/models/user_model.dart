@@ -1,21 +1,27 @@
-import 'dart:convert';
-
-/// Backend user roles (from `users.role` column): customer, admin, fleet_manager.
+/// Backend user roles (`users.role` column, `User::ROLES`).
 enum UserRole {
   customer,
+  superAdmin,
   admin,
+  branchManager,
   fleetManager,
+  staff,
   unknown;
 
   static UserRole parse(String? role) {
     switch (role?.toLowerCase()) {
       case 'customer':
         return UserRole.customer;
+      case 'super_admin':
+        return UserRole.superAdmin;
       case 'admin':
         return UserRole.admin;
+      case 'branch_manager':
+        return UserRole.branchManager;
       case 'fleet_manager':
-      case 'fleetmanager':
         return UserRole.fleetManager;
+      case 'staff':
+        return UserRole.staff;
       default:
         return UserRole.unknown;
     }
@@ -25,18 +31,23 @@ enum UserRole {
     switch (this) {
       case UserRole.customer:
         return 'Customer';
+      case UserRole.superAdmin:
       case UserRole.admin:
         return 'Administrator';
+      case UserRole.branchManager:
+        return 'Branch Manager';
       case UserRole.fleetManager:
         return 'Fleet Manager';
+      case UserRole.staff:
+        return 'Staff';
       case UserRole.unknown:
         return 'Member';
     }
   }
 
-  bool get isAdmin => this == UserRole.admin;
-  bool get isFleetManager => this == UserRole.fleetManager;
-  bool get isStaff => isAdmin || isFleetManager;
+  /// Non-customer roles see the staff/management system — the mobile app is
+  /// customer-only and blocks them from self-service booking features.
+  bool get isStaffRole => this != UserRole.customer;
 }
 
 class User {
@@ -45,9 +56,10 @@ class User {
   final String email;
   final String phone;
   final String profileImageUrl;
+
+  /// True only when `email_verified_at` is set on the backend.
   final bool isVerified;
   final DateTime memberSince;
-  final int rewardPoints;
   final UserRole role;
 
   const User({
@@ -58,7 +70,6 @@ class User {
     required this.profileImageUrl,
     this.isVerified = false,
     required this.memberSince,
-    this.rewardPoints = 0,
     this.role = UserRole.customer,
   });
 
@@ -72,15 +83,14 @@ class User {
       profileImageUrl: '',
       isVerified: false,
       memberSince: DateTime.now(),
-      rewardPoints: 0,
       role: UserRole.customer,
     );
   }
 
   /// Parse a User from Laravel's UserResource JSON.
   ///
-  /// UserResource fields: id, name, email, phone, profile_photo, role,
-  /// email_verified_at, created_at, updated_at.
+  /// Keys: id, name, email, phone, profile_photo, role, branch_id,
+  /// branch?, email_verified_at, created_at, updated_at.
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'].toString(),
@@ -90,23 +100,13 @@ class User {
       profileImageUrl: _parsePhoto(json['profile_photo']),
       isVerified: json['email_verified_at'] != null,
       memberSince: _parseDate(json['created_at']),
-      rewardPoints: 0, // Not provided by the API (documented as missing).
       role: UserRole.parse(json['role'] as String?),
     );
   }
 
-  /// Some Laravel installations return `profile_photo` as a full URL, others
-  /// as a relative path. Normalize whatever we get.
   static String _parsePhoto(dynamic value) {
-    if (value == null) return '';
     if (value is String) return value;
-    // Tolerate an unexpected object/encoded value without throwing.
-    try {
-      if (value is List) return '';
-      return json.encode(value);
-    } catch (_) {
-      return '';
-    }
+    return '';
   }
 
   static DateTime _parseDate(dynamic value) {

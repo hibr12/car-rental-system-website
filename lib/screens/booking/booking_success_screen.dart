@@ -55,13 +55,15 @@ class BookingSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xxl),
               Text(
-                'Booking Confirmed!',
+                booking != null && booking!.status.needsPayment
+                    ? 'Booking Received!'
+                    : 'Booking Submitted!',
                 style: AppTypography.textTheme.displayMedium,
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'You are all set for your trip in the $_vehicleName. '
-                'We have sent the itinerary to your email.',
+                'Your request for the $_vehicleName has been received. '
+                'Our team will review it shortly${booking?.status.needsPayment == true ? ' — complete payment below to secure it' : ''}.',
                 style: AppTypography.textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
@@ -119,17 +121,29 @@ class BookingSuccessScreen extends StatelessWidget {
               ],
 
               const SizedBox(height: AppSpacing.xxxl),
-              PrimaryButton(
-                text: 'View My Bookings',
-                onPressed: () {
-                  context.go(AppRoutes.home);
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SecondaryButton(
-                text: 'Back to Home',
-                onPressed: () => context.go(AppRoutes.home),
-              ),
+              if (booking != null && booking!.canPayOnline) ...[
+                PrimaryButton(
+                  text: 'Pay Now (Chapa)',
+                  icon: LucideIcons.creditCard,
+                  onPressed: () {
+                    context.push(AppRoutes.payment, extra: booking);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SecondaryButton(
+                  text: 'View My Bookings',
+                  onPressed: () {
+                    context.go(AppRoutes.home);
+                  },
+                ),
+              ] else ...[
+                PrimaryButton(
+                  text: 'View My Bookings',
+                  onPressed: () {
+                    context.go(AppRoutes.home);
+                  },
+                ),
+              ],
             ],
           ),
         ),

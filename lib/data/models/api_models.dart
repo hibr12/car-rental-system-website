@@ -44,12 +44,18 @@ class PaginatedResponse<T> {
   final int total;
   final int perPage;
 
+  /// Full `meta` map — some endpoints embed extra aggregates here
+  /// (e.g. `average_rating` on vehicle reviews, `unread_count` on
+  /// notifications).
+  final Map<String, dynamic> meta;
+
   const PaginatedResponse({
     required this.data,
     required this.currentPage,
     required this.lastPage,
     required this.total,
     required this.perPage,
+    this.meta = const {},
   });
 
   bool get hasNextPage => currentPage < lastPage;
@@ -70,6 +76,7 @@ class PaginatedResponse<T> {
       lastPage: (meta['last_page'] as num?)?.toInt() ?? 1,
       total: (meta['total'] as num?)?.toInt() ?? 0,
       perPage: (meta['per_page'] as num?)?.toInt() ?? 10,
+      meta: meta,
     );
   }
 

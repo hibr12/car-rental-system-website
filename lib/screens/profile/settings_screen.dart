@@ -1,160 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
+import '../../core/routes/app_routes.dart';
 
-class SettingsScreen extends StatefulWidget {
+/// About & preferences hub.
+///
+/// Deliberately minimal: every toggle here must reflect real functionality.
+/// The backend has no per-user preference endpoints yet, so fake
+/// dark-mode/notification toggles are intentionally NOT offered.
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _pushNotifications = true;
-  bool _emailNotifications = false;
-  bool _smsNotifications = true;
-  bool _darkMode = false;
-  String _selectedLanguage = 'English (US)';
-  String _selectedRegion = 'United States';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         children: [
-          _buildSectionTitle('Appearance'),
-          _buildSwitchTile(
-            icon: LucideIcons.moon,
-            title: 'Dark Mode',
-            value: _darkMode,
-            onChanged: (val) => setState(() => _darkMode = val),
+          _buildSectionTitle('Preferences'),
+          Container(
+            color: AppColors.surface,
+            child: ListTile(
+              leading: const Icon(LucideIcons.banknote, color: AppColors.primary),
+              title:
+                  Text('Currency', style: AppTypography.textTheme.titleMedium),
+              subtitle: Text('Ethiopian Birr (ETB)',
+                  style: AppTypography.textTheme.bodyMedium),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding),
+            ),
+          ),
+          Container(
+            color: AppColors.surface,
+            child: ListTile(
+              leading:
+                  const Icon(LucideIcons.creditCard, color: AppColors.primary),
+              title: Text('Payments',
+                  style: AppTypography.textTheme.titleMedium),
+              subtitle: Text(
+                  'Secure checkout via Chapa, or cash at any branch',
+                  style: AppTypography.textTheme.bodyMedium),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding),
+            ),
           ),
           const Divider(height: AppSpacing.xxl),
-          _buildSectionTitle('Notifications'),
-          _buildSwitchTile(
-            icon: LucideIcons.bell,
-            title: 'Push Notifications',
-            value: _pushNotifications,
-            onChanged: (val) => setState(() => _pushNotifications = val),
+          _buildSectionTitle('Legal'),
+          _buildNavTile(
+            context,
+            icon: LucideIcons.fileText,
+            title: 'Rental Agreement',
+            route: AppRoutes.rentalAgreement,
           ),
-          _buildSwitchTile(
-            icon: LucideIcons.mail,
-            title: 'Email Alerts',
-            value: _emailNotifications,
-            onChanged: (val) => setState(() => _emailNotifications = val),
+          _buildNavTile(
+            context,
+            icon: LucideIcons.shieldCheck,
+            title: 'Insurance Policy',
+            route: AppRoutes.insurancePolicy,
           ),
-          _buildSwitchTile(
-            icon: LucideIcons.messageSquare,
-            title: 'SMS Alerts',
-            value: _smsNotifications,
-            onChanged: (val) => setState(() => _smsNotifications = val),
+          _buildNavTile(
+            context,
+            icon: LucideIcons.fileX,
+            title: 'Cancellation Policy',
+            route: AppRoutes.cancellationPolicy,
+          ),
+          _buildNavTile(
+            context,
+            icon: LucideIcons.fileBadge,
+            title: 'Driver Requirements',
+            route: AppRoutes.driverRequirements,
           ),
           const Divider(height: AppSpacing.xxl),
-          _buildSectionTitle('Language & Region'),
-          _buildListTile(
-            icon: LucideIcons.globe,
-            title: 'Language',
-            subtitle: _selectedLanguage,
-            onTap: _showLanguagePicker,
+          _buildSectionTitle('Support'),
+          _buildNavTile(
+            context,
+            icon: LucideIcons.helpCircle,
+            title: 'Help Center',
+            route: AppRoutes.support,
           ),
-          _buildListTile(
-            icon: LucideIcons.mapPin,
-            title: 'Region',
-            subtitle: _selectedRegion,
-            onTap: _showRegionPicker,
+          const Divider(height: AppSpacing.xxl),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.pagePadding),
+            child: Text(
+              'Apex Rentals v1.0.0',
+              textAlign: TextAlign.center,
+              style: AppTypography.textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textTertiary),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  void _showLanguagePicker() {
-    final languages = [
-      'English (US)',
-      'English (UK)',
-      'Spanish',
-      'French',
-      'German'
-    ];
-    _showSelectionSheet('Select Language', languages, _selectedLanguage, (val) {
-      setState(() => _selectedLanguage = val);
-    });
-  }
-
-  void _showRegionPicker() {
-    final regions = [
-      'United States',
-      'Canada',
-      'United Kingdom',
-      'Australia',
-      'Europe'
-    ];
-    _showSelectionSheet('Select Region', regions, _selectedRegion, (val) {
-      setState(() => _selectedRegion = val);
-    });
-  }
-
-  void _showSelectionSheet(String title, List<String> options,
-      String currentSelection, ValueChanged<String> onSelected) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppSpacing.radiusXl)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.pagePadding),
-                child:
-                    Text(title, style: AppTypography.textTheme.headlineMedium),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ...options.map((option) {
-                final isSelected = option == currentSelection;
-                return ListTile(
-                  title: Text(
-                    option,
-                    style: AppTypography.textTheme.titleMedium?.copyWith(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(LucideIcons.check, color: AppColors.primary)
-                      : null,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.pagePadding),
-                  onTap: () {
-                    onSelected(option);
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -162,48 +102,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.pagePadding, vertical: AppSpacing.sm),
-      child: Text(
-        title,
-        style: AppTypography.textTheme.headlineMedium,
-      ),
+      child: Text(title, style: AppTypography.textTheme.headlineMedium),
     );
   }
 
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      color: AppColors.surface,
-      child: SwitchListTile(
-        secondary: Icon(icon, color: AppColors.primary),
-        title: Text(title, style: AppTypography.textTheme.titleMedium),
-        value: value,
-        onChanged: onChanged,
-        activeColor: AppColors.primary,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-      ),
-    );
-  }
-
-  Widget _buildListTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildNavTile(BuildContext context,
+      {required IconData icon,
+      required String title,
+      required String route}) {
     return Container(
       color: AppColors.surface,
       child: ListTile(
         leading: Icon(icon, color: AppColors.primary),
         title: Text(title, style: AppTypography.textTheme.titleMedium),
-        subtitle: Text(subtitle, style: AppTypography.textTheme.bodyMedium),
         trailing: const Icon(LucideIcons.chevronRight,
             size: 20, color: AppColors.textTertiary),
-        onTap: onTap,
+        onTap: () => context.push(route),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       ),

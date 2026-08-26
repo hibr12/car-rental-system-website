@@ -7,7 +7,9 @@ plugins {
 
 android {
     namespace = "com.example.mobile"
-    compileSdk = flutter.compileSdkVersion
+    // flutter.compileSdkVersion resolves to 34; flutter_secure_storage's
+    // dependency chain requires 35. Higher SDKs are backward compatible.
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

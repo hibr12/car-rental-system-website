@@ -5,7 +5,6 @@ import '../../screens/splash/splash_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
-import '../../screens/auth/forgot_password_screen.dart';
 import '../../screens/main_shell.dart';
 import '../../screens/browse/browse_screen.dart';
 import '../../screens/vehicle/vehicle_details_screen.dart';
@@ -17,15 +16,9 @@ import '../../screens/notifications/notifications_screen.dart';
 import '../../screens/reviews/reviews_screen.dart';
 import '../../screens/profile/settings_screen.dart';
 import '../../screens/profile/legal_screen.dart';
-import '../../screens/profile/rewards_screen.dart';
 import '../../screens/support/support_screen.dart';
-import '../../screens/support/chat_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
-import '../../screens/profile/payment_methods_screen.dart';
-import '../../screens/profile/add_payment_method_screen.dart';
 import '../../screens/profile/driver_license_screen.dart';
-import '../../screens/profile/change_password_screen.dart';
-import '../../screens/profile/saved_addresses_screen.dart';
 import '../../screens/legal/rental_agreement_screen.dart';
 import '../../screens/legal/insurance_policy_screen.dart';
 import '../../screens/legal/cancellation_policy_screen.dart';
@@ -33,13 +26,13 @@ import '../../screens/legal/driver_requirements_screen.dart';
 import '../../screens/reservations/reservation_details_screen.dart';
 import '../../screens/reservations/cancel_reservation_screen.dart';
 import '../../screens/reservations/write_review_screen.dart';
-import '../../screens/reservations/inspection/vehicle_inspection_screen.dart';
-import '../../screens/reservations/inspection/inspection_summary_screen.dart';
-import '../../screens/booking/extras_screen.dart';
 import '../../screens/branches/branch_list_screen.dart';
 import '../../screens/branches/branch_detail_screen.dart';
 import '../../screens/transactions/transaction_history_screen.dart';
 import '../../screens/transactions/invoice_detail_screen.dart';
+import '../../screens/payment/payment_screen.dart';
+import '../../screens/payment/payment_status_screen.dart';
+import '../../screens/reviews/my_reviews_screen.dart';
 import '../../models/vehicle_model.dart' as vehicle_model;
 import '../../models/booking_model.dart' as booking_model;
 import '../../models/booking_draft.dart' as booking_draft;
@@ -54,7 +47,6 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String register = '/register';
-  static const String forgotPassword = '/forgot-password';
 
   // ── Protected routes (require auth token) ──────────────────────────
   static const String home = '/home';
@@ -68,15 +60,9 @@ class AppRoutes {
   static const String reviews = '/reviews';
   static const String settings = '/settings';
   static const String legal = '/legal';
-  static const String rewards = '/rewards';
   static const String support = '/support';
-  static const String chat = '/chat';
   static const String editProfile = '/edit-profile';
-  static const String paymentMethods = '/payment-methods';
-  static const String addPaymentMethod = '/add-payment-method';
   static const String driverLicense = '/profile/license';
-  static const String changePassword = '/change-password';
-  static const String savedAddresses = '/saved-addresses';
   static const String rentalAgreement = '/rental-agreement';
   static const String insurancePolicy = '/insurance-policy';
   static const String cancellationPolicy = '/cancellation-policy';
@@ -84,13 +70,13 @@ class AppRoutes {
   static const String reservationDetails = '/reservation-details';
   static const String cancelReservation = '/cancel-reservation';
   static const String writeReview = '/write-review';
-  static const String extras = '/extras';
   static const String branchList = '/branch-list';
   static const String branchDetail = '/branch-detail';
   static const String transactionHistory = '/transaction-history';
   static const String invoiceDetail = '/invoice-detail';
-  static const String vehicleInspection = '/inspection';
-  static const String inspectionSummary = '/inspection-summary';
+  static const String payment = '/payment';
+  static const String paymentStatus = '/payment-status';
+  static const String myReviews = '/my-reviews';
 
   /// All paths that require an active session.
   static const _protectedPaths = [
@@ -101,15 +87,9 @@ class AppRoutes {
     reviews,
     settings,
     legal,
-    rewards,
     support,
-    chat,
     editProfile,
-    paymentMethods,
-    addPaymentMethod,
     driverLicense,
-    changePassword,
-    savedAddresses,
     rentalAgreement,
     insurancePolicy,
     cancellationPolicy,
@@ -117,17 +97,17 @@ class AppRoutes {
     reservationDetails,
     cancelReservation,
     writeReview,
-    extras,
     branchList,
     branchDetail,
     transactionHistory,
     invoiceDetail,
-    vehicleInspection,
-    inspectionSummary,
     vehicleDetails,
     bookingDate,
     bookingSummary,
     bookingSuccess,
+    payment,
+    paymentStatus,
+    myReviews,
   ];
 
   // ── Router ────────────────────────────────────────────────────────
@@ -159,16 +139,20 @@ class AppRoutes {
       GoRoute(path: onboarding, builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: login, builder: (_, __) => const LoginScreen()),
       GoRoute(path: register, builder: (_, __) => const RegisterScreen()),
-      GoRoute(
-          path: forgotPassword,
-          builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: home, builder: (_, __) => const MainShell()),
       GoRoute(
         path: browse,
         builder: (context, state) {
-          // Optional initial category slug passed from the home chips.
-          final slug = state.extra is String ? state.extra as String : null;
-          return BrowseScreen(initialCategorySlug: slug);
+          final extra = state.extra;
+          // Category slug from home chips…
+          if (extra is String && extra.isNotEmpty) {
+            return BrowseScreen(initialCategorySlug: extra);
+          }
+          // …or a full Branch from the branch detail screen.
+          if (extra is branch_model.Branch) {
+            return BrowseScreen(initialBranchId: extra.id.toString());
+          }
+          return const BrowseScreen();
         },
       ),
       GoRoute(
@@ -199,8 +183,6 @@ class AppRoutes {
                 vehicle: extra,
                 pickupDate: DateTime.now().add(const Duration(days: 1)),
                 returnDate: DateTime.now().add(const Duration(days: 3)),
-                pickupTime: const TimeOfDay(hour: 10, minute: 0),
-                returnTime: const TimeOfDay(hour: 10, minute: 0),
                 pickupLocation: extra.location,
                 returnLocation: extra.location,
               ),
@@ -243,9 +225,7 @@ class AppRoutes {
       ),
       GoRoute(path: settings, builder: (_, __) => const SettingsScreen()),
       GoRoute(path: legal, builder: (_, __) => const LegalScreen()),
-      GoRoute(path: rewards, builder: (_, __) => const RewardsScreen()),
       GoRoute(path: support, builder: (_, __) => const SupportScreen()),
-      GoRoute(path: chat, builder: (_, __) => const ChatScreen()),
       GoRoute(
         path: reservationDetails,
         builder: (context, state) {
@@ -265,17 +245,6 @@ class AppRoutes {
         builder: (context, state) {
           final booking = _extra<booking_model.Booking>(context, state);
           return WriteReviewScreen(booking: booking);
-        },
-      ),
-      GoRoute(
-        path: extras,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is booking_draft.BookingDraft) {
-            return ExtrasScreen(vehicle: extra.vehicle, draft: extra);
-          }
-          final vehicle = _extra<vehicle_model.Vehicle>(context, state);
-          return ExtrasScreen(vehicle: vehicle);
         },
       ),
       GoRoute(path: branchList, builder: (_, __) => const BranchListScreen()),
@@ -298,19 +267,7 @@ class AppRoutes {
       ),
       GoRoute(path: editProfile, builder: (_, __) => const EditProfileScreen()),
       GoRoute(
-          path: paymentMethods,
-          builder: (_, __) => const PaymentMethodsScreen()),
-      GoRoute(
-          path: addPaymentMethod,
-          builder: (_, __) => const AddPaymentMethodScreen()),
-      GoRoute(
           path: driverLicense, builder: (_, __) => const DriverLicenseScreen()),
-      GoRoute(
-          path: changePassword,
-          builder: (_, __) => const ChangePasswordScreen()),
-      GoRoute(
-          path: savedAddresses,
-          builder: (_, __) => const SavedAddressesScreen()),
       GoRoute(
           path: rentalAgreement,
           builder: (_, __) => const RentalAgreementScreen()),
@@ -324,19 +281,23 @@ class AppRoutes {
           path: driverRequirements,
           builder: (_, __) => const DriverRequirementsScreen()),
       GoRoute(
-        path: vehicleInspection,
+        path: payment,
         builder: (context, state) {
-          final isReturn = state.extra as bool? ?? false;
-          return VehicleInspectionScreen(isReturn: isReturn);
+          final booking = _extra<booking_model.Booking>(context, state);
+          return PaymentScreen(booking: booking);
         },
       ),
       GoRoute(
-        path: inspectionSummary,
+        path: paymentStatus,
         builder: (context, state) {
-          final isReturn = state.extra as bool? ?? false;
-          return InspectionSummaryScreen(isReturn: isReturn);
+          final extra = state.extra as Map<String, dynamic>;
+          return PaymentStatusScreen(
+            booking: extra['booking'] as booking_model.Booking,
+            txRef: extra['tx_ref'] as String,
+          );
         },
       ),
+      GoRoute(path: myReviews, builder: (_, __) => const MyReviewsScreen()),
     ],
   );
 }

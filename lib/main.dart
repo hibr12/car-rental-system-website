@@ -27,16 +27,16 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const DriveEaseApp());
+  runApp(const ApexRentalsApp());
 }
 
-class DriveEaseApp extends StatelessWidget {
-  const DriveEaseApp({super.key});
+class ApexRentalsApp extends StatelessWidget {
+  const ApexRentalsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'DriveEase',
+      title: 'Apex Rentals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: AppRoutes.router,

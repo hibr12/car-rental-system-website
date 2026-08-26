@@ -46,17 +46,17 @@ class UserRepository {
     }
   }
 
-  /// Register a new user.
+  /// Register a new customer.
   ///
-  /// Returns the user on success. The token is persisted automatically.
-  /// The token string is attached to `ApiResponse.message` so callers
-  /// can set `AuthState.setToken(response.message!)`.
+  /// Backend (`RegisterRequest`): name required, email required+unique,
+  /// password min 8 + confirmed, phone optional (max 20 chars). The token
+  /// is persisted automatically and attached to `ApiResponse.message`.
   Future<ApiResponse<User>> register({
     required String name,
     required String email,
     required String password,
     required String passwordConfirmation,
-    required String phone,
+    String? phone,
   }) async {
     try {
       final json = await _api.post(ApiEndpoints.authRegister, body: {
@@ -64,7 +64,7 @@ class UserRepository {
         'email': email,
         'password': password,
         'password_confirmation': passwordConfirmation,
-        'phone': phone,
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
       });
       final data = json['data'] as Map<String, dynamic>;
       final token = data['token'] as String;
@@ -94,14 +94,17 @@ class UserRepository {
 
   /// Update the authenticated user's profile.
   ///
-  /// Sends `name`, `email`, and `phone` to `PUT /auth/profile`.
+  /// `PUT /auth/profile` accepts partial updates: `name`, `email`, `phone`
+  /// (all plain JSON strings — the backend has NO avatar upload; the
+  /// `profile_photo` key is a URL string managed server-side).
   Future<ApiResponse<User>> updateProfile(User user) async {
     try {
-      final json = await _api.put(ApiEndpoints.authProfile, body: {
+      final body = <String, dynamic>{
         'name': user.fullName,
         'email': user.email,
-        'phone': user.phone,
-      });
+        'phone': user.phone.trim().isEmpty ? null : user.phone.trim(),
+      };
+      final json = await _api.put(ApiEndpoints.authProfile, body: body);
       final userData = json['data']['user'] as Map<String, dynamic>;
       final updatedUser = User.fromJson(userData);
       return ApiResponse.success(updatedUser);

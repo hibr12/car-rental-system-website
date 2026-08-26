@@ -115,8 +115,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   validator: (val) {
-                    if (val == null || val.isEmpty)
+                    if (val == null || val.isEmpty) {
                       return 'Password is required';
+                    }
                     return null;
                   },
                 ),
@@ -124,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => context.push(AppRoutes.forgotPassword),
+                    onPressed: () => _showForgotPasswordSheet(context),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
@@ -144,41 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child:
-                          Text('OR', style: AppTypography.textTheme.bodyMedium),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                SecondaryButton(
-                  text: 'Continue with Google',
-                  icon: LucideIcons.chrome,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Google login is not available yet.'),
-                      backgroundColor: AppColors.warning,
-                    ));
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SecondaryButton(
-                  text: 'Continue with Apple',
-                  icon: LucideIcons.apple,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Apple login is not available yet.'),
-                      backgroundColor: AppColors.warning,
-                    ));
-                  },
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
@@ -196,6 +162,48 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The backend has no self-service password reset endpoint, so recovery
+  /// goes through the real support contact form.
+  void _showForgotPasswordSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.pagePadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Reset your password',
+                  style: AppTypography.textTheme.headlineMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Password resets are handled by our support team. Send us a '
+                'message with your account email and we will help you '
+                'regain access.',
+                style: AppTypography.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              PrimaryButton(
+                text: 'Contact Support',
+                icon: LucideIcons.mail,
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  context.push(AppRoutes.support);
+                },
+              ),
+            ],
           ),
         ),
       ),

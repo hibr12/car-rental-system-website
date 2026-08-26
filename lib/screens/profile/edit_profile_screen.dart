@@ -51,14 +51,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     setState(() => _isSaving = true);
-    final res = await UserRepository.instance.updateProfile(User(
-      id: _user?.id ?? '0',
-      fullName: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      profileImageUrl: _user?.profileImageUrl ?? '',
-      memberSince: _user?.memberSince ?? DateTime.now(),
-    ));
+    final res = await UserRepository.instance.updateProfile(
+      User(
+        id: _user?.id ?? '0',
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        profileImageUrl: _user?.profileImageUrl ?? '',
+        memberSince: _user?.memberSince ?? DateTime.now(),
+      ),
+    );
 
     if (mounted) {
       setState(() => _isSaving = false);
@@ -126,41 +128,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           children: [
             Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 56,
-                    backgroundImage: (_user?.profileImageUrl ?? '').isNotEmpty
-                        ? NetworkImage(_user!.profileImageUrl)
-                        : null,
-                    child: (_user?.profileImageUrl ?? '').isEmpty
-                        ? const Icon(Icons.person, size: 56)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Photo picker would open here')),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(LucideIcons.camera,
-                            size: 18, color: AppColors.surface),
-                      ),
-                    ),
-                  ),
-                ],
+              child: CircleAvatar(
+                radius: 56,
+                backgroundImage: (_user?.profileImageUrl ?? '').isNotEmpty
+                    ? NetworkImage(_user!.profileImageUrl) as ImageProvider
+                    : null,
+                child: (_user?.profileImageUrl ?? '').isEmpty
+                    ? const Icon(Icons.person, size: 56)
+                    : null,
               ),
             ),
+            // The backend accepts profile details as JSON only — there is no
+            // avatar upload endpoint, so no picker is shown.
             const SizedBox(height: AppSpacing.xxl),
             _buildTextField('Full Name', _nameController, LucideIcons.user),
             const SizedBox(height: AppSpacing.md),
@@ -168,7 +147,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 'Email Address', _emailController, LucideIcons.mail),
             const SizedBox(height: AppSpacing.md),
             _buildTextField(
-                'Phone Number', _phoneController, LucideIcons.phone),
+                'Phone Number', _phoneController, LucideIcons.phone,
+                keyboardType: TextInputType.phone),
             const SizedBox(height: AppSpacing.xxl),
             _buildInfoRow('Member Since',
                 '${user.memberSince.year}-${user.memberSince.month.toString().padLeft(2, '0')}'),
@@ -188,9 +168,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildTextField(
-      String label, TextEditingController controller, IconData icon) {
+      String label, TextEditingController controller, IconData icon,
+      {TextInputType? keyboardType}) {
     return TextField(
       controller: controller,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.primary),

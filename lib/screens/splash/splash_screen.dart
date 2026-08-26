@@ -6,6 +6,7 @@ import '../../core/colors/app_colors.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/config/auth_state.dart';
+import '../../data/local/local_storage_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -52,9 +53,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Reduced-motion users get the logo immediately instead of a
     // half-second animated intro they didn't ask for.
-    // Read this from the platform dispatcher rather than
-    // MediaQuery.of(context) — the latter isn't safe to call in
-    // initState() since the widget isn't finished mounting yet.
     final disableAnimations = WidgetsBinding
         .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
     if (disableAnimations) {
@@ -67,10 +65,6 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _bootstrap() async {
-    // Run the minimum display timer and any real startup work
-    // (session/token validation, remote config, etc.) concurrently so
-    // slow network calls don't add on top of the splash timer, and fast
-    // ones don't cut the splash short.
     final results = await Future.wait([
       Future.delayed(_minimumDisplay),
       _resolveDestination(),
@@ -80,22 +74,26 @@ class _SplashScreenState extends State<SplashScreen>
     _navigated = true;
 
     final destination = results[1] as String;
-    context.go(destination);
+    if (mounted) context.go(destination);
   }
 
   Future<String> _resolveDestination() async {
-    // Auto-login: if a token was persisted, go straight to home.
-    // The router's redirect guard handles the case where the token
-    // has expired server-side (the first API call will 401 → clear
-    // token → router redirects to login).
     try {
-      final isAuthenticated = AuthState.isAuthenticated;
-      return isAuthenticated ? AppRoutes.home : AppRoutes.onboarding;
+      if (!AuthState.isAuthenticated) {
+        final seenOnboarding =
+            await LocalStorageService.instance.hasSeenOnboarding();
+        return seenOnboarding ? AppRoutes.login : AppRoutes.onboarding;
+      }
+
+      // Validate the persisted token against the server before landing on
+      // an authenticated screen. An expired/revoked token gets cleared so
+      // the user starts at login instead of bouncing off a 401 later.
+      final valid = await AuthState.validateSession();
+      return valid ? AppRoutes.home : AppRoutes.login;
     } catch (_) {
-      // Fail closed: if we can't verify the session, send the user
-      // through onboarding/login rather than risk landing on an
-      // authenticated screen with no valid session.
-      return AppRoutes.onboarding;
+      // Fail closed: if anything goes wrong, prefer the logged-out flow.
+      await AuthState.clear();
+      return AppRoutes.login;
     }
   }
 
@@ -123,30 +121,22 @@ class _SplashScreenState extends State<SplashScreen>
                     color: AppColors.surface,
                     shape: BoxShape.circle,
                   ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/brand/logo_mark.png',
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.directions_car,
-                        size: 64,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                  child: const Icon(
+                    Icons.directions_car,
+                    size: 64,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'DriveEase',
+                  'Apex Rentals',
                   style: AppTypography.textTheme.displayMedium?.copyWith(
                     color: AppColors.surface,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Premium Car Rentals',
+                  'Drive Premium',
                   style: AppTypography.textTheme.bodyLarge?.copyWith(
                     color: AppColors.surface.withOpacity(0.75),
                     letterSpacing: 1.2,

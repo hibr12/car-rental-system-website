@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/colors/app_colors.dart';
 import '../../../core/spacing/app_spacing.dart';
 import '../../../core/typography/app_typography.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../models/vehicle_model.dart';
 import '../../../widgets/buttons/app_buttons.dart';
 import '../../../core/routes/app_routes.dart';
@@ -27,34 +28,55 @@ class VehicleTitleSection extends StatelessWidget {
                 style: AppTypography.textTheme.displaySmall,
               ),
             ),
-            InkWell(
-              onTap: () {
-                context.push(AppRoutes.reviews, extra: vehicle);
-              },
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                child: Row(
-                  children: [
-                    const Icon(LucideIcons.star,
-                        color: AppColors.warning, size: 20),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      vehicle.rating.toString(),
-                      style: AppTypography.textTheme.titleLarge,
-                    ),
-                    Text(
-                      ' (${vehicle.reviewCount})',
-                      style: AppTypography.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    const Icon(LucideIcons.chevronRight,
-                        size: 16, color: AppColors.textTertiary),
-                  ],
+            // Rating aggregates come from the public reviews endpoint;
+            // hide the chip entirely when no reviews exist yet.
+            if (vehicle.hasRating)
+              InkWell(
+                onTap: () {
+                  context.push(AppRoutes.reviews, extra: vehicle);
+                },
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Row(
+                    children: [
+                      const Icon(LucideIcons.star,
+                          color: AppColors.warning, size: 20),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        vehicle.rating.toStringAsFixed(1),
+                        style: AppTypography.textTheme.titleLarge,
+                      ),
+                      Text(
+                        ' (${vehicle.reviewCount})',
+                        style: AppTypography.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(LucideIcons.chevronRight,
+                          size: 16, color: AppColors.textTertiary),
+                    ],
+                  ),
+                ),
+              )
+            else
+              InkWell(
+                onTap: () => context.push(AppRoutes.reviews, extra: vehicle),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Row(
+                    children: [
+                      const Icon(LucideIcons.star,
+                          color: AppColors.warning, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text('Reviews',
+                          style: AppTypography.textTheme.bodyLarge
+                              ?.copyWith(color: AppColors.primary)),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -63,12 +85,34 @@ class VehicleTitleSection extends StatelessWidget {
             const Icon(LucideIcons.mapPin,
                 size: 16, color: AppColors.textTertiary),
             const SizedBox(width: AppSpacing.xs),
-            Text(
-              vehicle.location,
-              style: AppTypography.textTheme.bodyLarge,
+            Expanded(
+              child: Text(
+                vehicle.location,
+                style: AppTypography.textTheme.bodyLarge,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
+        // Real branch assignment from the backend (when loaded).
+        if (vehicle.branchName.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              const Icon(LucideIcons.building2,
+                  size: 14, color: AppColors.textTertiary),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  'Available at ${vehicle.branchName}',
+                  style: AppTypography.textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -179,6 +223,8 @@ class VehicleBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAvailable = vehicle.isAvailable;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       decoration: BoxDecoration(
@@ -199,20 +245,24 @@ class VehicleBottomBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total Price',
-                      style: AppTypography.textTheme.bodyMedium),
+                  Text(isAvailable ? 'Price per Day' : 'Currently Unavailable',
+                      style: AppTypography.textTheme.bodyMedium?.copyWith(
+                        color:
+                            isAvailable ? AppColors.textSecondary : AppColors.error,
+                      )),
                   RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: '\$${vehicle.pricePerDay.toInt()}',
+                          text: Formatters.etb(vehicle.pricePerDay),
                           style: AppTypography.textTheme.displaySmall
                               ?.copyWith(color: AppColors.primary),
                         ),
-                        TextSpan(
-                          text: ' /day',
-                          style: AppTypography.textTheme.bodyLarge,
-                        ),
+                        if (isAvailable)
+                          TextSpan(
+                            text: ' /day',
+                            style: AppTypography.textTheme.bodyLarge,
+                          ),
                       ],
                     ),
                   ),
@@ -221,10 +271,9 @@ class VehicleBottomBar extends StatelessWidget {
             ),
             Expanded(
               child: PrimaryButton(
-                text: 'Book Now',
-                onPressed: () {
-                  context.push(AppRoutes.bookingDate, extra: vehicle);
-                },
+                text: isAvailable ? 'Book Now' : 'Unavailable',
+                onPressed:
+                    isAvailable ? () => context.push(AppRoutes.bookingDate, extra: vehicle) : null,
               ),
             ),
           ],

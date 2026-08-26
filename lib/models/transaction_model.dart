@@ -1,110 +1,121 @@
-enum TransactionType { payment, refund, deposit, fee }
-
+/// Payment statuses from `Payment::STATUSES` (PaymentResource `status`).
 enum TransactionStatus {
+  unpaid,
   pending,
   processing,
-  successful,
+  cashPending,
+  paid,
   failed,
-  refunded,
-  partiallyRefunded,
   cancelled,
-  depositHeld,
-  depositReleased
+  expired,
+  invalid,
+  refundPending,
+  partiallyRefunded,
+  refunded,
+  disputed;
+
+  static TransactionStatus parse(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'unpaid':
+        return TransactionStatus.unpaid;
+      case 'pending':
+        return TransactionStatus.pending;
+      case 'processing':
+        return TransactionStatus.processing;
+      case 'cash_pending':
+        return TransactionStatus.cashPending;
+      case 'paid':
+        return TransactionStatus.paid;
+      case 'failed':
+        return TransactionStatus.failed;
+      case 'cancelled':
+        return TransactionStatus.cancelled;
+      case 'expired':
+        return TransactionStatus.expired;
+      case 'invalid':
+        return TransactionStatus.invalid;
+      case 'refund_pending':
+        return TransactionStatus.refundPending;
+      case 'partially_refunded':
+        return TransactionStatus.partiallyRefunded;
+      case 'refunded':
+        return TransactionStatus.refunded;
+      case 'disputed':
+        return TransactionStatus.disputed;
+      default:
+        return TransactionStatus.pending;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case TransactionStatus.unpaid:
+        return 'Unpaid';
+      case TransactionStatus.pending:
+        return 'Pending';
+      case TransactionStatus.processing:
+        return 'Processing';
+      case TransactionStatus.cashPending:
+        return 'Cash – Pending';
+      case TransactionStatus.paid:
+        return 'Paid';
+      case TransactionStatus.failed:
+        return 'Failed';
+      case TransactionStatus.cancelled:
+        return 'Cancelled';
+      case TransactionStatus.expired:
+        return 'Expired';
+      case TransactionStatus.invalid:
+        return 'Invalid';
+      case TransactionStatus.refundPending:
+        return 'Refund Pending';
+      case TransactionStatus.partiallyRefunded:
+        return 'Partially Refunded';
+      case TransactionStatus.refunded:
+        return 'Refunded';
+      case TransactionStatus.disputed:
+        return 'Disputed';
+    }
+  }
+
+  bool get isSuccessful => this == TransactionStatus.paid;
+
+  bool get isRefundFamily =>
+      this == TransactionStatus.refundPending ||
+      this == TransactionStatus.partiallyRefunded ||
+      this == TransactionStatus.refunded;
 }
 
 class Transaction {
   final String id;
   final String bookingReference;
   final String vehicleName;
-  final TransactionType type;
   final TransactionStatus status;
+
+  /// Always ETB (backend hardcodes it); kept for display completeness.
+  final String currency;
   final double amount;
   final DateTime date;
   final String paymentMethod;
   final String? transactionReference;
   final DateTime? paidAt;
-  final String? invoiceUrl;
+  final String? failureReason;
 
   const Transaction({
     required this.id,
     required this.bookingReference,
     required this.vehicleName,
-    required this.type,
     required this.status,
+    this.currency = 'ETB',
     required this.amount,
     required this.date,
     required this.paymentMethod,
     this.transactionReference,
     this.paidAt,
-    this.invoiceUrl,
+    this.failureReason,
   });
 
-  String get typeLabel {
-    switch (type) {
-      case TransactionType.payment:
-        return 'Payment';
-      case TransactionType.refund:
-        return 'Refund';
-      case TransactionType.deposit:
-        return 'Security Deposit';
-      case TransactionType.fee:
-        return 'Service Fee';
-    }
-  }
-
-  String get statusLabel {
-    switch (status) {
-      case TransactionStatus.pending:
-        return 'Pending';
-      case TransactionStatus.processing:
-        return 'Processing';
-      case TransactionStatus.successful:
-        return 'Successful';
-      case TransactionStatus.failed:
-        return 'Failed';
-      case TransactionStatus.refunded:
-        return 'Refunded';
-      case TransactionStatus.partiallyRefunded:
-        return 'Partially Refunded';
-      case TransactionStatus.cancelled:
-        return 'Cancelled';
-      case TransactionStatus.depositReleased:
-        return 'Deposit Released';
-      case TransactionStatus.depositHeld:
-        return 'Deposit Held';
-    }
-  }
-
-  static TransactionStatus parseStatus(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return TransactionStatus.pending;
-      case 'processing':
-        return TransactionStatus.processing;
-      case 'completed':
-      case 'successful':
-      case 'paid':
-        return TransactionStatus.successful;
-      case 'failed':
-        return TransactionStatus.failed;
-      case 'refunded':
-        return TransactionStatus.refunded;
-      case 'cancelled':
-        return TransactionStatus.cancelled;
-      default:
-        return TransactionStatus.pending;
-    }
-  }
-
   /// Parse a Transaction from Laravel's PaymentResource JSON.
-  ///
-  /// PaymentResource fields: id, booking_id, booking (nested), amount,
-  /// payment_method, transaction_reference, status, paid_at, created_at,
-  /// updated_at.
-  ///
-  /// NOTE: PaymentResource does NOT nest the vehicle — only `booking`. The
-  /// vehicle name is therefore derived from `booking.vehicle` when present,
-  /// otherwise we show a generic label (documented in BACKEND_MISSING_FEATURES).
   factory Transaction.fromJson(Map<String, dynamic> json) {
     final booking = json['booking'];
     final bookingMap =
@@ -124,14 +135,14 @@ class Transaction {
           json['booking_id']?.toString() ??
           '',
       vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Vehicle',
-      type: TransactionType.payment, // Backend only handles payments today.
-      status: parseStatus(json['status'] as String?),
+      status: TransactionStatus.parse(json['status'] as String?),
+      currency: json['currency'] as String? ?? 'ETB',
       amount: _parseDouble(json['amount']),
       date: _parseDate(json['created_at']),
       paymentMethod: _humanizePaymentMethod(json['payment_method']),
       transactionReference: json['transaction_reference'] as String?,
       paidAt: _parseNullableDate(json['paid_at']),
-      invoiceUrl: null, // Not provided by backend yet (documented).
+      failureReason: json['failure_reason'] as String?,
     );
   }
 

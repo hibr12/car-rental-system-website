@@ -108,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Join DriveEase to start renting cars today.',
+                  'Join Apex Rentals to start renting cars today.',
                   style: AppTypography.textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -161,13 +161,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: 'Phone',
-                  hint: 'Enter your phone number',
+                  hint: 'Enter your phone number (optional)',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: LucideIcons.phone,
                   errorText: _fieldErrors['phone'],
                   validator: (val) {
-                    if (val == null || val.isEmpty) return 'Phone is required';
+                    // Backend rule: nullable, string, max 20 chars.
+                    final v = val?.trim() ?? '';
+                    if (v.length > 20) {
+                      return 'Phone number must be 20 characters or less';
+                    }
                     return null;
                   },
                 ),
@@ -180,9 +184,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: LucideIcons.lock,
                   errorText: _fieldErrors['password'],
                   validator: (val) {
-                    if (val == null || val.isEmpty)
+                    if (val == null || val.isEmpty) {
                       return 'Password is required';
-                    if (val.length < 6) return 'Must be at least 6 characters';
+                    }
+                    // Backend rule: min 8 characters.
+                    if (val.length < 8) return 'Must be at least 8 characters';
                     return null;
                   },
                 ),
@@ -195,10 +201,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: LucideIcons.lock,
                   errorText: _fieldErrors['password_confirmation'],
                   validator: (val) {
-                    if (val == null || val.isEmpty)
+                    if (val == null || val.isEmpty) {
                       return 'Please confirm your password';
-                    if (val != _passwordController.text)
+                    }
+                    if (val != _passwordController.text) {
                       return 'Passwords do not match';
+                    }
                     return null;
                   },
                 ),

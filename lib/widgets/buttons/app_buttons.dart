@@ -70,6 +70,7 @@ class SecondaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isFullWidth;
   final IconData? icon;
+  final bool isLoading;
 
   const SecondaryButton({
     super.key,
@@ -77,6 +78,7 @@ class SecondaryButton extends StatelessWidget {
     this.onPressed,
     this.isFullWidth = true,
     this.icon,
+    this.isLoading = false,
   });
 
   @override
@@ -85,7 +87,7 @@ class SecondaryButton extends StatelessWidget {
       width: isFullWidth ? double.infinity : null,
       height: 56,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.5),
@@ -93,17 +95,27 @@ class SecondaryButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            Text(text, style: AppTypography.textTheme.labelLarge),
-          ],
-        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                  Text(text, style: AppTypography.textTheme.labelLarge),
+                ],
+              ),
       ),
     );
   }

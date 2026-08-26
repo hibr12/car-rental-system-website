@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 
+/// Cancellation policy, aligned with the backend's actual rules:
+/// customers may cancel while a booking is awaiting payment or approval;
+/// paid bookings are refunded through a staff-reviewed process.
 class CancellationPolicyScreen extends StatelessWidget {
   const CancellationPolicyScreen({super.key});
 
@@ -16,98 +20,83 @@ class CancellationPolicyScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Free Cancellation',
+            Text('Cancelling a Booking',
                 style: AppTypography.textTheme.displaySmall),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'We offer flexible cancellation options because we know plans change.',
-              style: AppTypography.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildTimelineItem(
-              title: 'More than 24 hours before trip',
-              description: 'Cancel for a full refund. No fees or penalties.',
-              color: AppColors.success,
-            ),
-            _buildTimelineItem(
-              title: 'Less than 24 hours before trip',
-              description:
-                  'Cancel for a partial refund. A late cancellation fee of 50% of the first day\'s rental cost will apply.',
-              color: AppColors.warning,
-            ),
-            _buildTimelineItem(
-              title: 'After trip starts (No-show)',
-              description:
-                  'If you do not show up for your reservation and do not cancel, you will be charged the full amount for the first day and 50% for subsequent days.',
-              color: AppColors.error,
-              isLast: true,
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Text('Host Cancellations',
-                style: AppTypography.textTheme.headlineMedium),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'If a host cancels your trip, you will immediately receive a full refund, and our support team will help you find a replacement vehicle.',
+              'We know plans change. Here is exactly how cancellation works '
+              'so there are no surprises.',
               style: AppTypography.textTheme.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text('Early Returns',
+            _buildItem(
+              icon: LucideIcons.calendarX,
+              color: AppColors.success,
+              title: 'Before payment & approval',
+              description:
+                  'Bookings awaiting payment or approval can be cancelled directly from the app at no cost.',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _buildItem(
+              icon: LucideIcons.rotateCcw,
+              color: AppColors.warning,
+              title: 'Already paid?',
+              description:
+                  'If your booking was already paid (online or in cash) and you cancel it, our team reviews and processes your refund. Contact support with your booking reference to speed things up.',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _buildItem(
+              icon: LucideIcons.xCircle,
+              color: AppColors.error,
+              title: 'After approval or pickup',
+              description:
+                  'Once a booking is approved for pickup or the rental has started, cancellation is handled case by case by branch staff — please call or visit the branch.',
+            ),
+            const SizedBox(height: AppSpacing.xxxl),
+            Text('Company cancellations',
                 style: AppTypography.textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'If you return the vehicle early, you will be refunded for the unused days, minus a 20% early return fee on those unused days.',
-              style: AppTypography.textTheme.bodyLarge,
+              'In the rare event we need to cancel your booking — for example if the vehicle becomes unavailable — you will be notified promptly and any payment already made will be refunded.',
+              style: AppTypography.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
+            const SizedBox(height: AppSpacing.xxl),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTimelineItem(
-      {required String title,
-      required String description,
-      required Color color,
-      bool isLast = false}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 80,
-                color: AppColors.border,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-              ),
-          ],
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: AppTypography.textTheme.titleLarge
-                        ?.copyWith(color: color)),
-                const SizedBox(height: AppSpacing.sm),
-                Text(description, style: AppTypography.textTheme.bodyLarge),
-              ],
-            ),
+  Widget _buildItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                  child: Text(title,
+                      style: AppTypography.textTheme.titleLarge)),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.sm),
+          Text(description, style: AppTypography.textTheme.bodyMedium),
+        ],
+      ),
     );
   }
 }

@@ -11,6 +11,7 @@ import '../../models/vehicle_model.dart';
 import '../../core/routes/app_routes.dart';
 import '../../widgets/bottom_sheets/filter_bottom_sheet.dart';
 import '../../widgets/cards/vehicle_card.dart';
+import '../../widgets/cards/vehicle_card_skeleton.dart';
 import '../../widgets/inputs/app_text_field.dart';
 import '../../widgets/states/empty_state_widget.dart';
 import '../../widgets/states/error_state_widget.dart';
@@ -20,7 +21,10 @@ class BrowseScreen extends StatefulWidget {
   /// A non-empty string pre-selects that category; null/empty means "All".
   final String? initialCategorySlug;
 
-  const BrowseScreen({super.key, this.initialCategorySlug});
+  /// Optional backend branch filter (from the branch detail screen).
+  final String? initialBranchId;
+
+  const BrowseScreen({super.key, this.initialCategorySlug, this.initialBranchId});
 
   @override
   State<BrowseScreen> createState() => _BrowseScreenState();
@@ -34,6 +38,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   // ── Category chips ────────────────────────────────────────────────
   List<VehicleCategory> _categories = [];
   late String? _selectedCategorySlug; // null = "All"
+  late final String? _branchId; // null = all branches
 
   // ── Vehicle list state ────────────────────────────────────────────
   List<Vehicle> _vehicles = [];
@@ -58,6 +63,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
     _selectedCategorySlug = (widget.initialCategorySlug != null &&
             widget.initialCategorySlug!.isNotEmpty)
         ? widget.initialCategorySlug
+        : null;
+    _branchId = (widget.initialBranchId != null &&
+            widget.initialBranchId!.isNotEmpty)
+        ? widget.initialBranchId
         : null;
     _scrollController.addListener(_onScroll);
     _loadCategories();
@@ -98,6 +107,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       page: 1,
       search: _activeSearch,
       categorySlug: _selectedCategorySlug,
+      branchId: _branchId,
       filter: _filter,
     );
 
@@ -123,6 +133,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       page: nextPage,
       search: _activeSearch,
       categorySlug: _selectedCategorySlug,
+      branchId: _branchId,
       filter: _filter,
     );
 
@@ -272,7 +283,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
               children: [
                 if (_filter.minPrice != null || _filter.maxPrice != null)
                   _activePill(
-                      'Price: \$${(_filter.minPrice ?? 0).toInt()}–\$${(_filter.maxPrice ?? 1000).toInt()}'),
+                      'Price: ETB ${(_filter.minPrice ?? 0).toInt()}–${(_filter.maxPrice ?? 1000).toInt()}'),
                 if (_filter.transmission != null &&
                     _filter.transmission!.toLowerCase() != 'any')
                   _activePill(_filter.transmission!),
@@ -305,8 +316,28 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+    if (_isLoading && _vehicles.isEmpty) {
+      // First load — show shimmer placeholders matching both layout modes.
+      return _isGrid
+          ? GridView.builder(
+              padding: const EdgeInsets.all(AppSpacing.pagePadding),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.78,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisSpacing: AppSpacing.md,
+              ),
+              itemCount: 6,
+              itemBuilder: (_, __) => const VehicleCardSkeleton(),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(AppSpacing.pagePadding),
+              itemCount: 5,
+              itemBuilder: (_, __) => const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.md),
+                child: VehicleCardSkeleton(isHorizontal: true),
+              ),
+            );
     }
     if (_error != null) {
       return ErrorStateWidget(

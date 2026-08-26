@@ -5,14 +5,11 @@ import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../data/local/local_storage_service.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
-/// Onboarding flow shown on first launch.
-///
-/// [onComplete] is invoked when the user finishes or skips the flow —
-/// wire this up in the caller to persist a "has_seen_onboarding" flag
-/// (e.g. via SharedPreferences) before navigating, rather than doing
-/// persistence inside this widget.
+/// Onboarding flow shown on first launch. Persists the
+/// `has_seen_onboarding` flag so it never replays for returning users.
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onComplete;
 
@@ -34,8 +31,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingPage(
       title: 'Find your perfect ride',
       description:
-          'Browse thousands of verified vehicles near you and book the one that fits your trip.',
-      assetPath: 'assets/onboarding/find_ride.png',
+          'Browse verified vehicles across our branches and book the one that fits your trip.',
       fallbackIcon: Icons.search_rounded,
       backgroundColor: Color(0xFFE8ECFB),
       accentColor: Color(0xFF4F46E5),
@@ -43,17 +39,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingPage(
       title: 'Book with confidence',
       description:
-          'Free cancellation up to 24 hours before pickup, plus insurance included on every booking.',
-      assetPath: 'assets/onboarding/book_confidence.png',
+          'Transparent pricing in ETB, secure Chapa checkout, and a verified driver license keeps every rental safe.',
       fallbackIcon: Icons.verified_user_rounded,
       backgroundColor: Color(0xFFE1F5EA),
       accentColor: Color(0xFF16A34A),
     ),
     _OnboardingPage(
-      title: 'Unlock and go',
+      title: 'Pick up and hit the road',
       description:
-          'Skip the counter. Unlock your car from the app and hit the road in seconds.',
-      assetPath: 'assets/onboarding/unlock_go.png',
+          'Choose a branch, pick your dates, and collect your keys — our team handles the rest.',
       fallbackIcon: Icons.directions_car_filled_rounded,
       backgroundColor: Color(0xFFFDF3D9),
       accentColor: Color(0xFFD97706),
@@ -80,6 +74,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _finish() {
+    // Persist first so the flow never replays, then continue.
+    LocalStorageService.instance.setOnboardingSeen();
     widget.onComplete?.call();
     context.go(AppRoutes.login);
   }
@@ -139,47 +135,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   final opacity = (1 - delta.abs()).clamp(0.0, 1.0);
                   final slide = delta * 24;
 
-                  return Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Transform.translate(
-                          offset: Offset(slide, 0),
-                          child: Opacity(
-                            opacity: opacity,
-                            child: Semantics(
-                              label: page.title,
-                              image: true,
-                              child: _Illustration(
-                                page: page,
-                                size: illustrationSize,
+                  return Center(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Transform.translate(
+                            offset: Offset(slide, 0),
+                            child: Opacity(
+                              opacity: opacity,
+                              child: Semantics(
+                                label: page.title,
+                                image: true,
+                                child: _Illustration(
+                                  page: page,
+                                  size: illustrationSize,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        Opacity(
-                          opacity: opacity,
-                          child: Text(
-                            page.title,
-                            style: AppTypography.textTheme.displaySmall,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Opacity(
-                          opacity: opacity,
-                          child: Text(
-                            page.description,
-                            style: AppTypography.textTheme.bodyLarge?.copyWith(
-                              color: AppColors.textSecondary,
+                          const SizedBox(height: AppSpacing.xxl),
+                          Opacity(
+                            opacity: opacity,
+                            child: Text(
+                              page.title,
+                              style: AppTypography.textTheme.displaySmall,
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: AppSpacing.md),
+                          Opacity(
+                            opacity: opacity,
+                            child: Text(
+                              page.description,
+                              style: AppTypography.textTheme.bodyLarge?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -192,7 +190,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   SmoothPageIndicator(
                     controller: _pageController,
                     count: _pages.length,
-                    effect: ExpandingDotsEffect(
+                    effect: const ExpandingDotsEffect(
                       activeDotColor: AppColors.primary,
                       dotColor: AppColors.border,
                       dotHeight: 8,
@@ -215,10 +213,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// Renders the page illustration. Tries the brand asset first; if it's
-/// missing (e.g. not yet dropped into pubspec assets during development),
-/// falls back to a styled icon instead of throwing, so a missing asset
-/// never blocks a build.
+/// Renders the page illustration as a styled icon inside a tinted circle.
+/// (No image assets ship with the app yet; when brand artwork is added,
+/// declare it under `assets:` in pubspec.yaml and swap this widget.)
 class _Illustration extends StatelessWidget {
   final _OnboardingPage page;
   final double size;
@@ -234,18 +231,10 @@ class _Illustration extends StatelessWidget {
         color: page.backgroundColor,
         shape: BoxShape.circle,
       ),
-      child: ClipOval(
-        child: Image.asset(
-          page.assetPath,
-          width: size,
-          height: size,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Icon(
-            page.fallbackIcon,
-            size: size * 0.42,
-            color: page.accentColor,
-          ),
-        ),
+      child: Icon(
+        page.fallbackIcon,
+        size: size * 0.42,
+        color: page.accentColor,
       ),
     );
   }
@@ -254,7 +243,6 @@ class _Illustration extends StatelessWidget {
 class _OnboardingPage {
   final String title;
   final String description;
-  final String assetPath;
   final IconData fallbackIcon;
   final Color backgroundColor;
   final Color accentColor;
@@ -262,7 +250,6 @@ class _OnboardingPage {
   const _OnboardingPage({
     required this.title,
     required this.description,
-    required this.assetPath,
     required this.fallbackIcon,
     required this.backgroundColor,
     required this.accentColor,

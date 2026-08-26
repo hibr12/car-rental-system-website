@@ -124,8 +124,6 @@ class ApiClient {
   }) async {
     final uri = _uri(path);
     final token = await TokenStorage.getToken();
-    final boundary =
-        'driveease-boundary-${DateTime.now().millisecondsSinceEpoch}';
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Accept'] = 'application/json'
@@ -153,26 +151,26 @@ class ApiClient {
     try {
       return await fn().timeout(AppConfig.timeoutDuration);
     } on TimeoutException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message:
             'Request timed out. Please check your connection and try again.',
         isTimeout: true,
       ));
     } on SocketException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'No internet connection. Please check your network.',
         isNetworkError: true,
       ));
     } on HandshakeException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'Unable to connect to the server. Please try again later.',
         isNetworkError: true,
       ));
     } on http.ClientException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'Connection failed. Please check your network settings.',
         isNetworkError: true,
@@ -186,13 +184,13 @@ class ApiClient {
     try {
       return await fn().timeout(AppConfig.timeoutDuration);
     } on TimeoutException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'Upload timed out.',
         isTimeout: true,
       ));
     } on SocketException {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'No internet connection.',
         isNetworkError: true,
@@ -250,7 +248,7 @@ class ApiClient {
     try {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
-      throw ApiException(const ApiError(
+      throw const ApiException(ApiError(
         statusCode: 0,
         message: 'Invalid response from server.',
       ));

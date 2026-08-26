@@ -1,108 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/colors/app_colors.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../models/branch_model.dart';
 import '../../widgets/buttons/app_buttons.dart';
 
+/// Branch details. Shows only data the backend actually provides
+/// (address, city, phone, email, status, manager, fleet count).
 class BranchDetailScreen extends StatelessWidget {
   final Branch branch;
 
   const BranchDetailScreen({super.key, required this.branch});
 
+  Future<void> _openDirections() async {
+    // No coordinates exist in the backend; a geo search on the branch's
+    // address is the honest way to help customers navigate.
+    final query = Uri.encodeComponent('${branch.locationLine}, Ethiopia');
+    final uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$query');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Nothing else we can do if no maps app/browser is available.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                branch.imageUrl,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.pagePadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      appBar: AppBar(title: const Text('Branch Details')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusLg),
+                  ),
+                  child: const Icon(LucideIcons.building,
+                      size: 40, color: AppColors.primary),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(branch.name,
-                            style: AppTypography.textTheme.displaySmall),
-                      ),
+                      Text(branch.name,
+                          style: AppTypography.textTheme.headlineMedium),
+                      const SizedBox(height: AppSpacing.xs),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: branch.isOpen
+                          color: branch.isActive
                               ? AppColors.success.withOpacity(0.1)
-                              : AppColors.error.withOpacity(0.1),
+                              : AppColors.textTertiary.withOpacity(0.15),
                           borderRadius:
                               BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
-                          branch.isOpen ? 'Open Now' : 'Closed',
-                          style: AppTypography.textTheme.titleSmall?.copyWith(
-                            color: branch.isOpen
+                          branch.isActive ? 'Open' : 'Closed',
+                          style: AppTypography.textTheme.labelSmall?.copyWith(
+                            color: branch.isActive
                                 ? AppColors.success
-                                : AppColors.error,
+                                : AppColors.textTertiary,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildInfoRow(LucideIcons.mapPin, branch.address),
-                  _buildInfoRow(LucideIcons.phone, branch.phone),
-                  _buildInfoRow(LucideIcons.mail, branch.email),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Text('Opening Hours',
-                      style: AppTypography.textTheme.headlineMedium),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(branch.openingHours,
-                      style: AppTypography.textTheme.bodyLarge),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Text('Available Services',
-                      style: AppTypography.textTheme.headlineMedium),
-                  const SizedBox(height: AppSpacing.md),
-                  _buildServiceChip('24/7 Drop-off'),
-                  _buildServiceChip('Luxury Vehicles Available'),
-                  _buildServiceChip('Free Wi-Fi'),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  PrimaryButton(
-                    text: 'Get Directions',
-                    icon: LucideIcons.navigation,
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Opening maps... (Not implemented yet)')),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  SecondaryButton(
-                    text: 'View Cars at this Branch',
-                    onPressed: () {
-                      Navigator.pop(
-                          context); // Go back and maybe select this branch in search
-                    },
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.xxl),
+            _buildInfoRow(
+                LucideIcons.mapPin, branch.locationLine),
+            if (branch.phone.isNotEmpty)
+              _buildInfoRow(LucideIcons.phone, branch.phone),
+            if (branch.email.isNotEmpty)
+              _buildInfoRow(LucideIcons.mail, branch.email),
+            if (branch.managerName?.isNotEmpty == true)
+              _buildInfoRow(LucideIcons.user,
+                  'Branch Manager: ${branch.managerName}'),
+            if (branch.vehiclesCount > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _buildInfoRow(LucideIcons.car,
+                  '${branch.vehiclesCount} vehicle${branch.vehiclesCount == 1 ? '' : 's'} available'),
+            ],
+            const SizedBox(height: AppSpacing.xxxl),
+            PrimaryButton(
+              text: 'Get Directions',
+              icon: LucideIcons.navigation,
+              onPressed: _openDirections,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SecondaryButton(
+              text: 'View Cars at this Branch',
+              icon: LucideIcons.car,
+              onPressed: () =>
+                  context.push(AppRoutes.browse, extra: branch.id.toString()),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -122,20 +132,6 @@ class BranchDetailScreen extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(child: Text(text, style: AppTypography.textTheme.bodyLarge)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceChip(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        children: [
-          const Icon(LucideIcons.checkCircle,
-              color: AppColors.success, size: 20),
-          const SizedBox(width: AppSpacing.sm),
-          Text(text, style: AppTypography.textTheme.bodyLarge),
         ],
       ),
     );

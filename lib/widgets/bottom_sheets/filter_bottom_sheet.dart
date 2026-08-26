@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/category_model.dart';
 import '../buttons/app_buttons.dart';
 
@@ -28,16 +29,17 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late String _transmission;
   late int _minSeats;
 
+  // Slider bounds; a bound value means "no limit" and is NOT sent upstream.
   static const double _absoluteMin = 20;
   static const double _absoluteMax = 1000;
 
   @override
   void initState() {
     super.initState();
-    _minPrice = widget.current.minPrice ?? 50;
-    _maxPrice = widget.current.maxPrice ?? 300;
+    _minPrice = widget.current.minPrice ?? _absoluteMin;
+    _maxPrice = widget.current.maxPrice ?? _absoluteMax;
     _transmission = widget.current.transmission ?? 'Any';
-    _minSeats = widget.current.minSeats ?? 4;
+    _minSeats = widget.current.minSeats ?? 0;
   }
 
   @override
@@ -88,7 +90,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             activeColor: AppColors.primary,
             inactiveColor: AppColors.border,
             labels:
-                RangeLabels('\$${_minPrice.toInt()}', '\$${_maxPrice.toInt()}'),
+                RangeLabels(Formatters.etb(_minPrice), Formatters.etb(_maxPrice)),
             onChanged: (values) {
               setState(() {
                 _minPrice = values.start;
@@ -99,9 +101,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('\$${_minPrice.toInt()}',
+              Text(Formatters.etb(_minPrice),
                   style: AppTypography.textTheme.bodyMedium),
-              Text('\$${_maxPrice.toInt()}',
+              Text(Formatters.etb(_maxPrice),
                   style: AppTypography.textTheme.bodyMedium),
             ],
           ),
@@ -145,11 +147,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           PrimaryButton(
             text: 'Apply Filters',
             onPressed: () {
+              // Bounds still at their extremes mean "no price filter".
               final result = VehicleFilter(
-                minPrice: _minPrice,
-                maxPrice: _maxPrice,
-                transmission: _transmission,
-                minSeats: _minSeats,
+                minPrice: _minPrice > _absoluteMin ? _minPrice : null,
+                maxPrice: _maxPrice < _absoluteMax ? _maxPrice : null,
+                transmission:
+                    _transmission.toLowerCase() == 'any' ? null : _transmission,
+                minSeats: _minSeats > 0 ? _minSeats : null,
               );
               Navigator.pop(context, result);
             },
@@ -162,10 +166,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   void _reset() {
     setState(() {
-      _minPrice = 50;
-      _maxPrice = 300;
+      _minPrice = _absoluteMin;
+      _maxPrice = _absoluteMax;
       _transmission = 'Any';
-      _minSeats = 4;
+      _minSeats = 0;
     });
   }
 

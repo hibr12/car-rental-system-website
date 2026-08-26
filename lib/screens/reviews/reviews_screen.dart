@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/colors/app_colors.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../models/vehicle_model.dart';
 import '../../models/review_model.dart';
+import '../../models/booking_model.dart';
 import '../../widgets/states/empty_state_widget.dart';
 import '../../widgets/states/error_state_widget.dart';
 import '../../widgets/buttons/app_buttons.dart';
@@ -205,21 +208,50 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
           ),
         ],
       ),
-      child: PrimaryButton(
-        text: 'Write a Review',
-        onPressed: () {
-          // Can't navigate to WriteReviewScreen without a Booking object
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'To write a review, go to My Bookings → completed trip → Write a Review.',
-              ),
-              duration: Duration(seconds: 4),
-            ),
-          );
-        },
-        icon: LucideIcons.edit3,
+      child: SafeArea(
+        child: PrimaryButton(
+          text: 'Write a Review',
+          onPressed: _startReviewFlow,
+          icon: LucideIcons.edit3,
+        ),
       ),
     );
+  }
+
+  /// Reviews require a completed booking for this vehicle. Check the
+  /// backend's eligible-bookings list first so we never let a customer
+  /// start a review the server would reject.
+  Future<void> _startReviewFlow() async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final res = await ReviewRepository.instance.getEligibleBookings();
+    if (!mounted) return;
+
+    Booking? eligible;
+    if (res.success && res.data != null) {
+      for (final item in res.data!) {
+        final vehicle = item['vehicle'];
+        final vid =
+            vehicle is Map<String, dynamic> ? vehicle['id']?.toString() : null;
+        if (vid == widget.vehicle.id) {
+          // Minimal Booking carrying what WriteReviewScreen needs.
+          eligible = Booking.fromJson(item);
+          break;
+        }
+      }
+    }
+
+    if (!mounted) return;
+    if (eligible != null) {
+      await context.push(AppRoutes.writeReview, extra: eligible);
+      if (mounted) _fetchReviews();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'You can review this car after completing a rental with it.'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 }

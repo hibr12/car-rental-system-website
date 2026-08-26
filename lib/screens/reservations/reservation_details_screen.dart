@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:intl/intl.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/booking_model.dart';
-import '../../data/repositories/payment_repository.dart';
 import '../../widgets/buttons/app_buttons.dart';
+import '../../widgets/states/error_state_widget.dart';
 import '../../widgets/states/status_badge.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/repositories/booking_repository.dart';
 
 class ReservationDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -22,9 +23,34 @@ class ReservationDetailsScreen extends StatefulWidget {
 }
 
 class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
-  bool _isPaymentLoading = false;
+  late Booking _booking;
+  bool _isRefreshing = false;
+  String? _error;
 
-  Booking get booking => widget.booking;
+  @override
+  void initState() {
+    super.initState();
+    _booking = widget.booking;
+    _refresh();
+  }
+
+  /// Re-fetches the booking so status/payment state are authoritative.
+  Future<void> _refresh() async {
+    setState(() {
+      _isRefreshing = true;
+      _error = null;
+    });
+    final res = await BookingRepository.instance.getBookingById(_booking.id);
+    if (!mounted) return;
+    setState(() {
+      if (res.success && res.data != null) {
+        _booking = res.data!;
+      } else if (res.error != null) {
+        _error = res.error!.friendlyMessage;
+      }
+      _isRefreshing = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,45 +58,63 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Reservation Details'),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.refreshCw, size: 20),
+            onPressed: _isRefreshing ? null : _refresh,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.pagePadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatusHeader(),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildVehicleInfo(),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildPaymentInfo(),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildTimeline(),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildActionButtons(context),
-          ],
-        ),
-      ),
+      body: _isRefreshing && _error == null
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? ErrorStateWidget(message: _error!, onRetry: _refresh)
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.pagePadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatusHeader(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _buildVehicleInfo(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _buildPaymentInfo(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _buildTimeline(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _buildActionButtons(context),
+                    ],
+                  ),
+                ),
     );
   }
 
-  Widget _buildStatusHeader() {
-    BadgeStatus badgeStatus;
-    switch (booking.status) {
-      case BookingStatus.pending:
+  BadgeStatus get _badgeStatus {
+    switch (_booking.status) {
+      case BookingStatus.pendingPayment:
+      case BookingStatus.paymentRequired:
+      case BookingStatus.pendingBranchApproval:
+      case BookingStatus.pendingAdminApproval:
+      case BookingStatus.returnPending:
+        return BadgeStatus.pending;
       case BookingStatus.confirmed:
-        badgeStatus = BadgeStatus.pending;
-        break;
+      case BookingStatus.readyForPickup:
       case BookingStatus.active:
-        badgeStatus = BadgeStatus.active;
-        break;
+        return BadgeStatus.active;
       case BookingStatus.completed:
-        badgeStatus = BadgeStatus.completed;
-        break;
+        return BadgeStatus.completed;
       case BookingStatus.cancelled:
       case BookingStatus.rejected:
-        badgeStatus = BadgeStatus.cancelled;
-        break;
+      case BookingStatus.expired:
+        return BadgeStatus.cancelled;
+      default:
+        return BadgeStatus.pending;
     }
+  }
+
+  Widget _buildStatusHeader() {
+    final rejection = _booking.rejectionReason;
+    final cancellation = _booking.cancellationReason;
 
     return Container(
       width: double.infinity,
@@ -81,19 +125,33 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
       ),
       child: Column(
         children: [
-          StatusBadge(label: booking.statusLabel, status: badgeStatus),
+          StatusBadge(label: _booking.status.label, status: _badgeStatus),
           const SizedBox(height: AppSpacing.md),
           Text('Booking Reference',
               style: AppTypography.textTheme.bodyMedium
                   ?.copyWith(color: AppColors.primary)),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            booking.bookingReference.isNotEmpty
-                ? booking.bookingReference
+            _booking.bookingReference.isNotEmpty
+                ? _booking.bookingReference
                 : 'N/A',
             style: AppTypography.textTheme.headlineMedium
                 ?.copyWith(color: AppColors.primary),
           ),
+          if (rejection != null && rejection.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text('Rejected: $rejection',
+                textAlign: TextAlign.center,
+                style: AppTypography.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.error)),
+          ],
+          if (cancellation != null && cancellation.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text('Cancelled: $cancellation',
+                textAlign: TextAlign.center,
+                style: AppTypography.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary)),
+          ],
         ],
       ),
     );
@@ -105,14 +163,14 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
         ClipRRect(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           child: Image.network(
-            booking.vehicle.imageUrls.first,
+            _booking.vehicle.imageUrls.first,
             width: 100,
             height: 70,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
               width: 100,
               height: 70,
-              color: AppColors.textTertiary,
+              color: AppColors.backgroundSecondary,
               child: const Icon(LucideIcons.imageOff, size: 24),
             ),
           ),
@@ -122,7 +180,7 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(booking.vehicle.fullName,
+              Text(_booking.vehicle.fullName,
                   style: AppTypography.textTheme.titleLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
@@ -134,8 +192,8 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
-                      booking.pickupLocation.isNotEmpty
-                          ? booking.pickupLocation
+                      _booking.pickupLocation.isNotEmpty
+                          ? _booking.pickupLocation
                           : 'Location not set',
                       style: AppTypography.textTheme.bodyMedium,
                       overflow: TextOverflow.ellipsis,
@@ -165,21 +223,25 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
               style: AppTypography.textTheme.headlineMedium),
           const SizedBox(height: AppSpacing.md),
           _buildDetailRow(
-              'Total Amount', '\$${booking.totalAmount.toStringAsFixed(2)}'),
+              'Total Amount', Formatters.etb(_booking.totalAmount)),
           const SizedBox(height: AppSpacing.sm),
-          _buildDetailRow('Payment Status', booking.paymentStatus.label),
-          if (booking.numberOfDays > 0) ...[
+          _buildDetailRow('Payment Status', _booking.paymentStatus.label),
+          if (_booking.numberOfDays > 0) ...[
             const SizedBox(height: AppSpacing.sm),
-            _buildDetailRow('Duration', '${booking.numberOfDays} day(s)'),
+            _buildDetailRow('Duration', '${_booking.numberOfDays} day(s)'),
           ],
-          if (booking.pricePerDay > 0) ...[
+          if (_booking.pricePerDay > 0) ...[
             const SizedBox(height: AppSpacing.sm),
             _buildDetailRow(
-                'Daily Rate', '\$${booking.pricePerDay.toStringAsFixed(2)}'),
+                'Daily Rate', Formatters.etb(_booking.pricePerDay)),
           ],
-          if (booking.notes.isNotEmpty) ...[
+          if (_booking.branchName.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
-            _buildDetailRow('Notes', booking.notes),
+            _buildDetailRow('Branch', _booking.branchName),
+          ],
+          if (_booking.notes.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _buildDetailRow('Notes', _booking.notes),
           ],
         ],
       ),
@@ -204,14 +266,11 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
   }
 
   Widget _buildTimeline() {
-    final dateFormat = DateFormat('MMM d, yyyy');
-
-    final bool pickupDone = booking.status == BookingStatus.active ||
-        booking.status == BookingStatus.completed;
-    final bool tripActive = booking.status == BookingStatus.active;
-    final bool tripCompleted = booking.status == BookingStatus.completed;
-    final bool isCancelled = booking.status == BookingStatus.cancelled ||
-        booking.status == BookingStatus.rejected;
+    final bool pickupDone =
+        _booking.pickedUpAt != null || _booking.status == BookingStatus.active;
+    final bool tripActive = _booking.status == BookingStatus.active;
+    final bool tripCompleted = _booking.status == BookingStatus.completed;
+    final bool isTerminal = _booking.status.isPast;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,30 +279,37 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
         const SizedBox(height: AppSpacing.md),
         _buildTimelineItem(
           'Pickup',
-          dateFormat.format(booking.pickupDate),
+          Formatters.date(_booking.pickupDate),
           isCompleted: pickupDone || tripCompleted,
-          isCurrent: booking.status == BookingStatus.confirmed,
+          isCurrent: !isTerminal && !pickupDone,
         ),
         _buildTimelineItem(
           'Trip Active',
           tripActive
               ? 'Enjoy your ride!'
-              : (tripCompleted ? 'Trip completed' : 'Upcoming'),
+              : (tripCompleted
+                  ? 'Trip completed'
+                  : (pickupDone ? 'In progress' : 'Upcoming')),
           isCompleted: tripCompleted,
           isCurrent: tripActive,
         ),
         _buildTimelineItem(
           'Return',
-          dateFormat.format(booking.returnDate),
+          Formatters.date(_booking.returnDate),
           isCompleted: tripCompleted,
-          isLast: !isCancelled,
+          isLast: !isTerminal,
         ),
-        if (isCancelled)
+        if (isTerminal)
           _buildTimelineItem(
-            booking.status == BookingStatus.cancelled
-                ? 'Cancelled'
-                : 'Rejected',
-            'This booking has been ${booking.status.name}',
+            _booking.status.label,
+            switch (_booking.status) {
+              BookingStatus.cancelled =>
+                _booking.cancelledAt != null
+                    ? 'Cancelled ${Formatters.date(_booking.cancelledAt)}'
+                    : 'This booking was cancelled.',
+              BookingStatus.rejected => 'This booking was not approved.',
+              _ => 'This booking has ended.',
+            },
             isCompleted: false,
             isCurrent: true,
             isLast: true,
@@ -311,60 +377,75 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
-        // Pay Now — for confirmed/pending bookings with unpaid payment status
-        if ((booking.status == BookingStatus.confirmed ||
-                booking.status == BookingStatus.pending) &&
-            !booking.paymentStatus.isPaid) ...[
+        // Cash-pending notice — payment awaits branch confirmation.
+        if (_booking.paymentStatus == PaymentStatus.cashPending)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.banknote,
+                    size: 18, color: AppColors.warning),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Cash payment registered — visit the branch to pay. '
+                    'Staff will confirm and finalize your booking.',
+                    style: AppTypography.textTheme.bodySmall
+                        ?.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Pay online — only when the backend expects money.
+        if (_booking.canPayOnline) ...[
           PrimaryButton(
-            text: _isPaymentLoading ? 'Processing...' : 'Pay Now',
-            isLoading: _isPaymentLoading,
-            onPressed:
-                _isPaymentLoading ? null : () => _showPaymentDialog(context),
+            text: 'Pay Now (Chapa)',
+            onPressed: () async {
+              await context.push(AppRoutes.payment, extra: _booking);
+              if (mounted) _refresh();
+            },
             icon: LucideIcons.creditCard,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
 
-        // Cancel — only for pending bookings
-        if (booking.status == BookingStatus.pending) ...[
-          PrimaryButton(
+        // Cancel — only while cancellable per backend rules.
+        if (_booking.status.isCancellable &&
+            !_booking.paymentStatus.isPaid) ...[
+          SecondaryButton(
             text: 'Cancel Reservation',
-            backgroundColor: AppColors.error,
-            onPressed: () =>
-                context.push(AppRoutes.cancelReservation, extra: booking),
+            onPressed: () async {
+              await context.push(AppRoutes.cancelReservation, extra: _booking);
+              if (mounted) _refresh();
+            },
             icon: LucideIcons.xCircle,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
 
-        // Start Inspection — active bookings
-        if (booking.status == BookingStatus.active) ...[
-          PrimaryButton(
-            text: 'Start Return Inspection',
-            onPressed: () =>
-                context.push(AppRoutes.vehicleInspection, extra: true),
-            icon: LucideIcons.clipboardCheck,
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
-
-        // Write Review — completed bookings
-        if (booking.status == BookingStatus.completed) ...[
+        // Review — completed rentals without a review yet.
+        if (_booking.status == BookingStatus.completed &&
+            !_booking.hasReview) ...[
           PrimaryButton(
             text: 'Write a Review',
-            onPressed: () =>
-                context.push(AppRoutes.writeReview, extra: booking),
+            onPressed: () async {
+              await context.push(AppRoutes.writeReview, extra: _booking);
+              if (mounted) _refresh();
+            },
             icon: LucideIcons.star,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
 
-        SecondaryButton(
-          text: 'View Rental Agreement',
-          onPressed: () => context.push(AppRoutes.rentalAgreement),
-          icon: LucideIcons.fileText,
-        ),
-        const SizedBox(height: AppSpacing.md),
         SecondaryButton(
           text: 'Report an Issue',
           onPressed: () => context.push(AppRoutes.support),
@@ -372,101 +453,5 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
         ),
       ],
     );
-  }
-
-  void _showPaymentDialog(BuildContext context) {
-    String selectedMethod = 'cash';
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Choose Payment Method'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Amount: \$${booking.totalAmount.toStringAsFixed(2)}',
-                style: AppTypography.textTheme.headlineMedium,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ...[
-                'cash',
-                'bank_transfer',
-                'card',
-                'online_payment'
-              ].map((method) => RadioListTile<String>(
-                    title: Text(_humanizeMethod(method)),
-                    value: method,
-                    groupValue: selectedMethod,
-                    activeColor: AppColors.primary,
-                    onChanged: (v) => setDialogState(() => selectedMethod = v!),
-                  )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, selectedMethod),
-              child:
-                  const Text('Pay', style: TextStyle(color: AppColors.primary)),
-            ),
-          ],
-        ),
-      ),
-    ).then((method) {
-      if (method != null && mounted) {
-        _processPayment(method as String);
-      }
-    });
-  }
-
-  String _humanizeMethod(String method) {
-    switch (method) {
-      case 'cash':
-        return 'Cash';
-      case 'bank_transfer':
-        return 'Bank Transfer';
-      case 'card':
-        return 'Card';
-      case 'online_payment':
-        return 'Online Payment';
-      default:
-        return method;
-    }
-  }
-
-  Future<void> _processPayment(String method) async {
-    setState(() => _isPaymentLoading = true);
-
-    final res = await PaymentRepository.instance.createPayment(
-      bookingId: booking.id,
-      amount: booking.totalAmount,
-      paymentMethod: method,
-    );
-
-    if (!mounted) return;
-    setState(() => _isPaymentLoading = false);
-
-    if (res.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment submitted successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      // Pop back so the booking list refreshes
-      Navigator.pop(context, true);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res.error?.friendlyMessage ??
-              'Payment failed. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
   }
 }

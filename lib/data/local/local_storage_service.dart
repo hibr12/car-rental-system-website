@@ -1,8 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Device-local preferences that have no backend representation.
+///
+/// Only two concerns live here: the local vehicle wishlist (favorites are a
+/// per-device convenience — the backend has no favorites API) and the
+/// onboarding-seen flag.
 class LocalStorageService {
   static const String _favoritesKey = 'favorite_vehicle_ids';
-  static const String _addressesKey = 'saved_addresses';
+  static const String _onboardingKey = 'has_seen_onboarding';
 
   static final LocalStorageService instance = LocalStorageService._internal();
 
@@ -37,24 +42,15 @@ class LocalStorageService {
     return favorites.contains(vehicleId);
   }
 
-  /// Saved Addresses
+  /// Onboarding
 
-  Future<List<String>> getSavedAddresses() async {
+  Future<bool> hasSeenOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_addressesKey) ?? [];
+    return prefs.getBool(_onboardingKey) ?? false;
   }
 
-  Future<void> addAddress(String address) async {
+  Future<void> setOnboardingSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    final addresses = prefs.getStringList(_addressesKey) ?? [];
-    addresses.add(address);
-    await prefs.setStringList(_addressesKey, addresses);
-  }
-
-  Future<void> removeAddress(String address) async {
-    final prefs = await SharedPreferences.getInstance();
-    final addresses = prefs.getStringList(_addressesKey) ?? [];
-    addresses.remove(address);
-    await prefs.setStringList(_addressesKey, addresses);
+    await prefs.setBool(_onboardingKey, true);
   }
 }

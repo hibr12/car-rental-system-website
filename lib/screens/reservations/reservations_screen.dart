@@ -3,10 +3,10 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/booking_model.dart';
 import '../../widgets/states/empty_state_widget.dart';
 import '../../widgets/states/error_state_widget.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routes/app_routes.dart';
 import '../../data/repositories/booking_repository.dart';
@@ -108,7 +108,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         itemCount: bookings.length,
         itemBuilder: (context, index) {
           final booking = bookings[index];
-          final DateFormat formatter = DateFormat('MMM d, yyyy');
           return InkWell(
             onTap: () async {
               final result = await context
@@ -166,7 +165,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                   overflow: TextOverflow.ellipsis),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                '${formatter.format(booking.pickupDate)} - ${formatter.format(booking.returnDate)}',
+                                '${Formatters.date(booking.pickupDate)} - ${Formatters.date(booking.returnDate)}',
                                 style: AppTypography.textTheme.bodyMedium,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -182,7 +181,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         Text('Total Amount',
                             style: AppTypography.textTheme.bodyLarge),
                         Text(
-                          '\$${booking.totalAmount.toStringAsFixed(2)}',
+                          Formatters.etb(booking.totalAmount),
                           style: AppTypography.textTheme.headlineMedium
                               ?.copyWith(color: AppColors.primary),
                         ),
@@ -201,17 +200,22 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   Widget _buildStatusChip(BookingStatus status) {
     Color bgColor;
     Color textColor;
+
     switch (status) {
-      case BookingStatus.pending:
+      case BookingStatus.pendingPayment:
+      case BookingStatus.paymentRequired:
+      case BookingStatus.paymentProcessing:
+      case BookingStatus.pendingBranchApproval:
+      case BookingStatus.pendingAdminApproval:
+      case BookingStatus.returnPending:
         bgColor = AppColors.warning.withOpacity(0.1);
         textColor = AppColors.warning;
         break;
       case BookingStatus.confirmed:
-        bgColor = AppColors.primaryLight;
-        textColor = AppColors.primary;
-        break;
+      case BookingStatus.readyForPickup:
+      case BookingStatus.paymentVerified:
       case BookingStatus.active:
-        bgColor = AppColors.primary.withOpacity(0.1);
+        bgColor = AppColors.primaryLight;
         textColor = AppColors.primary;
         break;
       case BookingStatus.completed:
@@ -220,6 +224,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         break;
       case BookingStatus.cancelled:
       case BookingStatus.rejected:
+      case BookingStatus.expired:
         bgColor = AppColors.error.withOpacity(0.1);
         textColor = AppColors.error;
         break;
@@ -232,7 +237,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Text(
-        status.name.toUpperCase(),
+        status.label.toUpperCase(),
         style: AppTypography.textTheme.labelSmall?.copyWith(color: textColor),
       ),
     );
