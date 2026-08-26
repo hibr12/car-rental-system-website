@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
@@ -7,6 +10,7 @@ import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
 import '../../data/local/local_storage_service.dart';
 import '../../widgets/buttons/app_buttons.dart';
+import 'car_illustration.dart';
 
 /// Onboarding flow shown on first launch. Persists the
 /// `has_seen_onboarding` flag so it never replays for returning users.
@@ -27,30 +31,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _transitionDuration = Duration(milliseconds: 350);
   static const _transitionCurve = Curves.easeOutCubic;
 
+  // Copy stays short and factual — every claim maps to a real Apex
+  // Rentals capability (multi-branch fleet, date-based booking with live
+  // availability, Chapa payment flow).
   final List<_OnboardingPage> _pages = const [
     _OnboardingPage(
-      title: 'Find your perfect ride',
+      title: 'Discover your ride',
       description:
-          'Browse verified vehicles across our branches and book the one that fits your trip.',
-      fallbackIcon: Icons.search_rounded,
-      backgroundColor: Color(0xFFE8ECFB),
-      accentColor: Color(0xFF4F46E5),
+          'Explore our fleet across branches and find the right vehicle for your trip.',
+      accent: AppColors.primary,
+      badgeIcon: LucideIcons.badgeCheck,
+      badgeLabel: 'Curated fleet',
     ),
     _OnboardingPage(
-      title: 'Book with confidence',
+      title: 'Book with ease',
       description:
-          'Transparent pricing in ETB, secure Chapa checkout, and a verified driver license keeps every rental safe.',
-      fallbackIcon: Icons.verified_user_rounded,
-      backgroundColor: Color(0xFFE1F5EA),
-      accentColor: Color(0xFF16A34A),
+          'Choose your dates, check availability, and reserve your vehicle in minutes.',
+      accent: AppColors.secondary,
+      badgeIcon: LucideIcons.banknote,
+      badgeLabel: 'Transparent ETB pricing',
     ),
     _OnboardingPage(
-      title: 'Pick up and hit the road',
+      title: 'Ready when you are',
       description:
-          'Choose a branch, pick your dates, and collect your keys — our team handles the rest.',
-      fallbackIcon: Icons.directions_car_filled_rounded,
-      backgroundColor: Color(0xFFFDF3D9),
-      accentColor: Color(0xFFD97706),
+          'Manage your reservation and pay securely through the supported payment system.',
+      accent: AppColors.success,
+      badgeIcon: LucideIcons.shieldCheck,
+      badgeLabel: 'Secure checkout',
     ),
   ];
 
@@ -93,10 +100,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final isLastPage = _currentPage == _pages.length - 1;
     final size = MediaQuery.sizeOf(context);
-    final illustrationSize = (size.width * 0.62).clamp(200.0, 300.0);
+
+    // Scale the artwork with both axes so it never overflows on small or
+    // unusually tall/short devices.
+    final illustrationWidth = (size.width * 0.82).clamp(230.0, 330.0);
+    final maxHeight = math.max(120.0, size.height * 0.34);
+    final illustrationHeight = math.min(illustrationWidth * 0.6, maxHeight);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -138,7 +150,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   return Center(
                     child: SingleChildScrollView(
                       physics: const ClampingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -149,9 +162,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               child: Semantics(
                                 label: page.title,
                                 image: true,
-                                child: _Illustration(
-                                  page: page,
-                                  size: illustrationSize,
+                                child: SizedBox(
+                                  width: illustrationWidth,
+                                  height: illustrationHeight,
+                                  child: CarIllustration(
+                                    accent: page.accent,
+                                    badge: IllustrationBadge(
+                                      icon: page.badgeIcon,
+                                      label: page.badgeLabel,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -168,12 +188,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           const SizedBox(height: AppSpacing.md),
                           Opacity(
                             opacity: opacity,
-                            child: Text(
-                              page.description,
-                              style: AppTypography.textTheme.bodyLarge?.copyWith(
-                                color: AppColors.textSecondary,
+                            child: ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(maxWidth: 320),
+                              child: Text(
+                                page.description,
+                                style:
+                                    AppTypography.textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  height: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ),
                         ],
@@ -213,45 +239,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// Renders the page illustration as a styled icon inside a tinted circle.
-/// (No image assets ship with the app yet; when brand artwork is added,
-/// declare it under `assets:` in pubspec.yaml and swap this widget.)
-class _Illustration extends StatelessWidget {
-  final _OnboardingPage page;
-  final double size;
-
-  const _Illustration({required this.page, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: page.backgroundColor,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        page.fallbackIcon,
-        size: size * 0.42,
-        color: page.accentColor,
-      ),
-    );
-  }
-}
-
 class _OnboardingPage {
   final String title;
   final String description;
-  final IconData fallbackIcon;
-  final Color backgroundColor;
-  final Color accentColor;
+  final Color accent;
+  final IconData badgeIcon;
+  final String badgeLabel;
 
   const _OnboardingPage({
     required this.title,
     required this.description,
-    required this.fallbackIcon,
-    required this.backgroundColor,
-    required this.accentColor,
+    required this.accent,
+    required this.badgeIcon,
+    required this.badgeLabel,
   });
 }
