@@ -11,6 +11,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -28,9 +31,12 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
+
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful',
+            'message' => 'Registration successful. Please verify your email address.',
             'data' => [
                 'user' => new UserResource($user),
             ],
@@ -96,5 +102,103 @@ class AuthController extends Controller
                 'user' => new UserResource($user->fresh()),
             ],
         ]);
+    }
+
+    // Email Verification
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email already verified.',
+                'data' => [
+                    'user' => new UserResource($user),
+                ],
+            ]);
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email verified successfully.',
+            'data' => [
+                'user' => new UserResource($user->fresh()),
+            ],
+        ]);
+    }
+
+    public function resendVerificationEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email already verified.',
+            ], 422);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification link sent.',
+        ]);
+    }
+
+    // Password Reset
+    public function sendResetLink(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return $status === Password::RESET_LINK_SENT
+            ? response()->json([
+                'success' => true,
+                'message' => 'Password reset link sent to your email.',
+            ])
+            : response()->json([
+                'success' => false,
+                'message' => 'Unable to send reset link. Email not found.',
+            ], 422);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->setRememberToken(Str::random(60));
+                $user->save();
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully.',
+            ])
+            : response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired reset token.',
+            ], 422);
     }
 }

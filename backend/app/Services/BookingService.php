@@ -11,6 +11,7 @@ use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Services\DriverLicenseService;
 
@@ -157,7 +158,7 @@ class BookingService
 
     public function confirmBooking(Booking $booking, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $status = $booking->normalizeStatus();
 
         if ($actor->isBranchManager()
@@ -178,7 +179,7 @@ class BookingService
 
     public function rejectBooking(Booking $booking, ?string $reason = null, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $reason = trim((string) $reason);
 
         if ($reason === '') {
@@ -205,12 +206,12 @@ class BookingService
 
     public function cancelBooking(Booking $booking, ?User $actor = null, ?string $reason = null, string $source = 'customer'): Booking
     {
-        return $this->workflow->cancelBooking($booking, $actor ?? auth()->user(), $reason, $source);
+        return $this->workflow->cancelBooking($booking, $actor ?? auth::user() , $reason, $source);
     }
 
     public function markAsPickedUp(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
 
         // Allow simple staff pickup when documents already verified / provided in request
         $defaults = [
@@ -237,7 +238,7 @@ class BookingService
 
     public function markAsReturned(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $defaults = [
             'return_mileage' => $data['return_mileage'] ?? $booking->vehicle?->mileage ?? $booking->pickup_mileage ?? 0,
             'return_fuel_level' => $data['return_fuel_level'] ?? 'full',

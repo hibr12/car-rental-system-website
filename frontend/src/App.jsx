@@ -15,6 +15,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import EmailVerificationNoticePage from './pages/auth/EmailVerificationNoticePage';
 
 import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
@@ -103,6 +104,7 @@ function App() {
           <Route path="/register"         element={<RegisterPage />} />
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
+          <Route path="/verify-email"     element={<EmailVerificationNoticePage />} />
         </Route>
 
         <Route path="/checkout" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>
@@ -128,10 +130,20 @@ function App() {
 
         {/* ═══ MANAGEMENT SIGN-IN (must be outside PortalGate) ═══ */}
         <Route path="/admin/login"   element={<ManagementLoginPage portal="admin" />} />
+        <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
         <Route path="/manager/login" element={<ManagementLoginPage portal="manager" />} />
+        <Route path="/manager/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/manager/reset-password" element={<ResetPasswordPage />} />
         <Route path="/branch/login"  element={<ManagementLoginPage portal="branch" />} />
+        <Route path="/branch/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/branch/reset-password" element={<ResetPasswordPage />} />
         <Route path="/fleet/login"   element={<ManagementLoginPage portal="fleet" />} />
+        <Route path="/fleet/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/fleet/reset-password" element={<ResetPasswordPage />} />
         <Route path="/staff/login"   element={<ManagementLoginPage portal="staff" />} />
+        <Route path="/staff/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/staff/reset-password" element={<ResetPasswordPage />} />
 
         {/* ═══ ADMIN PORTAL ═══ */}
         <Route path="/admin" element={<PortalGate portal="admin" layout={AdminLayout} />}>

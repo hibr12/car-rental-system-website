@@ -35,6 +35,19 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:web');
     Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
     Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');
+
+    // Email verification
+    Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->middleware(['auth:web', 'signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('/verification/resend', [AuthController::class, 'resendVerificationEmail'])
+        ->middleware(['auth:web', 'throttle:2,1']);
+
+    // Password reset (all portals)
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
+        ->middleware('throttle:forgot-password');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:reset-password');
 });
 
 Route::get('/categories',         [CategoryController::class, 'index']);
