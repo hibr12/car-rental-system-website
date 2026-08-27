@@ -48,6 +48,11 @@ Route::prefix('auth')->group(function () {
         ->middleware('throttle:forgot-password');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
         ->middleware('throttle:reset-password');
+
+    // Named route for password reset email link generation
+    Route::get('/reset-password/{token}', function ($token) {
+        return redirect(config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token={$token}");
+    })->name('password.reset');
 });
 
 Route::get('/categories',         [CategoryController::class, 'index']);
