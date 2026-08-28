@@ -85,7 +85,9 @@ class Review {
       vehicleId: json['vehicle_id']?.toString() ?? '',
       bookingId: json['booking_id']?.toString() ?? '',
       userId: userMap['id']?.toString() ?? '',
-      userName: (userMap['name'] as String?)?.trim() ?? 'Anonymous',
+      userName: (userMap['name'] as String?)?.trim().isNotEmpty == true
+          ? (userMap['name'] as String).trim()
+          : (json['customer_name'] as String?)?.trim() ?? 'Anonymous',
       userProfileImageUrl: (userMap['profile_photo'] as String?) ?? '',
       rating: _parseDouble(json['overall_rating'] ?? json['rating']),
       vehicleRating: _parseInt(json['vehicle_rating']),

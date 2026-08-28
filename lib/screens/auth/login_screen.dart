@@ -55,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (response.success) {
-      // Set auth state with the token (attached to response.message)
       if (response.message != null && response.message!.isNotEmpty) {
         await AuthState.setToken(response.message!);
       }

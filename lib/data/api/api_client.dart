@@ -47,7 +47,7 @@ class ApiClient {
     };
 
     final token = await TokenStorage.getToken();
-    if (token != null) {
+    if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
 
@@ -126,8 +126,11 @@ class ApiClient {
     final token = await TokenStorage.getToken();
 
     final request = http.MultipartRequest('POST', uri)
-      ..headers['Accept'] = 'application/json'
-      ..headers['Authorization'] = 'Bearer ${token ?? ""}';
+      ..headers['Accept'] = 'application/json';
+    
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     fields?.forEach((key, value) => request.fields[key] = value);
     files?.forEach((key, file) {

@@ -66,7 +66,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = false);
 
     if (response.success && response.data != null) {
-      // Set auth state with the token (attached to response.message)
       if (response.message != null && response.message!.isNotEmpty) {
         await AuthState.setToken(response.message!);
       }

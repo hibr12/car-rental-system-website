@@ -24,8 +24,7 @@ class UserRepository {
 
   /// Login and return the authenticated user.
   ///
-  /// The Sanctum token is persisted automatically. Callers should also
-  /// call `AuthState.setToken()` to update the synchronous holder.
+  /// The Sanctum token is persisted automatically in [TokenStorage].
   Future<ApiResponse<User>> login(String email, String password) async {
     try {
       final json = await _api.post(ApiEndpoints.authLogin, body: {
@@ -33,11 +32,12 @@ class UserRepository {
         'password': password,
       });
       final data = json['data'] as Map<String, dynamic>;
-      final token = data['token'] as String;
+      final token = data['token'] as String?;
       final userData = data['user'] as Map<String, dynamic>;
 
-      // Persist the Sanctum token
-      await TokenStorage.saveToken(token);
+      if (token != null && token.isNotEmpty) {
+        await TokenStorage.saveToken(token);
+      }
 
       final user = User.fromJson(userData);
       return ApiResponse.success(user, message: token);
@@ -48,9 +48,7 @@ class UserRepository {
 
   /// Register a new customer.
   ///
-  /// Backend (`RegisterRequest`): name required, email required+unique,
-  /// password min 8 + confirmed, phone optional (max 20 chars). The token
-  /// is persisted automatically and attached to `ApiResponse.message`.
+  /// The Sanctum token is persisted automatically in [TokenStorage].
   Future<ApiResponse<User>> register({
     required String name,
     required String email,
@@ -67,11 +65,12 @@ class UserRepository {
         if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
       });
       final data = json['data'] as Map<String, dynamic>;
-      final token = data['token'] as String;
+      final token = data['token'] as String?;
       final userData = data['user'] as Map<String, dynamic>;
 
-      // Persist the Sanctum token
-      await TokenStorage.saveToken(token);
+      if (token != null && token.isNotEmpty) {
+        await TokenStorage.saveToken(token);
+      }
 
       final user = User.fromJson(userData);
       return ApiResponse.success(user, message: token);
@@ -86,17 +85,12 @@ class UserRepository {
       await TokenStorage.deleteToken();
       return ApiResponse.success(true);
     } on ApiException catch (e) {
-      // Even if the server call fails, clear the local token
       await TokenStorage.deleteToken();
       return ApiResponse.error(e.error);
     }
   }
 
   /// Update the authenticated user's profile.
-  ///
-  /// `PUT /auth/profile` accepts partial updates: `name`, `email`, `phone`
-  /// (all plain JSON strings — the backend has NO avatar upload; the
-  /// `profile_photo` key is a URL string managed server-side).
   Future<ApiResponse<User>> updateProfile(User user) async {
     try {
       final body = <String, dynamic>{
@@ -116,6 +110,6 @@ class UserRepository {
   /// Check if the user is currently authenticated (has a stored token).
   Future<bool> isAuthenticated() async {
     final token = await TokenStorage.getToken();
-    return token != null;
+    return token != null && token.isNotEmpty;
   }
 }
