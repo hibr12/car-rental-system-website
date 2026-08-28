@@ -6,9 +6,11 @@ import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
 import '../../core/routes/app_routes.dart';
 import '../../models/booking_draft.dart';
+import '../../models/branch_model.dart';
 import '../../models/vehicle_model.dart';
 import '../../data/repositories/branch_repository.dart';
 import '../../widgets/buttons/app_buttons.dart';
+import 'branch_map_picker_screen.dart';
 import 'components/booking_date_components.dart';
 
 class BookingDateScreen extends StatefulWidget {
@@ -24,56 +26,89 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
   DateTime? _startDate = DateTime.now().add(const Duration(days: 1));
   DateTime? _endDate = DateTime.now().add(const Duration(days: 3));
 
-  final _formKey = GlobalKey<FormState>();
-  final _pickupController = TextEditingController();
-  final _returnController = TextEditingController();
-  bool _locationLoaded = false;
+  Branch? _pickupBranch;
+  bool _returnAtPickup = true;
+  Branch? _returnBranch;
+
+  /// Display text sent to the backend (`pickup_location`/`return_location`
+  /// are plain strings in `StoreBookingRequest`). Composed only from real
+  /// branch data.
+  static String _locationText(Branch branch) {
+    final line = branch.locationLine;
+    return line.isEmpty ? branch.name : '${branch.name} · $line';
+  }
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill with the car's home branch (the branch that actually holds
-    // the vehicle) once its full address is fetched; the user can still edit.
-    _prefillLocations();
+    _prefillHomeBranch();
   }
 
-  Future<void> _prefillLocations() async {
-    final fallback = widget.vehicle.branchName.isNotEmpty
-        ? widget.vehicle.branchName
-        : widget.vehicle.location;
+  /// Preselects the car's home branch (the branch that actually holds the
+  /// vehicle). A name-only placeholder is used immediately so the UI is
+  /// never blank; the API result refines it with full details.
+  Future<void> _prefillHomeBranch() async {
+    final homeBranch = _homeBranchFromVehicle();
     if (!mounted) return;
     setState(() {
-      _pickupController.text = fallback;
-      _returnController.text = fallback;
+      _pickupBranch = homeBranch;
+      _returnBranch = null; // follows pickup while the toggle is on
     });
 
-    final bid = int.tryParse(widget.vehicle.branchId);
-    if (bid == null || bid == 0) return;
+    final id = int.tryParse(widget.vehicle.branchId);
+    if (id == null || id == 0) return;
 
-    final res = await BranchRepository.instance.getBranchById(widget.vehicle.branchId);
-    if (!mounted || !res.success || res.data == null || _locationLoaded) return;
-    final b = res.data!;
-    final address = b['address']?.toString() ?? '';
-    final city = b['city']?.toString() ?? '';
-    final name = b['name']?.toString() ?? '';
-    final parts = [
-      name,
-      [address, city].where((s) => s.trim().isNotEmpty).join(', '),
-    ].where((s) => s.trim().isNotEmpty).join(' · ');
-    if (parts.isNotEmpty) {
-      setState(() {
-        _pickupController.text = parts;
-        _returnController.text = parts;
-        _locationLoaded = true;
-      });
+    final res = await BranchRepository.instance
+        .getBranchTyped(widget.vehicle.branchId);
+    if (!mounted) return;
+
+    if (res.success && res.data != null) {
+      setState(() => _pickupBranch = res.data);
     }
+    // On failure the name-only placeholder stays usable; the customer can
+    // also pick another branch from the map.
   }
 
-  @override
-  void dispose() {
-    _pickupController.dispose();
-    _returnController.dispose();
-    super.dispose();
+  Branch? _homeBranchFromVehicle() {
+    final id = int.tryParse(widget.vehicle.branchId) ?? 0;
+    final name = widget.vehicle.branchName;
+    if (id == 0 || name.isEmpty) return null;
+    return Branch(
+      id: id,
+      name: name,
+      address: '',
+      city: '',
+      phone: '',
+      email: '',
+      status: 'active',
+    );
+  }
+
+  Future<void> _pickBranch({required bool isPickup}) async {
+    final current = isPickup ? _pickupBranch : _returnBranch ?? _pickupBranch;
+    final args = BranchPickerArgs(
+      isPickup: isPickup,
+      initialSelection: current,
+    );
+
+    final result = await context.push<Branch>(
+      AppRoutes.branchPicker,
+      extra: args,
+    );
+    if (!mounted || result == null) return;
+
+    setState(() {
+      if (isPickup) {
+        _pickupBranch = result;
+        if (_returnAtPickup) _returnBranch = null;
+      } else {
+        _returnBranch = result;
+        if (_returnBranch!.id == _pickupBranch?.id) {
+          _returnAtPickup = true;
+          _returnBranch = null;
+        }
+      }
+    });
   }
 
   Future<void> _selectDateRange() async {
@@ -109,7 +144,8 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
     }
   }
 
-  bool get _canProceed => _startDate != null && _endDate != null;
+  bool get _canProceed =>
+      _startDate != null && _endDate != null && _pickupBranch != null;
 
   @override
   Widget build(BuildContext context) {
@@ -168,67 +204,37 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
                     const SizedBox(height: AppSpacing.xxl),
                     Text('Pickup & Return Location',
                         style: AppTypography.textTheme.headlineMedium),
-                    const SizedBox(height: AppSpacing.md),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _pickupController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              labelText: 'Pickup Location',
-                              prefixIcon:
-                                  Icon(LucideIcons.mapPin, size: 20),
-                            ),
-                            validator: (v) =>
-                                v == null || v.trim().isEmpty
-                                    ? 'Pickup location is required'
-                                    : null,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          TextFormField(
-                            controller: _returnController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              labelText: 'Return Location',
-                              prefixIcon: Icon(
-                                  LucideIcons.mapPin,
-                                  size: 20),
-                            ),
-                            validator: (v) =>
-                                v == null || v.trim().isEmpty
-                                    ? 'Return location is required'
-                                    : null,
-                          ),
-                        ],
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Select where you would like to collect and return '
+                      'the vehicle.',
+                      style: AppTypography.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.backgroundSecondary,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusMd),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(LucideIcons.info,
-                              size: 18, color: AppColors.textTertiary),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'The car is kept at its home branch — you can '
-                              'fine-tune the address text if needed.',
-                              style: AppTypography.textTheme.bodySmall
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _BranchSelectionCard(
+                      label: 'Pickup location',
+                      branch: _pickupBranch,
+                      onTap: () => _pickBranch(isPickup: true),
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ReturnAtPickupToggle(
+                      value: _returnAtPickup,
+                      onChanged: (v) => setState(() {
+                        _returnAtPickup = v;
+                        if (v) _returnBranch = null;
+                      }),
+                    ),
+                    if (!_returnAtPickup) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      _BranchSelectionCard(
+                        label: 'Return location',
+                        branch: _returnBranch,
+                        fallbackBranch: _pickupBranch,
+                        onTap: () => _pickBranch(isPickup: false),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -255,19 +261,171 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
       ),
       child: PrimaryButton(
         text: 'Continue to Summary',
-        onPressed: _canProceed
-            ? () {
-                if (!(_formKey.currentState?.validate() ?? false)) return;
+        onPressed: !_canProceed
+            ? null
+            : () {
                 final draft = BookingDraft(
                   vehicle: widget.vehicle,
                   pickupDate: _startDate!,
                   returnDate: _endDate!,
-                  pickupLocation: _pickupController.text.trim(),
-                  returnLocation: _returnController.text.trim(),
+                  pickupLocation: _locationText(_pickupBranch!),
+                  returnLocation: _returnAtPickup
+                      ? _locationText(_pickupBranch!)
+                      : _locationText(_returnBranch!),
                 );
                 context.push(AppRoutes.bookingSummary, extra: draft);
-              }
-            : null,
+              },
+      ),
+    );
+  }
+}
+
+// ─── Location section widgets ────────────────────────────────────────────
+
+/// Tappable card summarizing the chosen branch ("📍 Bole Branch / Bole
+/// Road… / Tap to change"). Shows an empty state when nothing is selected.
+class _BranchSelectionCard extends StatelessWidget {
+  final String label;
+  final Branch? branch;
+
+  /// Shown as a hint of the effective selection when [branch] is null
+  /// (e.g. return defaults to the pickup branch).
+  final Branch? fallbackBranch;
+  final VoidCallback onTap;
+
+  const _BranchSelectionCard({
+    required this.label,
+    required this.branch,
+    required this.onTap,
+    this.fallbackBranch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final effective = branch ?? fallbackBranch;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: const Icon(
+                LucideIcons.mapPin,
+                size: 20,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTypography.textTheme.labelLarge?.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  if (effective != null) ...[
+                    Text(
+                      effective.name,
+                      style: AppTypography.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (effective.locationLine.isNotEmpty)
+                      Text(
+                        effective.locationLine,
+                        style: AppTypography.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ] else
+                    Text(
+                      'Tap to select a branch',
+                      style: AppTypography.textTheme.titleMedium?.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Change',
+              style: AppTypography.textTheme.labelLarge,
+            ),
+            const SizedBox(width: 2),
+            const Icon(
+              LucideIcons.chevronRight,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReturnAtPickupToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ReturnAtPickupToggle({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: Checkbox(
+                value: value,
+                activeColor: AppColors.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                onChanged: (v) => onChanged(v ?? false),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                'Return at pickup location',
+                style: AppTypography.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

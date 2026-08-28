@@ -4,9 +4,13 @@ import 'vehicle_model.dart';
 /// (date selection → summary → success).
 ///
 /// Only `vehicle_id`, `pickup_location`, `return_location`, `pickup_date`,
-/// `return_date` (+ optional `branch_id`, `notes`) are sent to the backend;
-/// it computes pricing and validates availability/eligibility. The backend
-/// has no time-of-day component, so none is collected.
+/// `return_date` (+ optional `notes`) are sent to the backend; it computes
+/// pricing and validates availability/eligibility. The backend has no
+/// time-of-day component, so none is collected.
+///
+/// Locations come from a selected branch in the map picker — never from
+/// free-form customer input. The booking's branch association itself is
+/// derived server-side from the vehicle, so no branch id is sent.
 class BookingDraft {
   final Vehicle vehicle;
   final DateTime pickupDate;

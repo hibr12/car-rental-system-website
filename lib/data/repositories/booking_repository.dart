@@ -71,6 +71,10 @@ class BookingRepository {
             : draft.vehicle.location,
         'pickup_date': draft.pickupDateIso,
         'return_date': draft.returnDateIso,
+        // NOTE: `branch_id` is intentionally NOT sent. The backend derives
+        // the booking's branch from the vehicle itself
+        // (`BookingService::createBooking`) and rejects a mismatched
+        // branch_id; the web client behaves identically (strings only).
         if (draft.notes.isNotEmpty) 'notes': draft.notes,
       };
 

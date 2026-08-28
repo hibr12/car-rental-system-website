@@ -9,6 +9,7 @@ import '../../screens/main_shell.dart';
 import '../../screens/browse/browse_screen.dart';
 import '../../screens/vehicle/vehicle_details_screen.dart';
 import '../../screens/booking/booking_date_screen.dart';
+import '../../screens/booking/branch_map_picker_screen.dart';
 import '../../screens/booking/booking_summary_screen.dart';
 import '../../screens/booking/booking_success_screen.dart';
 import '../../screens/favorites/favorites_screen.dart';
@@ -53,6 +54,7 @@ class AppRoutes {
   static const String browse = '/browse';
   static const String vehicleDetails = '/vehicle-details';
   static const String bookingDate = '/booking-date';
+  static const String branchPicker = '/branch-picker';
   static const String bookingSummary = '/booking-summary';
   static const String bookingSuccess = '/booking-success';
   static const String favorites = '/favorites';
@@ -103,6 +105,7 @@ class AppRoutes {
     invoiceDetail,
     vehicleDetails,
     bookingDate,
+    branchPicker,
     bookingSummary,
     bookingSuccess,
     payment,
@@ -167,6 +170,15 @@ class AppRoutes {
         builder: (context, state) {
           final vehicle = _extra<vehicle_model.Vehicle>(context, state);
           return BookingDateScreen(vehicle: vehicle);
+        },
+      ),
+      GoRoute(
+        path: branchPicker,
+        builder: (context, state) {
+          final args = state.extra is BranchPickerArgs
+              ? state.extra! as BranchPickerArgs
+              : const BranchPickerArgs(isPickup: true);
+          return BranchMapPickerScreen(args: args);
         },
       ),
       GoRoute(
