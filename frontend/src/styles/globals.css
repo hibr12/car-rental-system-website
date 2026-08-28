@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+    /* Apex Rentals — management design tokens */
+    --apex-primary: #2563EB;
+    --apex-secondary: #0EA5E9;
+    --apex-success: #16A34A;
+    --apex-warning: #F59E0B;
+    --apex-danger: #DC2626;
+
+    --apex-text: #0F172A;
+    --apex-text-secondary: #334155;
+    --apex-text-muted: #64748B;
+    --apex-text-placeholder: #94A3B8;
+
+    --apex-border: #E2E8F0;
+    --apex-border-input: #CBD5E1;
+    --apex-background: #FFFFFF;
+    --apex-background-secondary: #F8FAFC;
+    --apex-background-hover: #F1F5F9;
+
+    --apex-sidebar: #0F172A;
+    --apex-sidebar-text: #CBD5E1;
+    --apex-sidebar-hover: #1E293B;
+    --apex-sidebar-icon: #94A3B8;
+
+    /* Theme aliases used across the app (management locked to light) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #F8FAFC;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #F8FAFC;
+    --bg-overlay: rgba(255, 255, 255, 0.95);
+    --bg-sidebar: #0F172A;
+
+    --text-primary: #0F172A;
+    --text-secondary: #334155;
+    --text-tertiary: #64748B;
+    --text-muted: #64748B;
+    --text-inverse: #FFFFFF;
+    --text-sidebar: #CBD5E1;
+    --text-sidebar-active: #FFFFFF;
+
+    --border-primary: #E2E8F0;
+    --border-secondary: #E2E8F0;
+    --border-hover: #CBD5E1;
+    --border-sidebar: #1e293b;
+
+    --accent-blue: #2563EB;
+    --accent-indigo: #2563EB;
+    --accent-emerald: #16A34A;
+    --accent-purple: #2563EB;
+    --accent-amber: #F59E0B;
+    --accent-rose: #DC2626;
+    --accent-cyan: #0EA5E9;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Management shell: never inherit dark page chrome */
+  .management-shell,
+  .management-shell * {
+    color-scheme: light;
+  }
+
+  .management-shell {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #F8FAFC;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #F8FAFC;
+    --text-primary: #0F172A;
+    --text-secondary: #334155;
+    --text-tertiary: #64748B;
+    --text-muted: #64748B;
+    --border-primary: #E2E8F0;
+    --border-secondary: #E2E8F0;
+    background-color: #ffffff !important;
+    color: #0F172A;
+  }
+
+  .management-shell .bg-theme-card,
+  .management-shell .bg-theme-primary,
+  .management-shell .bg-theme-secondary,
+  .management-shell .bg-theme-input {
+    background-color: #ffffff !important;
+  }
+
+  .management-shell .text-theme-primary {
+    color: #0F172A !important;
+  }
+
+  .management-shell .text-theme-secondary {
+    color: #334155 !important;
+  }
+
+  .management-shell .text-theme-muted,
+  .management-shell .text-theme-tertiary {
+    color: #64748B !important;
+  }
+
+  .management-shell .border-theme,
+  .management-shell .border-theme-secondary {
+    border-color: #E2E8F0 !important;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #ffffff;
+    color: var(--text-primary);
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #ffffff;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) #ffffff;
+  }
+}
+
+@layer utilities {
+  .bg-theme-primary { background-color: var(--bg-primary); }
+  .bg-theme-secondary { background-color: var(--bg-secondary); }
+  .bg-theme-tertiary { background-color: var(--bg-tertiary); }
+  .bg-theme-card { background-color: var(--bg-card); }
+  .bg-theme-input { background-color: var(--bg-input); }
+  .bg-theme-hover { background-color: var(--bg-hover); }
+
+  .text-theme-primary { color: var(--text-primary); }
+  .text-theme-secondary { color: var(--text-secondary); }
+  .text-theme-tertiary { color: var(--text-tertiary); }
+  .text-theme-muted { color: var(--text-muted); }
+
+  .border-theme { border-color: var(--border-primary); }
+  .border-theme-secondary { border-color: var(--border-secondary); }
+  .border-theme-hover { border-color: var(--border-hover); }
+
+  .shadow-theme-sm { box-shadow: var(--shadow-sm); }
+  .shadow-theme-card { box-shadow: var(--shadow-card); }
+  .shadow-theme-md { box-shadow: var(--shadow-md); }
+  .shadow-theme-lg { box-shadow: var(--shadow-lg); }
+  .shadow-theme-xl { box-shadow: var(--shadow-xl); }
+
+  .btn-primary {
+    background-color: #2563EB;
+    color: #ffffff;
+  }
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+
+  .mgmt-page {
+    @apply space-y-6 bg-white text-[#0F172A];
+  }
+
+  .mgmt-card {
+    @apply bg-white border border-[#E2E8F0] rounded-xl;
+  }
+
+  .mgmt-input {
+    @apply w-full bg-white border border-[#CBD5E1] rounded-lg px-3 py-2.5 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#2563EB];
+  }
+
+  .mgmt-table-head {
+    @apply text-xs uppercase bg-[#F8FAFC] text-[#334155] border-b border-[#E2E8F0];
+  }
+
+  .mgmt-table-row {
+    @apply hover:bg-[#F8FAFC] transition-colors;
+  }
+}
