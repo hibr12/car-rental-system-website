@@ -30,11 +30,29 @@ use Illuminate\Support\Facades\Route;
 // ════════════════════════════════════════════════════════════════════
 
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
-    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum');
-    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:sanctum');
-    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:web');
+    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
+    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');
+
+    // Email verification
+    Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->middleware(['auth:web', 'signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('/verification/resend', [AuthController::class, 'resendVerificationEmail'])
+        ->middleware(['auth:web', 'throttle:2,1']);
+
+    // Password reset (all portals)
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
+        ->middleware('throttle:forgot-password');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:reset-password');
+
+    // Named route for password reset email link generation
+    Route::get('/reset-password/{token}', function ($token) {
+        return redirect(config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token={$token}");
+    })->name('password.reset');
 });
 
 Route::get('/categories',         [CategoryController::class, 'index']);
@@ -46,7 +64,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
-    ->middleware('auth:sanctum');
+    ->middleware('auth:web');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -62,7 +80,7 @@ Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
 //  AUTHENTICATED ROUTES
 // ════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:web'])->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {

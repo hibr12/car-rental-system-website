@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const isDev = import.meta.env.DEV;
+const API_URL = isDev ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
+const BASE_URL = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -9,62 +11,36 @@ const apiClient = axios.create({
     'Accept': 'application/json',
   },
   timeout: 15000,
+  withCredentials: true,
 });
 
-// Request interceptor to attach Bearer token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+let csrfPromise = null;
 
-// Response interceptor for error handling
+// CSRF cookie is at /sanctum/csrf-cookie
+const getCsrfCookie = () => {
+  if (!csrfPromise) {
+    csrfPromise = axios.get(`${BASE_URL}/sanctum/csrf-cookie`, {
+      withCredentials: true,
+    }).finally(() => {
+      csrfPromise = null;
+    });
+  }
+  return csrfPromise;
+};
+
+const needsCsrf = (method) => ['post', 'put', 'patch', 'delete'].includes(method.toLowerCase());
+
+apiClient.interceptors.request.use(async (config) => {
+  if (needsCsrf(config.method)) {
+    await getCsrfCookie();
+  }
+  return config;
+});
+
+// Response interceptor to extract data from axios response
 apiClient.interceptors.response.use(
   (response) => response.data,
-  (error) => {
-    if (error.response) {
-      const status = error.response.status;
-      const data = error.response.data;
-
-      if (status === 401) {
-        const path = error.config?.url || '';
-        const isAuthEntry = /\/auth\/(login|register)$/.test(path);
-        if (!isAuthEntry) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-          window.dispatchEvent(new Event('unauthorized'));
-        }
-      }
-
-      const formattedError = {
-        status,
-        message: data?.message || 'An unexpected error occurred.',
-        errors: data?.errors || null,
-        code: data?.code || null,
-        data: data?.data || null,
-        success: false,
-      };
-
-      return Promise.reject(formattedError);
-    } else if (error.request) {
-      return Promise.reject({
-        status: 0,
-        message: 'Network error. Please check your internet connection or server availability.',
-        success: false,
-      });
-    } else {
-      return Promise.reject({
-        status: 0,
-        message: error.message || 'An error occurred setting up the request.',
-        success: false,
-      });
-    }
-  }
+  (error) => Promise.reject(error)
 );
 
 export default apiClient;

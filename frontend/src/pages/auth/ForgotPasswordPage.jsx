@@ -1,17 +1,32 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '../../components/common/Toast';
+import authApi from '../../api/authApi';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast.success('Password reset link sent to your email.');
+    if (!email) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authApi.forgotPassword(email);
+      setSubmitted(true);
+      toast.success('Password reset link sent to your email.');
+    } catch (err) {
+      toast.error(err.message || 'Unable to send reset link. Email not found.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,6 +51,10 @@ export const ForgotPasswordPage = () => {
             <p className="text-xs text-theme-secondary">
               We have dispatched a password reset link to <strong className="text-emerald-300">{email}</strong>.
             </p>
+            <Link to="/login" className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:underline mt-4">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Sign In</span>
+            </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,9 +75,11 @@ export const ForgotPasswordPage = () => {
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Send Reset Link
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Sending... </>
+              : 'Send Reset Link'}
             </button>
           </form>
         )}

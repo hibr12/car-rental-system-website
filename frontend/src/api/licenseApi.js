@@ -17,6 +17,16 @@ export const licenseApi = {
   approve: (id) => apiClient.post(`/admin/licenses/${id}/approve`),
   reject: (id, reason) => apiClient.post(`/admin/licenses/${id}/reject`, { reason }),
 
+  // Document viewing
+  openDocument: (licenseId, side) => apiClient.get(`/licenses/${licenseId}/document/${side}`, {
+    responseType: 'blob',
+  }).then((blob) => {
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Revoke the object URL after a delay to allow the browser to load the document
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  }),
+
   // Legacy/alias endpoints (for backward compatibility)
   get: () => apiClient.get('/customer/license'),
   upload: (data) => apiClient.post('/customer/license', data, {

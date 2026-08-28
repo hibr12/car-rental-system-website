@@ -37,21 +37,23 @@ export const RegisterPage = () => {
     }
 
     try {
-      const response = await register(formData);
-      toast.success('Registration successful! Welcome to ApexRentals.');
+      await register(formData);
+      toast.success('Registration successful! Please verify your email address.');
 
-      const userRole = response.data?.user?.role;
-      let targetPath = '/dashboard';
-      if (userRole === 'admin') targetPath = '/admin';
-      else if (userRole === 'fleet_manager') targetPath = '/fleet';
-      else if (userRole === 'staff') targetPath = '/staff';
-
-      navigate(targetPath, { replace: true });
+      // Redirect to email verification notice page instead of dashboard
+      navigate('/verify-email', { replace: true });
     } catch (err) {
-      if (err.errors) {
-        setFieldErrors(err.errors);
+      const validationErrors = err.response?.data?.errors;
+      if (validationErrors) {
+        setFieldErrors(validationErrors);
+        // Show user-friendly message for duplicate email
+        if (validationErrors.email && validationErrors.email[0]?.includes('unique')) {
+          setErrorMessage('This email is already registered. Please use another email or sign in.');
+        } else if (validationErrors.email && validationErrors.email[0]) {
+          setErrorMessage(validationErrors.email[0]);
+        }
       }
-      setErrorMessage(err.message || 'Registration failed. Please check input values.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Registration failed. Please check input values.');
     }
   };
 
