@@ -24,14 +24,24 @@ class AuthController extends Controller
             'role' => 'customer',
         ]);
 
+        // Create a session for the user if session store is present (web cookie auth)
+        if ($request->hasSession()) {
+            Auth::login($user);
+            $request->session()->regenerate();
+        }
+
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
+
+        // Issue Sanctum token for mobile and API clients
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful',
             'data' => [
-                'user' => new UserResource($user),
                 'token' => $token,
+                'user' => new UserResource($user),
             ],
         ], 201);
     }
@@ -45,6 +55,10 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
         $user = User::with('branch')->where('email', $request->email)->firstOrFail();
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -52,15 +66,25 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user'  => new UserResource($user),
                 'token' => $token,
+                'user'  => new UserResource($user),
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        // Delete current Sanctum access token if request used a Bearer token
+        if ($request->user()?->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+        }
+
+        Auth::logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'success' => true,

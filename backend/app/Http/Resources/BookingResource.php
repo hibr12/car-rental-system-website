@@ -71,7 +71,6 @@ class BookingResource extends JsonResource
                     : null
             ),
             'branch_id' => $this->branch_id,
-            'branch' => $this->whenLoaded('branch'),
             'branch_approval' => $this->branch_approval_status ?? 'pending',
             'branch_approval_status' => $this->branch_approval_status ?? 'pending',
             'admin_approval' => $this->admin_approval_status ?? 'not_required',
