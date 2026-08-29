@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Branch;
 use App\Models\Booking;
 use App\Models\Branch;
 use App\Models\Category;
