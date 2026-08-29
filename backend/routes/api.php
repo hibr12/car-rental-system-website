@@ -64,7 +64,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
-    ->middleware('auth:web');
+    ->middleware('auth:sanctum');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -80,7 +80,7 @@ Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
 //  AUTHENTICATED ROUTES
 // ════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth:web'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {
