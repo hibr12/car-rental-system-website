@@ -1,43 +1,41 @@
 import { create } from 'zustand';
 import authApi from '../api/authApi';
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
-  token: localStorage.getItem('auth_token') || null,
-  isAuthenticated: !!localStorage.getItem('auth_token'),
+  isAuthenticated: !!localStorage.getItem('auth_user'),
   isLoading: false,
   isInitializing: true,
   error: null,
 
   initAuth: async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      set({ user: null, token: null, isAuthenticated: false, isInitializing: false });
+    // Clear old token-based auth data (from previous version)
+    localStorage.removeItem('auth_token');
+    
+    const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
+    if (!user) {
+      set({ user: null, isAuthenticated: false, isInitializing: false });
       return;
     }
 
-    // Always validate token on load (F5-safe, ensures fresh user + branch data)
     try {
       set({ isLoading: true, isInitializing: true });
       const response = await authApi.me();
-      const user = response.data?.user || response.data;
+      const freshUser = response.data?.user || response.data;
       
-      localStorage.setItem('auth_user', JSON.stringify(user));
+      localStorage.setItem('auth_user', JSON.stringify(freshUser));
       set({
-        user,
-        token,
+        user: freshUser,
         isAuthenticated: true,
         isLoading: false,
         isInitializing: false,
         error: null,
       });
     } catch (err) {
-      console.warn('Authentication token expired or invalid:', err);
-      localStorage.removeItem('auth_token');
+      console.warn('Session expired or invalid:', err);
       localStorage.removeItem('auth_user');
       set({
         user: null,
-        token: null,
         isAuthenticated: false,
         isLoading: false,
         isInitializing: false,
@@ -50,16 +48,14 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.login(credentials);
-      const { user, token } = response.data || {};
+      const { user } = response.data || {};
       
-      if (token) {
-        localStorage.setItem('auth_token', token);
+      if (user) {
         localStorage.setItem('auth_user', JSON.stringify(user));
       }
       
       set({
         user,
-        token,
         isAuthenticated: true,
         isLoading: false,
         isInitializing: false,
@@ -77,16 +73,14 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.register(registerData);
-      const { user, token } = response.data || {};
+      const { user } = response.data || {};
       
-      if (token) {
-        localStorage.setItem('auth_token', token);
+      if (user) {
         localStorage.setItem('auth_user', JSON.stringify(user));
       }
       
       set({
         user,
-        token,
         isAuthenticated: true,
         isLoading: false,
         isInitializing: false,
@@ -107,11 +101,9 @@ export const useAuthStore = create((set, get) => ({
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       set({
         user: null,
-        token: null,
         isAuthenticated: false,
         isLoading: false,
         error: null,
@@ -140,11 +132,9 @@ export const useAuthStore = create((set, get) => ({
   },
 
   resetAuth: () => {
-    localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     set({
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
       isInitializing: false,

@@ -1,13 +1,14 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 
 /**
- * Requires the user to be authenticated.
- * If not, redirects to /login (customer) or /admin/login (management).
+ * Requires the user to be authenticated and email verified.
+ * If not authenticated, redirects to login.
+ * If authenticated but email not verified, redirects to /verify-email.
  */
 const ProtectedRoute = ({ children, redirectTo = '/login' }) => {
-  const { isAuthenticated, isInitializing } = useAuthStore();
+  const { isAuthenticated, isInitializing, user } = useAuthStore();
 
   if (isInitializing) {
     return (
@@ -19,6 +20,11 @@ const ProtectedRoute = ({ children, redirectTo = '/login' }) => {
 
   if (!isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
+  }
+
+  // Check if email is verified
+  if (user && !user.email_verified_at) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return children;

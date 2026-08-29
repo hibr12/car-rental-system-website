@@ -38,7 +38,7 @@ Route::prefix('auth')->group(function () {
 
     // Email verification
     Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-        ->middleware(['auth:sanctum', 'signed', 'throttle:6,1'])
+        ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
     Route::post('/verification/resend', [AuthController::class, 'resendVerificationEmail'])
         ->middleware(['auth:sanctum', 'throttle:2,1']);
@@ -64,7 +64,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
-    ->middleware('auth:sanctum');
+    ->middleware('auth:web');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -80,7 +80,7 @@ Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
 //  AUTHENTICATED ROUTES
 // ════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:web'])->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {
@@ -104,12 +104,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->where('side', 'front|back');
 
     // ── Customer: Bookings ────────────────────────────────────────
-    Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
-    Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
-    Route::get('/bookings',                     [BookingController::class, 'index']);
-    Route::post('/bookings',                    [BookingController::class, 'store']);
-    Route::get('/bookings/{booking}',           [BookingController::class, 'show']);
-    Route::put('/bookings/{booking}/cancel',    [BookingController::class, 'cancel']);
+    Route::middleware(['verified'])->group(function () {
+        Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
+        Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
+        Route::get('/bookings',                     [BookingController::class, 'index']);
+        Route::post('/bookings',                    [BookingController::class, 'store']);
+        Route::get('/bookings/{booking}',           [BookingController::class, 'show']);
+        Route::put('/bookings/{booking}/cancel',    [BookingController::class, 'cancel']);
+    });
 
     // ── Customer: Payments ────────────────────────────────────────
     Route::get('/payments',                     [PaymentController::class, 'index']);

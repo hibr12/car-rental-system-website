@@ -11,6 +11,7 @@ use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Services\DriverLicenseService;
 
@@ -44,7 +45,6 @@ class BookingService
         $pickupDate = Carbon::parse($data['pickup_date']);
         $returnDate = Carbon::parse($data['return_date']);
         $this->validateDates($pickupDate, $returnDate);
-        $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);
 
         $numberOfDays = $this->calculateNumberOfDays($pickupDate, $returnDate);
         $pricePerDay = $this->getPricePerDay($vehicle);
@@ -54,12 +54,21 @@ class BookingService
         $totalPrice = $this->calculateTotalPrice($subtotal, $additionalCharges, $discount);
         $bookingReference = $this->generateUniqueReference();
 
+        // Use PostgreSQL advisory lock to prevent race conditions on vehicle booking.
+        // Lock is scoped to vehicle_id and released automatically at transaction end.
+        $lockKey = $vehicle->id;
+
         $booking = DB::transaction(function () use (
             $bookingReference, $userId, $vehicle, $data,
             $pickupDate, $returnDate, $numberOfDays,
             $pricePerDay, $subtotal, $additionalCharges,
-            $discount, $totalPrice
+            $discount, $totalPrice, $lockKey
         ) {
+            // Acquire advisory lock for this vehicle (blocks concurrent bookings for same vehicle)
+            DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
+
+            // Re-check overlap inside the locked transaction
+            $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);
             $draft = new Booking([
                 'total_price' => $totalPrice,
                 'number_of_days' => $numberOfDays,
@@ -149,7 +158,7 @@ class BookingService
 
     public function confirmBooking(Booking $booking, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $status = $booking->normalizeStatus();
 
         if ($actor->isBranchManager()
@@ -170,7 +179,7 @@ class BookingService
 
     public function rejectBooking(Booking $booking, ?string $reason = null, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $reason = trim((string) $reason);
 
         if ($reason === '') {
@@ -197,12 +206,12 @@ class BookingService
 
     public function cancelBooking(Booking $booking, ?User $actor = null, ?string $reason = null, string $source = 'customer'): Booking
     {
-        return $this->workflow->cancelBooking($booking, $actor ?? auth()->user(), $reason, $source);
+        return $this->workflow->cancelBooking($booking, $actor ?? auth::user() , $reason, $source);
     }
 
     public function markAsPickedUp(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
 
         // Allow simple staff pickup when documents already verified / provided in request
         $defaults = [
@@ -229,7 +238,7 @@ class BookingService
 
     public function markAsReturned(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth()->user();
+        $actor = $actor ?? auth::user();
         $defaults = [
             'return_mileage' => $data['return_mileage'] ?? $booking->vehicle?->mileage ?? $booking->pickup_mileage ?? 0,
             'return_fuel_level' => $data['return_fuel_level'] ?? 'full',
@@ -287,6 +296,11 @@ class BookingService
     {
         if (!$user->isCustomer() && !$user->isStaff() && !$user->isAdmin()) {
             throw new \InvalidArgumentException('User is not authorized to create bookings.');
+        }
+
+        // Check email verification for customers
+        if ($user->isCustomer() && !$user->hasVerifiedEmail()) {
+            throw new \InvalidArgumentException('Please verify your email address before creating a booking. Check your inbox for the verification link.');
         }
     }
 

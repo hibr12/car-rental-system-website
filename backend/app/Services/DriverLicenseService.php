@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DriverLicense;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Notifications\AdminLicenseSubmitted;
 use App\Notifications\LicenseApproved;
 use App\Notifications\LicenseRejected;
 use App\Notifications\LicenseSubmitted;

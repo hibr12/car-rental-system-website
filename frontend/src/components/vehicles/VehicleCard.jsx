@@ -22,7 +22,7 @@ export const VehicleCard = ({ vehicle }) => {
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-theme-primary opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-2">
