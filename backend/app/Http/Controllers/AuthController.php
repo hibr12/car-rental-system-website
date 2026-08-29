@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -31,8 +33,17 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        // Send email verification notification
-        $user->sendEmailVerificationNotification();
+        // Send email verification notification with graceful error handling
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::error('Failed to send verification email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail registration - user can resend verification later
+        }
 
         return response()->json([
             'success' => true,
@@ -107,7 +118,16 @@ class AuthController extends Controller
     // Email Verification
     public function verifyEmail(Request $request): JsonResponse
     {
-        $user = $request->user();
+        // Get user from signed URL parameters (not from session)
+        $user = User::findOrFail($request->route('id'));
+
+        // Verify the hash matches the user's email (signed middleware validates signature)
+        if (!hash_equals((string) $request->route('hash'), hash('sha256', $user->getEmailForVerification()))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid verification link.',
+            ], 403);
+        }
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([
@@ -143,7 +163,20 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user->sendEmailVerificationNotification();
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::error('Failed to resend verification email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send verification email. Please try again later.',
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -158,9 +191,21 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        try {
+            $status = Password::sendResetLink(
+                $request->only('email')
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to send password reset email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send password reset email. Please try again later.',
+            ], 500);
+        }
 
         return $status === Password::RESET_LINK_SENT
             ? response()->json([
@@ -181,15 +226,27 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->setRememberToken(Str::random(60));
-                $user->save();
-            }
-        );
+        try {
+            $status = Password::reset(
+                $request->only('email', 'password', 'password_confirmation', 'token'),
+                function ($user, $password) {
+                    $user->forceFill([
+                        'password' => Hash::make($password),
+                    ])->setRememberToken(Str::random(60));
+                    $user->save();
+                }
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to reset password', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset password. Please try again later.',
+            ], 500);
+        }
 
         return $status === Password::PASSWORD_RESET
             ? response()->json([

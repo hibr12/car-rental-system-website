@@ -297,6 +297,11 @@ class BookingService
         if (!$user->isCustomer() && !$user->isStaff() && !$user->isAdmin()) {
             throw new \InvalidArgumentException('User is not authorized to create bookings.');
         }
+
+        // Check email verification for customers
+        if ($user->isCustomer() && !$user->hasVerifiedEmail()) {
+            throw new \InvalidArgumentException('Please verify your email address before creating a booking. Check your inbox for the verification link.');
+        }
     }
 
     private function validateLicenseEligibility(User $customer, Vehicle $vehicle): void
