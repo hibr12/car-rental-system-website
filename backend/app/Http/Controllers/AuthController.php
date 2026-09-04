@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -116,40 +117,28 @@ class AuthController extends Controller
     }
 
     // Email Verification
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(Request $request): \Illuminate\Http\RedirectResponse
     {
         // Get user from signed URL parameters (not from session)
         $user = User::findOrFail($request->route('id'));
 
         // Verify the hash matches the user's email (signed middleware validates signature)
         if (!hash_equals((string) $request->route('hash'), hash('sha256', $user->getEmailForVerification()))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid verification link.',
-            ], 403);
+            // Redirect to frontend with error
+            return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?error=invalid_link');
         }
 
         if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email already verified.',
-                'data' => [
-                    'user' => new UserResource($user),
-                ],
-            ]);
+            // Redirect to frontend with success message
+            return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?success=already_verified');
         }
 
         if ($user->markEmailAsVerified()) {
             event(new Verified($user));
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Email verified successfully.',
-            'data' => [
-                'user' => new UserResource($user->fresh()),
-            ],
-        ]);
+        // Redirect to frontend with success message
+        return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?success=verified');
     }
 
     public function resendVerificationEmail(Request $request): JsonResponse
@@ -230,9 +219,10 @@ class AuthController extends Controller
             $status = Password::reset(
                 $request->only('email', 'password', 'password_confirmation', 'token'),
                 function ($user, $password) {
-                    $user->forceFill([
-                        'password' => Hash::make($password),
-                    ])->setRememberToken(Str::random(60));
+                    // Use direct attribute assignment instead of forceFill
+                    // forceFill causes issues in the Password::reset callback context
+                    $user->password = Hash::make($password);
+                    $user->remember_token = Str::random(60);
                     $user->save();
                 }
             );

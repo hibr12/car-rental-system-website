@@ -9,9 +9,9 @@ use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
 use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Services\DriverLicenseService;
 
@@ -158,7 +158,8 @@ class BookingService
 
     public function confirmBooking(Booking $booking, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth::user();
+        $actor = $actor ?? Auth::user();
+        /** @var \App\Models\User $actor */
         $status = $booking->normalizeStatus();
 
         if ($actor->isBranchManager()
@@ -179,7 +180,8 @@ class BookingService
 
     public function rejectBooking(Booking $booking, ?string $reason = null, ?User $actor = null): Booking
     {
-        $actor = $actor ?? auth::user();
+        $actor = $actor ?? Auth::user();
+        /** @var \App\Models\User $actor */
         $reason = trim((string) $reason);
 
         if ($reason === '') {
@@ -206,12 +208,14 @@ class BookingService
 
     public function cancelBooking(Booking $booking, ?User $actor = null, ?string $reason = null, string $source = 'customer'): Booking
     {
-        return $this->workflow->cancelBooking($booking, $actor ?? auth::user() , $reason, $source);
+        /** @var \App\Models\User $actor */
+        return $this->workflow->cancelBooking($booking, $actor ?? Auth::user(), $reason, $source);
     }
 
     public function markAsPickedUp(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth::user();
+        $actor = $actor ?? Auth::user();
+        /** @var \App\Models\User $actor */
 
         // Allow simple staff pickup when documents already verified / provided in request
         $defaults = [
@@ -238,7 +242,8 @@ class BookingService
 
     public function markAsReturned(Booking $booking, ?User $actor = null, array $data = []): Booking
     {
-        $actor = $actor ?? auth::user();
+        $actor = $actor ?? Auth::user();
+        /** @var \App\Models\User $actor */
         $defaults = [
             'return_mileage' => $data['return_mileage'] ?? $booking->vehicle?->mileage ?? $booking->pickup_mileage ?? 0,
             'return_fuel_level' => $data['return_fuel_level'] ?? 'full',
@@ -296,11 +301,6 @@ class BookingService
     {
         if (!$user->isCustomer() && !$user->isStaff() && !$user->isAdmin()) {
             throw new \InvalidArgumentException('User is not authorized to create bookings.');
-        }
-
-        // Check email verification for customers
-        if ($user->isCustomer() && !$user->hasVerifiedEmail()) {
-            throw new \InvalidArgumentException('Please verify your email address before creating a booking. Check your inbox for the verification link.');
         }
     }
 

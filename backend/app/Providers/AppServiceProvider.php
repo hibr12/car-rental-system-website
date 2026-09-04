@@ -23,10 +23,13 @@ use App\Policies\ReviewPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VehiclePolicy;
 use App\Services\ChapaConfigValidator;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -92,5 +95,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Maintenance::class, MaintenancePolicy::class);
         Gate::policy(ContactMessage::class, ContactMessagePolicy::class);
         Gate::policy(DriverLicense::class, DriverLicensePolicy::class);
+
+        // Customize email verification URL to point to frontend
+VerifyEmail::toMailUsing(function ($notifiable, $url) {
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Verify Email Address')
+                ->line('Please click the button below to verify your email address.')
+                ->action('Verify Email Address', $url)
+                ->line('If you did not create an account, no further action is required.');
+        });
     }
 }

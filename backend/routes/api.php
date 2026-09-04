@@ -50,8 +50,13 @@ Route::prefix('auth')->group(function () {
         ->middleware('throttle:reset-password');
 
     // Named route for password reset email link generation
-    Route::get('/reset-password/{token}', function ($token) {
-        return redirect(config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token={$token}");
+    Route::get('/reset-password/{token}', function ($token, \Illuminate\Http\Request $request) {
+        $email = $request->query('email');
+        $url = config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token={$token}";
+        if ($email) {
+            $url .= '&email=' . urlencode($email);
+        }
+        return redirect($url);
     })->name('password.reset');
 });
 
