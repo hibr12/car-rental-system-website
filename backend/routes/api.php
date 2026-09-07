@@ -36,13 +36,6 @@ Route::prefix('auth')->group(function () {
     Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
     Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');
 
-    // Email verification
-    Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
-    Route::post('/verification/resend', [AuthController::class, 'resendVerificationEmail'])
-        ->middleware(['auth:web', 'throttle:2,1']);
-
     // Password reset (all portals)
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
         ->middleware('throttle:forgot-password');
@@ -109,7 +102,7 @@ Route::middleware(['auth:web'])->group(function () {
         ->where('side', 'front|back');
 
     // ── Customer: Bookings ────────────────────────────────────────
-    Route::middleware(['verified'])->group(function () {
+    Route::middleware('auth:web')->group(function () {
         Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
         Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
         Route::get('/bookings',                     [BookingController::class, 'index']);

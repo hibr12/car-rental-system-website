@@ -3,12 +3,11 @@ import { Navigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 
 /**
- * Requires the user to be authenticated and email verified.
+ * Requires the user to be authenticated.
  * If not authenticated, redirects to login.
- * If authenticated but email not verified, redirects to /verify-email.
  */
 const ProtectedRoute = ({ children, redirectTo = '/login' }) => {
-  const { isAuthenticated, isInitializing, user } = useAuthStore();
+  const { isAuthenticated, isInitializing } = useAuthStore();
 
   if (isInitializing) {
     return (
@@ -20,11 +19,6 @@ const ProtectedRoute = ({ children, redirectTo = '/login' }) => {
 
   if (!isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
-  }
-
-  // Check if email is verified
-  if (user && !user.email_verified_at) {
-    return <Navigate to="/verify-email" replace />;
   }
 
   return children;

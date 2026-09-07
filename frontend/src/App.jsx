@@ -15,7 +15,6 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import EmailVerificationNoticePage from './pages/auth/EmailVerificationNoticePage';
 
 import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
@@ -104,7 +103,6 @@ function App() {
           <Route path="/register"         element={<RegisterPage />} />
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
-          <Route path="/verify-email"     element={<EmailVerificationNoticePage />} />
         </Route>
 
         <Route path="/checkout" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>

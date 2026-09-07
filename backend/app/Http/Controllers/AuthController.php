@@ -8,15 +8,12 @@ use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -34,21 +31,9 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        // Send email verification notification with graceful error handling
-        try {
-            $user->sendEmailVerificationNotification();
-        } catch (\Throwable $e) {
-            Log::error('Failed to send verification email', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'error' => $e->getMessage(),
-            ]);
-            // Don't fail registration - user can resend verification later
-        }
-
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful. Please verify your email address.',
+            'message' => 'Registration successful.',
             'data' => [
                 'user' => new UserResource($user),
             ],
@@ -116,63 +101,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // Email Verification
-    public function verifyEmail(Request $request): \Illuminate\Http\RedirectResponse
-    {
-        // Get user from signed URL parameters (not from session)
-        $user = User::findOrFail($request->route('id'));
-
-        // Verify the hash matches the user's email (signed middleware validates signature)
-        if (!hash_equals((string) $request->route('hash'), hash('sha256', $user->getEmailForVerification()))) {
-            // Redirect to frontend with error
-            return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?error=invalid_link');
-        }
-
-        if ($user->hasVerifiedEmail()) {
-            // Redirect to frontend with success message
-            return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?success=already_verified');
-        }
-
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
-        }
-
-        // Redirect to frontend with success message
-        return redirect(config('app.frontend_url', 'http://localhost:5173') . '/verify-email?success=verified');
-    }
-
-    public function resendVerificationEmail(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email already verified.',
-            ], 422);
-        }
-
-        try {
-            $user->sendEmailVerificationNotification();
-        } catch (\Throwable $e) {
-            Log::error('Failed to resend verification email', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send verification email. Please try again later.',
-            ], 500);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Verification link sent.',
-        ]);
-    }
-
     // Password Reset
     public function sendResetLink(Request $request): JsonResponse
     {
@@ -219,8 +147,6 @@ class AuthController extends Controller
             $status = Password::reset(
                 $request->only('email', 'password', 'password_confirmation', 'token'),
                 function ($user, $password) {
-                    // Use direct attribute assignment instead of forceFill
-                    // forceFill causes issues in the Password::reset callback context
                     $user->password = Hash::make($password);
                     $user->remember_token = Str::random(60);
                     $user->save();

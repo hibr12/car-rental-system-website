@@ -38,10 +38,10 @@ export const RegisterPage = () => {
 
     try {
       await register(formData);
-      toast.success('Registration successful! Please verify your email address.');
+      toast.success('Registration successful!');
 
-      // Redirect to email verification notice page instead of dashboard
-      navigate('/verify-email', { replace: true });
+      // Redirect to dashboard after registration
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       const validationErrors = err.response?.data?.errors;
       if (validationErrors) {
