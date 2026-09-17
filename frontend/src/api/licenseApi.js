@@ -3,12 +3,8 @@ import apiClient from './client';
 export const licenseApi = {
   // Customer endpoints
   getMyLicense: () => apiClient.get('/customer/license'),
-  submit: (data) => apiClient.post('/customer/license', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  updateDocuments: (data) => apiClient.post('/customer/license/documents', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  submit: (data) => apiClient.post('/customer/license', data),
+  updateDocuments: (data) => apiClient.post('/customer/license/documents', data),
   eligibility: (vehicleId) => apiClient.get('/customer/license/eligibility', { params: { vehicle_id: vehicleId } }),
 
   // Admin/Staff endpoints
@@ -29,9 +25,7 @@ export const licenseApi = {
 
   // Legacy/alias endpoints (for backward compatibility)
   get: () => apiClient.get('/customer/license'),
-  upload: (data) => apiClient.post('/customer/license', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  upload: (data) => apiClient.post('/customer/license', data),
   update: (data) => apiClient.put('/customer/license', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),

@@ -8,9 +8,28 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+namespace App\Models;
+
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class DriverLicense extends Model
 {
     use HasFactory, SoftDeletes;
+
+    // ── Document Type constants ────────────────────────────────────────────────
+    public const DOCUMENT_TYPE_DRIVER_LICENSE = 'driver_license';
+    public const DOCUMENT_TYPE_NATIONAL_ID = 'national_id';
+    public const DOCUMENT_TYPE_UNIVERSITY_ID = 'university_id';
+
+    public const DOCUMENT_TYPES = [
+        self::DOCUMENT_TYPE_DRIVER_LICENSE,
+        self::DOCUMENT_TYPE_NATIONAL_ID,
+        self::DOCUMENT_TYPE_UNIVERSITY_ID,
+    ];
 
     // ── Status constants ──────────────────────────────────────────────────────
     public const STATUS_PENDING_REVIEW = 'pending_review';
@@ -60,7 +79,8 @@ class DriverLicense extends Model
 
     protected $fillable = [
         'user_id',
-        'license_number',
+        'document_type',
+        'document_number',
         'full_name',
         'date_of_birth',
         'license_category',
@@ -68,6 +88,8 @@ class DriverLicense extends Model
         'expiry_date',
         'issuing_authority',
         'issuing_country',
+        'university_name',
+        'department',
         'front_document_path',
         'back_document_path',
         'status',
@@ -230,5 +252,92 @@ class DriverLicense extends Model
     public function scopeForCustomer($query, int $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    public function scopeDocumentType($query, string $type)
+    {
+        return $query->where('document_type', $type);
+    }
+
+    public function scopeDriverLicense($query)
+    {
+        return $query->where('document_type', self::DOCUMENT_TYPE_DRIVER_LICENSE);
+    }
+
+    public function scopeNationalId($query)
+    {
+        return $query->where('document_type', self::DOCUMENT_TYPE_NATIONAL_ID);
+    }
+
+    public function scopeUniversityId($query)
+    {
+        return $query->where('document_type', self::DOCUMENT_TYPE_UNIVERSITY_ID);
+    }
+
+    /**
+     * Get the document number (masked or full depending on context).
+     */
+    public function getDocumentNumber(): string
+    {
+        return $this->document_number ?? $this->license_number ?? '';
+    }
+
+    /**
+     * Get the document number masked for display.
+     */
+    public function maskedDocumentNumber(): string
+    {
+        $number = $this->document_number ?? $this->license_number ?? '';
+        $len = mb_strlen($number);
+        if ($len <= 4) {
+            return str_repeat('•', $len);
+        }
+
+        return str_repeat('•', $len - 4) . mb_substr($number, -4);
+    }
+
+    /**
+     * Get the document type display name.
+     */
+    public function getDocumentTypeDisplayName(): string
+    {
+        return match ($this->document_type) {
+            self::DOCUMENT_TYPE_DRIVER_LICENSE => 'Driver\'s License',
+            self::DOCUMENT_TYPE_NATIONAL_ID => 'National ID',
+            self::DOCUMENT_TYPE_UNIVERSITY_ID => 'University ID',
+            default => 'Identity Document',
+        };
+    }
+
+    /**
+     * Get the document number display (masked or full depending on context).
+     */
+    public function getDocumentNumberAttribute(): string
+    {
+        return $this->document_number ?? $this->license_number ?? '';
+    }
+
+    /**
+     * Check if the document is a driver's license.
+     */
+    public function isDriverLicense(): bool
+    {
+        return $this->document_type === self::DOCUMENT_TYPE_DRIVER_LICENSE;
+    }
+
+    /**
+     * Check if the document is a national ID.
+     */
+    public function isNationalId(): bool
+    {
+        return $this->document_type === self::DOCUMENT_TYPE_NATIONAL_ID;
+    }
+
+    /**
+     * Check if the document is a university ID.
+     */
+    public function isUniversityId(): bool
+    {
+        return $this->document_type === self::DOCUMENT_TYPE_UNIVERSITY_ID;
     }
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ShieldCheck, ShieldX, Clock, AlertTriangle, Upload,
   RefreshCw, CheckCircle2, X, FileText, ChevronRight, Loader2,
+  User, Calendar, Building, GraduationCap,
 } from 'lucide-react';
 import { licenseApi } from '../../api/licenseApi';
 import { useToast } from '../../components/common/Toast';
@@ -50,7 +51,7 @@ const LICENSE_CATEGORIES = [
 
 // ─── File drop zone ───────────────────────────────────────────────────────────
 
-function FileDropZone({ label, accept, maxMb = 5, value, onChange, error }) {
+function FileDropZone({ label, accept, maxMb = 5, value, onChange, error, helperText }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
   const previewUrl = value ? URL.createObjectURL(value) : null;
@@ -118,6 +119,7 @@ function FileDropZone({ label, accept, maxMb = 5, value, onChange, error }) {
           </div>
         )}
       </div>
+      {helperText && <p className="text-xs text-theme-muted mt-1">{helperText}</p>}
       {error && <p className="text-xs text-red-400 mt-1" role="alert">{error}</p>}
     </div>
   );
@@ -245,7 +247,8 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
   const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
-    license_number: '',
+    document_type: 'driver_license',
+    document_number: '',
     full_name: '',
     date_of_birth: '',
     license_category: 'automobile',
@@ -265,15 +268,31 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
 
   const validate = () => {
     const errs = {};
-    if (!form.license_number.trim()) errs.license_number = 'License number is required.';
+    if (!form.document_number?.trim()) errs.document_number = 'Document number is required.';
     if (!form.full_name.trim()) errs.full_name = 'Full name is required.';
-    if (!form.license_category) errs.license_category = 'License category is required.';
-    if (!form.issue_date) errs.issue_date = 'Issue date is required.';
-    if (!form.expiry_date) errs.expiry_date = 'Expiry date is required.';
-    if (form.expiry_date && form.expiry_date <= new Date().toISOString().slice(0, 10))
-      errs.expiry_date = 'Expiry date must be in the future.';
+    
+    if (form.document_type === 'driver_license') {
+      if (!form.license_category) errs.license_category = 'License category is required.';
+      if (!form.issue_date) errs.issue_date = 'Issue date is required.';
+      if (!form.expiry_date) errs.expiry_date = 'Expiry date is required.';
+      if (form.expiry_date && form.expiry_date <= new Date().toISOString().slice(0, 10))
+        errs.expiry_date = 'Expiry date must be in the future.';
+    }
+    
+    if (form.document_type === 'national_id') {
+      if (!form.expiry_date) errs.expiry_date = 'Expiry date is required.';
+    }
+    
+    if (form.document_type === 'university_id') {
+      if (!form.university_name) errs.university_name = 'University/Institution name is required.';
+      if (!form.expiry_date) errs.expiry_date = 'Expiry date is required.';
+    }
+    
     if (!frontDoc) errs.front_document = 'Front image is required.';
-    if (!backDoc) errs.back_document = 'Back image is required.';
+    // Back document is only required for driver's license; for other types it's optional
+    if (form.document_type === 'driver_license' && !backDoc) {
+      errs.back_document = 'Back image is required for driver\'s license.';
+    }
     return errs;
   };
 
@@ -285,7 +304,10 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
     fd.append('front_document', frontDoc);
-    fd.append('back_document', backDoc);
+    // Only append back_document for driver's license; other types use single-file upload
+    if (form.document_type === 'driver_license') {
+      fd.append('back_document', backDoc);
+    }
 
     setSubmitting(true);
     try {
@@ -303,40 +325,75 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      {/* Document Type Selector */}
+      <div className="mb-6">
+        <label className="block text-xs font-semibold text-theme-secondary mb-2">Document Type *</label>
+        <select
+          value={form.document_type}
+          onChange={(e) => setForm({ ...form, document_type: e.target.value })}
+          className="w-full sm:w-1/3 bg-theme-secondary border border-theme rounded-xl px-4 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors"
+        >
+          <option value="driver_license">Driver's License</option>
+          <option value="national_id">National ID</option>
+          <option value="university_id">University ID</option>
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="License Number *" error={errors.license_number}>
+        <Field label="Document Number *" error={errors.document_number}>
           <input
             type="text"
-            value={form.license_number}
-            onChange={set('license_number')}
+            value={form.document_number}
+            onChange={set('document_number')}
             placeholder="e.g. ETH-12345678"
-            className={inputClass(errors.license_number)}
-            aria-describedby={errors.license_number ? 'err-license_number' : undefined}
+            className={inputClass(errors.document_number)}
+            aria-describedby={errors.document_number ? 'err-document_number' : undefined}
           />
+          {errors.document_number && <p className="text-[11px] text-red-400 mt-1" id="err-document_number">{errors.document_number}</p>}
         </Field>
 
-        <Field label="Full Name (as on license) *" error={errors.full_name}>
-          <input
-            type="text"
-            value={form.full_name}
-            onChange={set('full_name')}
-            className={inputClass(errors.full_name)}
-          />
+        <Field label="Full Name (as on document) *" error={errors.full_name}>
+          <div className="relative">
+            <User className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={form.full_name}
+              onChange={set('full_name')}
+              className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+          {errors.full_name && <p className="text-[11px] text-red-400 mt-1">{errors.full_name}</p>}
         </Field>
 
         <Field label="Date of Birth" error={errors.date_of_birth}>
-          <input type="date" value={form.date_of_birth} onChange={set('date_of_birth')} className={inputClass()} />
+          <div className="relative">
+            <Calendar className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="date"
+              value={form.date_of_birth}
+              onChange={set('date_of_birth')}
+              className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+          {errors.date_of_birth && <p className="text-[11px] text-red-400 mt-1">{errors.date_of_birth}</p>}
         </Field>
 
         <Field label="License Category *" error={errors.license_category}>
-          <select value={form.license_category} onChange={set('license_category')} className={inputClass(errors.license_category)}>
-            {LICENSE_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={form.license_category}
+              onChange={set('license_category')}
+              className={inputClass(errors.license_category)}
+            >
+              {LICENSE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          {errors.license_category && <p className="text-[11px] text-red-400 mt-1">{errors.license_category}</p>}
         </Field>
 
-        <Field label="Issue Date *" error={errors.issue_date}>
+        <Field label="Issue Date" error={errors.issue_date}>
           <input
             type="date"
             value={form.issue_date}
@@ -344,6 +401,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             onChange={set('issue_date')}
             className={inputClass(errors.issue_date)}
           />
+          {errors.issue_date && <p className="text-[11px] text-red-400 mt-1">{errors.issue_date}</p>}
         </Field>
 
         <Field label="Expiry Date *" error={errors.expiry_date}>
@@ -354,33 +412,72 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             onChange={set('expiry_date')}
             className={inputClass(errors.expiry_date)}
           />
+          {errors.expiry_date && <p className="text-[11px] text-red-400 mt-1">{errors.expiry_date}</p>}
         </Field>
 
         <Field label="Issuing Authority" error={errors.issuing_authority}>
-          <input type="text" value={form.issuing_authority} onChange={set('issuing_authority')} placeholder="e.g. DRIVA Ethiopia" className={inputClass()} />
+          <div className="relative">
+            <Building className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={form.issuing_authority}
+              onChange={set('issuing_authority')}
+              placeholder="e.g. DRIVA Ethiopia"
+              className={inputClass(errors.issuing_authority)}
+            />
+          </div>
+          {errors.issuing_authority && <p className="text-[11px] text-red-400 mt-1">{errors.issuing_authority}</p>}
         </Field>
 
         <Field label="Country of Issue" error={errors.issuing_country}>
-          <input type="text" value={form.issuing_country} onChange={set('issuing_country')} placeholder="e.g. Ethiopia" className={inputClass()} />
+          <input type="text" value={form.issuing_country} onChange={set('issuing_country')} placeholder="e.g. Ethiopia" className={inputClass(errors.issuing_country)} />
+          {errors.issuing_country && <p className="text-[11px] text-red-400 mt-1">{errors.issuing_country}</p>}
+        </Field>
+
+        <Field label="University/Institution Name" error={errors.university_name}>
+          <div className="relative">
+            <GraduationCap className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={form.university_name}
+              onChange={set('university_name')}
+              placeholder="e.g. Addis Ababa University"
+              className={inputClass(errors.university_name)}
+            />
+          </div>
+          {errors.university_name && <p className="text-[11px] text-red-400 mt-1">{errors.university_name}</p>}
+        </Field>
+
+        <Field label="Department" error={errors.department}>
+          <input
+            type="text"
+            value={form.department}
+            onChange={set('department')}
+            placeholder="e.g. Computer Science"
+            className={inputClass(errors.department)}
+          />
+          {errors.department && <p className="text-[11px] text-red-400 mt-1">{errors.department}</p>}
         </Field>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FileDropZone
-          label="Front of License *"
+          label="Front of License/ID *"
           accept=".jpg,.jpeg,.png,.webp,.pdf"
           maxMb={5}
           value={frontDoc}
           onChange={(f) => { setFrontDoc(f); setErrors((e) => ({ ...e, front_document: null })); }}
           error={errors.front_document}
+          helperText="Upload a photo/scan of the FRONT side of your license/ID"
         />
         <FileDropZone
-          label="Back of License *"
+          label="Back of License/ID *"
           accept=".jpg,.jpeg,.png,.webp,.pdf"
           maxMb={5}
           value={backDoc}
           onChange={(f) => { setBackDoc(f); setErrors((e) => ({ ...e, back_document: null })); }}
           error={errors.back_document}
+          helperText="Upload a photo/scan of the BACK side of your license/ID"
         />
       </div>
 

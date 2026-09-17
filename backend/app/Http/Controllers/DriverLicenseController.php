@@ -41,26 +41,71 @@ class DriverLicenseController extends Controller
         ]);
     }
 
-    /**
+/**
      * POST /api/customer/license
-     * Submit (or re-submit) a driver's license.
+     * Submit (or re-submit) a driver's license / identity document.
+     * Supports front/back upload for driver's license, or single-file upload for other types.
      */
     public function submit(Request $request): JsonResponse
     {
         Gate::authorize('create', DriverLicense::class);
 
-        $validated = $request->validate([
-            'license_number'    => ['required', 'string', 'max:100'],
-            'full_name'         => ['required', 'string', 'max:200'],
-            'date_of_birth'     => ['nullable', 'date', 'before:today'],
-            'license_category'  => ['required', 'string', 'in:' . implode(',', DriverLicense::CATEGORIES)],
-            'issue_date'        => ['required', 'date', 'before_or_equal:today'],
-            'expiry_date'       => ['required', 'date', 'after:today'],
-            'issuing_authority' => ['nullable', 'string', 'max:200'],
-            'issuing_country'   => ['nullable', 'string', 'max:100'],
-            'front_document'    => ['required', 'file', 'mimes:jpeg,jpg,png,webp,pdf', 'max:5120'],
-            'back_document'     => ['required', 'file', 'mimes:jpeg,jpg,png,webp,pdf', 'max:5120'],
-        ]);
+        $documentType = $request->input('document_type', DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE);
+
+        // Base rules that always apply
+        $rules = [
+            'document_type'    => ['required', 'string', 'in:' . implode(',', DriverLicense::DOCUMENT_TYPES)],
+            'full_name'        => ['required', 'string', 'max:200'],
+            'front_document'   => ['required', 'file', 'mimes:jpeg,jpg,png,webp,pdf', 'max:5120'],
+        ];
+
+        // Document type specific validation - back_document is only required for driver's license
+        $requiresBack = $documentType === DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
+
+        $rules['back_document'] = $requiresBack ? ['required', 'file', 'mimes:jpeg,jpg,png,webp,pdf', 'max:5120'] : ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,pdf', 'max:5120'];
+
+        // Document type specific additional fields
+        switch ($documentType) {
+            case DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE:
+                $rules = array_merge($rules, [
+                    'document_number'   => ['required', 'string', 'max:100'],
+                    'license_category'  => ['required', 'string', 'in:' . implode(',', DriverLicense::CATEGORIES)],
+                    'issue_date'        => ['required', 'date', 'before_or_equal:today'],
+                    'expiry_date'       => ['required', 'date', 'after:today'],
+                    'issuing_authority' => ['nullable', 'string', 'max:200'],
+                    'issuing_country'   => ['nullable', 'string', 'max:100'],
+                    'date_of_birth'     => ['nullable', 'date', 'before:today'],
+                ]);
+                break;
+
+            case DriverLicense::DOCUMENT_TYPE_NATIONAL_ID:
+                $rules = array_merge($rules, [
+                    'document_number'   => ['required', 'string', 'max:100'],
+                    'date_of_birth'     => ['nullable', 'date', 'before:today'],
+                    'issue_date'        => ['nullable', 'date', 'before_or_equal:today'],
+                    'expiry_date'       => ['nullable', 'date', 'after:today'],
+                    'issuing_authority' => ['nullable', 'string', 'max:200'],
+                    'issuing_country'   => ['nullable', 'string', 'max:100'],
+                ]);
+                break;
+
+            case DriverLicense::DOCUMENT_TYPE_UNIVERSITY_ID:
+                $rules = array_merge($rules, [
+                    'document_number'   => ['required', 'string', 'max:100'],
+                    'university_name'   => ['required', 'string', 'max:200'],
+                    'department'        => ['nullable', 'string', 'max:200'],
+                    'date_of_birth'     => ['nullable', 'date', 'before:today'],
+                    'issue_date'        => ['nullable', 'date', 'before_or_equal:today'],
+                    'expiry_date'       => ['nullable', 'date', 'after:today'],
+                ]);
+                break;
+
+            default:
+                // No additional fields required for unknown types
+                break;
+        }
+
+        $validated = $request->validate($rules);
 
         try {
             $license = $this->licenseService->submit(
@@ -72,7 +117,7 @@ class DriverLicenseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Driver\'s license submitted for verification.',
+                'message' => 'Identity document submitted for verification.',
                 'data'    => new DriverLicenseResource($license),
             ], 201);
         } catch (\InvalidArgumentException $e) {
@@ -193,7 +238,7 @@ class DriverLicenseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Driver\'s license approved.',
+                'message' => 'Identity document approved.',
                 'data'    => new DriverLicenseResource($approved),
             ]);
         } catch (\InvalidArgumentException $e) {
@@ -217,7 +262,7 @@ class DriverLicenseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Driver\'s license rejected.',
+                'message' => 'Identity document rejected.',
                 'data'    => new DriverLicenseResource($rejected),
             ]);
         } catch (\InvalidArgumentException $e) {
@@ -227,14 +272,14 @@ class DriverLicenseController extends Controller
 
     /**
      * GET /api/customer/license/eligibility
-     * Returns the customer's license eligibility for an optional vehicle.
+     * Returns the customer's identity document eligibility for an optional vehicle.
      */
     public function eligibility(Request $request): JsonResponse
     {
         $user = $request->user();
 
         if (!$user->isCustomer()) {
-            return response()->json(['success' => false, 'message' => 'Only customers can check license eligibility.'], 403);
+            return response()->json(['success' => false, 'message' => 'Only customers can check document eligibility.'], 403);
         }
 
         $vehicle = null;

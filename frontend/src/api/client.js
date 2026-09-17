@@ -34,6 +34,10 @@ apiClient.interceptors.request.use(async (config) => {
   if (needsCsrf(config.method)) {
     await getCsrfCookie();
   }
+  // Let the browser set the correct Content-Type with boundary for file uploads
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 

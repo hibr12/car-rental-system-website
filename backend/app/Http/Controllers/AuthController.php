@@ -174,4 +174,5 @@ class AuthController extends Controller
                 'message' => 'Invalid or expired reset token.',
             ], 422);
     }
-}
+
+    }

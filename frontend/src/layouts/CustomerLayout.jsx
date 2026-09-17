@@ -1,12 +1,17 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 
 export const CustomerLayout = () => {
+  const location = useLocation();
+  const isHome = location.pathname === '/';
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#0F172A] font-sans">
-      <Navbar />
+      <Navbar transparent={isHome} />
+      {/* Spacer for fixed navbar — hero handles its own pt-24 */}
+      {!isHome && <div className="h-20 shrink-0" />}
       <main className="flex-1">
         <Outlet />
       </main>

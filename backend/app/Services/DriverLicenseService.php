@@ -31,17 +31,19 @@ class DriverLicenseService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Create a new license submission for a customer.
+     * Create a new license/document submission for a customer.
      * If the customer already has an active license (pending/verified/rejected/expired),
      * that record is marked REPLACED and a new PENDING_REVIEW record is created.
      */
     public function submit(array $data, User $customer, ?UploadedFile $frontFile = null, ?UploadedFile $backFile = null): DriverLicense
     {
         if (!$customer->isCustomer()) {
-            throw new \InvalidArgumentException('Only customers can submit a driver\'s license.');
+            throw new \InvalidArgumentException('Only customers can submit an identity document.');
         }
 
-        return DB::transaction(function () use ($data, $customer, $frontFile, $backFile) {
+        $documentType = $data['document_type'] ?? DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
+
+        return DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType) {
             // Mark any existing active license as replaced.
             $previous = $this->getActiveLicense($customer);
             if ($previous) {
@@ -53,20 +55,27 @@ class DriverLicenseService
 
             $license = DriverLicense::create([
                 'user_id'           => $customer->id,
-                'license_number'    => $data['license_number'],
+                'document_type'     => $documentType,
+                'document_number'   => $data['document_number'] ?? $data['license_number'] ?? null,
                 'full_name'         => $data['full_name'],
                 'date_of_birth'     => $data['date_of_birth'] ?? null,
-                'license_category'  => $data['license_category'] ?? DriverLicense::CATEGORY_AUTOMOBILE,
-                'issue_date'        => $data['issue_date'],
-                'expiry_date'       => $data['expiry_date'],
+                'license_category'  => $data['license_category'] ?? null,
+                'issue_date'        => $data['issue_date'] ?? null,
+                'expiry_date'       => $data['expiry_date'] ?? null,
                 'issuing_authority' => $data['issuing_authority'] ?? null,
                 'issuing_country'   => $data['issuing_country'] ?? null,
+                'university_name'   => $data['university_name'] ?? null,
+                'department'        => $data['department'] ?? null,
                 'front_document_path' => $frontPath,
                 'back_document_path'  => $backPath,
                 'status'            => DriverLicense::STATUS_PENDING_REVIEW,
                 'submitted_at'      => now(),
                 'replaced_by'       => null,
             ]);
+
+            if ($previous) {
+                $previous->update(['replaced_by' => $license->id]);
+            }
 
             if ($previous) {
                 $previous->update(['replaced_by' => $license->id]);
@@ -82,10 +91,24 @@ class DriverLicenseService
                 $previous ? 'Customer resubmitted driver\'s license.' : 'Customer submitted driver\'s license.',
             );
 
-            $customer->notify(new LicenseSubmitted($license));
+            try {
+                $customer->notify(new LicenseSubmitted($license));
+            } catch (\Throwable $e) {
+                Log::warning('[DriverLicense] Failed to send customer notification', [
+                    'license_id' => $license->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-            foreach ($this->notificationRecipients->adminsAndBranchManagers() as $recipient) {
-                $recipient->notify(new AdminLicenseSubmitted($license->loadMissing('user')));
+            try {
+                foreach ($this->notificationRecipients->adminsAndBranchManagers() as $recipient) {
+                    $recipient->notify(new AdminLicenseSubmitted($license->loadMissing('user')));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[DriverLicense] Failed to send admin notifications', [
+                    'license_id' => $license->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             Log::info('[DriverLicense] Submitted', [
@@ -161,7 +184,14 @@ class DriverLicenseService
                 $reviewer->branch_id,
             );
 
-            $license->user->notify(new LicenseApproved($license));
+            try {
+                $license->user->notify(new LicenseApproved($license));
+            } catch (\Throwable $e) {
+                Log::warning('[DriverLicense] Failed to send approval notification', [
+                    'license_id' => $license->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             Log::info('[DriverLicense] Approved', [
                 'license_id' => $license->id,
@@ -205,7 +235,14 @@ class DriverLicenseService
                 $reviewer->branch_id,
             );
 
-            $license->user->notify(new LicenseRejected($license, $reason));
+            try {
+                $license->user->notify(new LicenseRejected($license, $reason));
+            } catch (\Throwable $e) {
+                Log::warning('[DriverLicense] Failed to send rejection notification', [
+                    'license_id' => $license->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             Log::info('[DriverLicense] Rejected', [
                 'license_id' => $license->id,
@@ -303,32 +340,32 @@ class DriverLicenseService
         if ($effective === DriverLicense::STATUS_PENDING_REVIEW) {
             return [
                 'eligible' => false,
-                'code'     => 'LICENSE_PENDING',
-                'reason'   => 'Your driver\'s license is awaiting verification. You can continue once it has been approved.',
+                'code'     => 'DOCUMENT_PENDING',
+                'reason'   => 'Your identity document is awaiting verification. You can continue once it has been approved.',
             ];
         }
 
         if ($effective === DriverLicense::STATUS_REJECTED) {
             return [
                 'eligible' => false,
-                'code'     => 'LICENSE_REJECTED',
-                'reason'   => 'Your driver\'s license was rejected. Please upload a valid document.',
+                'code'     => 'DOCUMENT_REJECTED',
+                'reason'   => 'Your identity document was rejected. Please upload a valid document.',
             ];
         }
 
         if ($effective === DriverLicense::STATUS_EXPIRED) {
             return [
                 'eligible' => false,
-                'code'     => 'LICENSE_EXPIRED',
-                'reason'   => 'Your driver\'s license has expired. Please upload your renewed license.',
+                'code'     => 'DOCUMENT_EXPIRED',
+                'reason'   => 'Your identity document has expired. Please upload your renewed document.',
             ];
         }
 
         if ($effective !== DriverLicense::STATUS_VERIFIED) {
             return [
                 'eligible' => false,
-                'code'     => 'LICENSE_INVALID',
-                'reason'   => 'Your driver\'s license is not in a valid state for booking.',
+                'code'     => 'DOCUMENT_INVALID',
+                'reason'   => 'Your identity document is not in a valid state for booking.',
             ];
         }
 
@@ -336,35 +373,38 @@ class DriverLicenseService
         if ($vehicle) {
             // Requires license at all?
             if (!($vehicle->requires_license ?? true)) {
-                return ['eligible' => true, 'code' => 'OK', 'reason' => 'No license required for this vehicle.'];
+                return ['eligible' => true, 'code' => 'OK', 'reason' => 'No identity document required for this vehicle.'];
             }
 
-            // Category compatibility.
-            $requiredCategory = $vehicle->required_license_category;
-            if ($requiredCategory && !$license->categoryCovers($requiredCategory)) {
-                return [
-                    'eligible' => false,
-                    'code'     => 'LICENSE_CATEGORY_MISMATCH',
-                    'reason'   => "Your license category ({$license->license_category}) does not qualify for this vehicle (requires: {$requiredCategory}).",
-                ];
-            }
-
-            // Minimum holding period (configurable, defaults to 0 = disabled).
-            $minHoldingDays = (int) config('booking.minimum_license_holding_days', 0);
-            if ($minHoldingDays > 0) {
-                $heldDays = (int) $license->issue_date->diffInDays(now());
-                if ($heldDays < $minHoldingDays) {
-                    $monthsRequired = (int) round($minHoldingDays / 30);
+            // Category compatibility (only for driver's license).
+            if ($license->isDriverLicense()) {
+                $requiredCategory = $vehicle->required_license_category;
+                if ($requiredCategory && !$license->categoryCovers($requiredCategory)) {
                     return [
                         'eligible' => false,
-                        'code'     => 'LICENSE_HOLDING_PERIOD',
-                        'reason'   => "Your license must have been held for at least {$monthsRequired} month(s) before renting this vehicle.",
+                        'code'     => 'LICENSE_CATEGORY_MISMATCH',
+                        'reason'   => "Your license category ({$license->license_category}) does not qualify for this vehicle (requires: {$requiredCategory}).",
                     ];
+                }
+
+                // Minimum holding period (configurable, defaults to 0 = disabled).
+                $minHoldingDays = (int) config('booking.minimum_license_holding_days', 0);
+                if ($minHoldingDays > 0) {
+                    $heldDays = (int) $license->issue_date->diffInDays(now());
+                    if ($heldDays < $minHoldingDays) {
+                        $monthsRequired = (int) round($minHoldingDays / 30);
+                        return [
+                            'eligible' => false,
+                            'code'     => 'LICENSE_HOLDING_PERIOD',
+                            'reason'   => "Your license must have been held for at least {$monthsRequired} month(s) before renting this vehicle.",
+                        ];
+                    }
                 }
             }
         }
 
-        return ['eligible' => true, 'code' => 'OK', 'reason' => 'License verified and eligible.'];
+        $docTypeName = $license->getDocumentTypeDisplayName();
+        return ['eligible' => true, 'code' => 'OK', 'reason' => "{$docTypeName} verified and eligible."];
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -433,12 +473,12 @@ class DriverLicenseService
         $folder = config('services.cloudinary.license_folder', 'apex-rentals/licenses');
         $ext  = $file->getClientOriginalExtension();
         $safe = ($disk === 'cloudinary')
-            ? $folder . '/' . $customerId . '/' . $side . '_' . Str::random(32)
+            ? $folder . '/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext
             : 'licenses/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext;
 
-        Storage::disk($disk)->put($safe, file_get_contents($file->getRealPath()));
+        $path = $file->storeAs(dirname($safe), basename($safe), $disk);
 
-        return $safe;
+        return $path;
     }
 
     private function deleteDocument(?string $path): void
