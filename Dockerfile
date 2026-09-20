@@ -13,6 +13,7 @@ WORKDIR /var/www/html
 COPY backend/ .
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY parse_db_url.php /var/www/html/parse_db_url.php
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 RUN composer install --no-dev --no-interaction --optimize-autoloader \

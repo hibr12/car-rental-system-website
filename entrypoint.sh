@@ -1,24 +1,12 @@
 #!/bin/bash
+set -e
 
 cp .env.example .env
 
-# Parse DB_URL into individual Laravel vars if DB_URL is set
-if [ -n "$DB_URL" ]; then
-    # Extract parts from postgresql://user:pass@host:port/dbname
-    DB_USERNAME=$(echo "$DB_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
-    DB_PASSWORD=$(echo "$DB_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
-    DB_HOST=$(echo "$DB_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-    DB_PORT=$(echo "$DB_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-    DB_DATABASE=$(echo "$DB_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+# Parse DB_URL into individual Laravel DB vars using PHP
+php parse_db_url.php
 
-    sed -i "s|^DB_HOST=.*|DB_HOST=${DB_HOST}|" .env
-    sed -i "s|^DB_PORT=.*|DB_PORT=${DB_PORT}|" .env
-    sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|" .env
-    sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME}|" .env
-    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env
-fi
-
-sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY:-}|" .env
+# Overlay env vars from Render
 sed -i "s|^APP_ENV=.*|APP_ENV=${APP_ENV:-production}|" .env
 sed -i "s|^APP_DEBUG=.*|APP_DEBUG=${APP_DEBUG:-false}|" .env
 sed -i "s|^APP_URL=.*|APP_URL=${APP_URL:-}|" .env
