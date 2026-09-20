@@ -193,7 +193,24 @@ class DatabaseSeeder extends Seeder
         );
 
         if (User::where('role', User::ROLE_CUSTOMER)->count() < 5) {
-            User::factory()->count(5)->customer()->create();
+            $customerNames = [
+                ['name' => 'Abebe Kebede', 'email' => 'abebe@example.com', 'phone' => '+251 91 111 2233'],
+                ['name' => 'Fatima Hassan', 'email' => 'fatima@example.com', 'phone' => '+251 92 222 3344'],
+                ['name' => 'Daniel Tadesse', 'email' => 'daniel@example.com', 'phone' => '+251 93 333 4455'],
+                ['name' => 'Sara Mengistu', 'email' => 'sara@example.com', 'phone' => '+251 94 444 5566'],
+                ['name' => 'Yonas Girma', 'email' => 'yonas@example.com', 'phone' => '+251 95 555 6677'],
+            ];
+            foreach ($customerNames as $customer) {
+                User::updateOrCreate(
+                    ['email' => $customer['email']],
+                    [
+                        'name' => $customer['name'],
+                        'password' => 'password',
+                        'phone' => $customer['phone'],
+                        'role' => User::ROLE_CUSTOMER,
+                    ]
+                );
+            }
         }
     }
 
