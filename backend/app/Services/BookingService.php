@@ -64,8 +64,10 @@ class BookingService
             $pricePerDay, $subtotal, $additionalCharges,
             $discount, $totalPrice, $lockKey
         ) {
-            // Acquire advisory lock for this vehicle (blocks concurrent bookings for same vehicle)
-            DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
+            // Acquire advisory lock for PostgreSQL (blocks concurrent bookings for same vehicle)
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
+            }
 
             // Re-check overlap inside the locked transaction
             $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);
