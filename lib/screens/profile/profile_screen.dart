@@ -83,6 +83,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 icon: LucideIcons.fileBadge,
                                 title: 'Driver\'s License',
                                 onTap: () => context.push(AppRoutes.driverLicense)),
+                            _MenuItem(
+                                icon: LucideIcons.settings,
+                                title: 'Settings',
+                                onTap: () => context.push(AppRoutes.settings)),
                           ],
                         ),
                         _buildMenuSection(
@@ -226,6 +230,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.settings, color: AppColors.textSecondary),
+            tooltip: 'Settings',
+            onPressed: () => context.push(AppRoutes.settings),
           ),
         ],
       ),

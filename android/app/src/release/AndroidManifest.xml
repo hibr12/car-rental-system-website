@@ -1,8 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <!-- Production release enforces HTTPS strictly for Google Play compliance.
-         Debug builds retain cleartext support in src/debug/AndroidManifest.xml for local dev. -->
-    <application
-        android:usesCleartextTraffic="false"
-        tools:replace="android:usesCleartextTraffic"/>
-</manifest>

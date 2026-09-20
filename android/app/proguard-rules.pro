@@ -21,3 +21,9 @@
 -dontwarn okio.**
 -keep class okhttp3.** { *; }
 -keep interface okhttp3.** { *; }
+
+# Google Play Core & SplitInstall
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
