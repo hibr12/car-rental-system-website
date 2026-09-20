@@ -26,7 +26,7 @@ sed -i "s|^CLOUDINARY_KEY=.*|CLOUDINARY_KEY=${CLOUDINARY_KEY:-}|" .env
 sed -i "s|^CLOUDINARY_SECRET=.*|CLOUDINARY_SECRET=${CLOUDINARY_SECRET:-}|" .env
 
 php artisan key:generate --force
-php artisan migrate --force
+php artisan migrate:fresh --force
 php artisan config:cache
 php artisan route:cache
 
