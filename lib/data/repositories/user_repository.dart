@@ -90,6 +90,20 @@ class UserRepository {
     }
   }
 
+  /// Request password reset link for [email].
+  Future<ApiResponse<bool>> forgotPassword(String email) async {
+    try {
+      final json = await _api.post(
+        ApiEndpoints.authForgotPassword,
+        body: {'email': email.trim()},
+      );
+      final message = json['message'] as String? ?? 'Password reset link sent to your email.';
+      return ApiResponse.success(true, message: message);
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.error);
+    }
+  }
+
   /// Update the authenticated user's profile.
   Future<ApiResponse<User>> updateProfile(User user) async {
     try {

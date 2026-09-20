@@ -49,14 +49,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  String? _validateName(String value) {
+    if (value.isEmpty) return 'Name is required.';
+    if (value.length > 255) return 'Name must not exceed 255 characters.';
+    return null;
+  }
+
+  String? _validateEmail(String value) {
+    if (value.isEmpty) return 'Email address is required.';
+    final regex = RegExp(r'^[\w.\-+]+@([\w\-]+\.)+[\w\-]{2,}$');
+    if (!regex.hasMatch(value)) return 'Enter a valid email address.';
+    return null;
+  }
+
+  String? _validatePhone(String value) {
+    if (value.isEmpty) return 'Phone number is required.';
+    if (value.length > 20) return 'Phone number must not exceed 20 characters.';
+    final regex = RegExp(r'^\+?[0-9()\-\s]{7,20}$');
+    if (!regex.hasMatch(value)) return 'Enter a valid phone number.';
+    return null;
+  }
+
   Future<void> _saveProfile() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    final nameError = _validateName(name);
+    if (nameError != null) return _showError(nameError);
+    final emailError = _validateEmail(email);
+    if (emailError != null) return _showError(emailError);
+    final phoneError = _validatePhone(phone);
+    if (phoneError != null) return _showError(phoneError);
+
     setState(() => _isSaving = true);
     final res = await UserRepository.instance.updateProfile(
       User(
         id: _user?.id ?? '0',
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
+        fullName: name,
+        email: email,
+        phone: phone,
         profileImageUrl: _user?.profileImageUrl ?? '',
         memberSince: _user?.memberSince ?? DateTime.now(),
       ),
@@ -91,6 +123,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
   }
 
   @override

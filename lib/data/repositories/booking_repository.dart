@@ -14,31 +14,39 @@ class BookingRepository {
   /// Fetch the current user's bookings.
   ///
   /// The backend scopes non-admin users to their own bookings automatically
-  /// (`user_id` filter is implicit) and pages at 15 per page. This method
-  /// follows the `meta.last_page` cursor so the customer always sees their
-  /// full history.
+  /// (`user_id` filter is implicit) and pages at 15 per page. The first page
+  /// is fetched on its own; any remaining pages are fetched in parallel so a
+  /// long history does not serialize into many sequential round-trips.
   Future<ApiResponse<List<Booking>>> getUserBookings() async {
     try {
-      final all = <Booking>[];
-      var page = 1;
-      int lastPage = 1;
+      final first = await _fetchBookingsPage(1);
+      final all = [...first.data];
 
-      do {
-        final json = await _api
-            .get(ApiEndpoints.bookings, queryParams: {'page': '$page'});
-        final paginated = PaginatedResponse<Booking>.fromJson(
-          json,
-          (item) => Booking.fromJson(item),
+      if (first.lastPage > 1) {
+        final remaining = await Future.wait(
+          List.generate(
+            first.lastPage - 1,
+            (i) => _fetchBookingsPage(i + 2),
+          ),
         );
-        all.addAll(paginated.data);
-        lastPage = paginated.lastPage;
-        page++;
-      } while (page <= lastPage && page <= 20); // hard safety cap
+        for (final page in remaining) {
+          all.addAll(page.data);
+        }
+      }
 
       return ApiResponse.success(all);
     } on ApiException catch (e) {
       return ApiResponse.error(e.error);
     }
+  }
+
+  Future<PaginatedResponse<Booking>> _fetchBookingsPage(int page) async {
+    final json = await _api
+        .get(ApiEndpoints.bookings, queryParams: {'page': '$page'});
+    return PaginatedResponse<Booking>.fromJson(
+      json,
+      (item) => Booking.fromJson(item),
+    );
   }
 
   /// Fetch a single booking by id.

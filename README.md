@@ -1,92 +1,110 @@
-# DriveEase Enterprise - Mobile App
+# Apex Rentals — Mobile App
 
-DriveEase is a premium, full-featured car rental mobile application built with Flutter. It connects to a Laravel-powered backend API to provide a seamless, production-ready vehicle rental experience.
+A production-ready car rental mobile application built with Flutter. It connects to the Apex Rentals Laravel API (Sanctum bearer-token auth) to provide the full customer journey: browse vehicles, book, pay (Chapa or cash-at-branch), manage reservations, upload a driver's license, and review rentals.
 
 ## Features
 
-- **User Authentication**: Secure login, registration, and session management using Laravel Sanctum.
-- **Vehicle Browsing**: Browse featured and popular vehicles, filter by categories (Luxury, SUV, Electric, Economy), and search for specific cars.
-- **Booking & Reservations**: Complete end-to-end booking flows including pickup/return dates, pricing breakdown, and reservation management (Upcoming & Past trips).
-- **Transaction History**: View detailed payment histories and past transactions directly from the profile.
-- **Reviews & Ratings**: View authentic reviews for each vehicle and leave your own feedback after a trip.
-- **Local Persistence**: Save your favorite vehicles and preferred addresses locally using `shared_preferences` for quick access, even without an active internet connection.
-- **Profile Management**: Update your personal details and manage your account seamlessly.
-- **Graceful Degradation**: Features still under development (like Rewards and physical Branches) gracefully display "Coming Soon" states rather than breaking the user experience.
+- **Authentication**: Login, registration, and session validation (`GET /auth/me`) with the Sanctum token stored in `flutter_secure_storage` (encrypted on-device).
+- **Vehicle Browsing**: Debounced search, category filters, price/fuel/transmission/seat filter sheet, infinite-scroll pagination, grid/list toggle.
+- **Booking Flow**: Date range picker → branch selection (interactive OSM map) → server-side price estimate & availability check → license eligibility pre-check → confirm.
+- **Payments**: Chapa checkout (opens the gateway's hosted page) with server-authoritative status polling, plus cash-at-branch.
+- **Reservations**: Upcoming/past trips, cancellation with reason, booking timeline & allowed actions.
+- **Driver's License**: Submit license details with front/back document upload (multipart).
+- **Reviews**: Vehicle reviews, own reviews, create/edit within the allowed window.
+- **Notifications, Transactions & Branches**: Paginated notification list with read state, payment history & invoices, branch list/detail with map deep links.
+- **Favorites**: Local wishlist (works offline).
 
 ## Tech Stack
 
-- **Framework**: Flutter (Dart)
-- **State Management & Routing**: `go_router` for deep linking and navigation.
-- **API Integration**: REST API integration using standard Dart HTTP clients.
-- **Local Storage**: `shared_preferences` for offline data persistence.
-- **Backend**: Laravel API (required for data population and authentication).
-
-## Prerequisites
-
-Before running the application, ensure you have the following installed:
-
-1. **Flutter SDK**: [Install Flutter](https://docs.flutter.dev/get-started/install) (Version 3.x+ recommended).
-2. **DriveEase Backend**: Ensure the Laravel backend API is running and accessible on your local network.
+- **Framework**: Flutter (Dart) 3.x
+- **Routing**: `go_router` (auth-guarded routes)
+- **HTTP**: `http` with a hardened `ApiClient` (timeouts, typed errors, 401 handling, Laravel 422 mapping)
+- **Storage**: `flutter_secure_storage` (tokens), `shared_preferences` (favorites, onboarding flag)
+- **Maps**: `flutter_map` + OpenStreetMap tiles (no API key required)
 
 ## Getting Started
 
-Follow these steps to run the application on your local machine or physical device:
+### 1. Install dependencies
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd mobile
-```
-
-### 2. Install Dependencies
 ```bash
 flutter pub get
 ```
 
-### 3. Configure the Backend URL
-To connect the app to your Laravel backend, you must update the API endpoint to match your computer's local IP address.
+### 2. Start the backend
 
-1. Find your computer's local IP address (e.g., `192.168.1.8`).
-2. Open `lib/data/api/api_client.dart`.
-3. Update the base URL to point to your backend:
-   ```dart
-   static const String baseUrl = 'http://YOUR_LOCAL_IP:8000/api';
-   ```
+The Laravel API must be running and reachable from the device/emulator:
 
-### 4. Run the Backend
-Ensure your Laravel server is bound to `0.0.0.0` so it can receive connections from your physical device:
 ```bash
+cd ../car-rental-system-website/backend
 php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-### 5. Run the App
-Connect your physical device (ensuring it's on the same Wi-Fi network as your computer) or start an emulator, then run:
+### 3. Run the app with the API base URL
+
+The base URL is injected at build time via `--dart-define` (default: `http://127.0.0.1:8000/api`):
+
 ```bash
-flutter run
+# Android emulator (uses the host loopback alias)
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api
+
+# USB-connected device + ADB reverse tunnel
+adb reverse tcp:8000 tcp:8000
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
+
+# Physical device on the same Wi-Fi (use your PC's LAN IP)
+flutter run --dart-define=API_BASE_URL=http://192.168.X.X:8000/api
+
+# Production (HTTPS only — release builds enforce it)
+flutter run --release --dart-define=API_BASE_URL=https://api.yourdomain.com/api
 ```
 
-## Project Structure
+The URL can also be set once per machine with `launch.json` / `launchSettings` or in your IDE's run configuration.
 
-The project is organized in a modular, feature-based architecture to ensure maintainability:
+### 4. Tests
+
+```bash
+flutter test      # unit + widget tests
+flutter analyze   # static analysis (must be clean)
+```
+
+## Android release notes
+
+- `applicationId` is `com.apexrentals.app` (set in `android/app/build.gradle`).
+- **Cleartext HTTP is allowed in debug builds only** (`android/app/src/debug/AndroidManifest.xml`). Release builds must point at an HTTPS API.
+- Release signing still uses debug keys — **generate a keystore and configure `signingConfigs.release` before Play Store distribution**:
+
+```bash
+keytool -genkey -v -keystore ~/apex-rentals.jks -keyalg RSA -keysize 2048 -validity 10000 -alias apex
+```
+
+Then reference it in `android/key.properties` and `build.gradle` (see [Flutter docs: publishing](https://docs.flutter.dev/deployment/android)).
+
+## iOS notes
+
+- Display name: **Apex Rentals**. Camera & photo-library usage descriptions are declared (driver's license uploads).
+- ATS allows local networking only; App Store builds must use an HTTPS API.
+
+## Project structure
 
 ```
 lib/
-├── core/             # App-wide configurations (colors, typography, spacing, routes)
-├── data/             # Repositories and API client for backend communication
-│   ├── api/          # Base API client and token storage
-│   ├── models/       # Shared API response models
-│   └── repositories/ # Feature-specific data handlers (Vehicle, User, Booking)
-├── mock_data/        # (Deprecated) Old mock data structures
-├── models/           # Domain models (User, Vehicle, Booking, etc.)
-├── screens/          # UI Screens grouped by feature (auth, home, booking, profile)
-├── widgets/          # Reusable UI components (buttons, cards, inputs)
-└── main.dart         # Application entry point
+├── core/             # config (API base URL, endpoints, auth state), theme, routes
+├── data/
+│   ├── api/          # ApiClient, TokenStorage (secure)
+│   ├── models/       # API envelope (ApiResponse / ApiError / pagination)
+│   └── repositories/ # Feature repositories (vehicle, booking, payment, ...)
+├── models/           # Domain models (Vehicle, Booking, User, Review, ...)
+├── screens/          # UI screens grouped by feature
+├── widgets/          # Reusable UI components
+└── main.dart         # Entry point (loads token before first frame)
 ```
 
 ## Troubleshooting
 
-- **Connection Refused / Timeout**: Ensure your phone and computer are on the exact same Wi-Fi network. Check that you used your LAN IP (e.g., `192.168.X.X`), not `localhost` or `127.0.0.1`, in the `api_client.dart`.
-- **Blank Images**: Ensure the image URLs returned by the backend are complete, absolute URLs (including the IP address), rather than relative paths.
+- **Connection refused / timeout**: The device must reach the backend — use the correct base URL variant from step 3 (emulator vs USB vs Wi-Fi).
+- **401 loops / kicked to login**: The token expired or was revoked (e.g. seeding resets the DB). Log in again.
+- **Booking rejected with "No driver's license submitted"**: Submit and get the license verified via Profile → Driver's License first.
+- **Blank images**: Vehicle images are external URLs (Cloudinary); the backend must return absolute URLs.
 
 ---
-*Developed as part of the DriveEase Enterprise ecosystem.*
+Part of the Apex Rentals ecosystem.

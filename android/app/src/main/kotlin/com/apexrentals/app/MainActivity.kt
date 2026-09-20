@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.apexrentals.app
 
 import io.flutter.embedding.android.FlutterActivity
 

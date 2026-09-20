@@ -115,7 +115,13 @@ class AppRoutes {
 
   // ── Router ────────────────────────────────────────────────────────
 
+  /// Global navigator key so non-widget code (e.g. the API client's 401
+  /// callback) can navigate without a BuildContext.
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final GoRouter router = GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: splash,
     redirect: (context, state) {
       final isLoggedIn = AuthState.isAuthenticated;
@@ -302,10 +308,20 @@ class AppRoutes {
       GoRoute(
         path: paymentStatus,
         builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
-          return PaymentStatusScreen(
-            booking: extra['booking'] as booking_model.Booking,
-            txRef: extra['tx_ref'] as String,
+          final extra = state.extra;
+          if (extra is Map<String, dynamic> &&
+              extra['booking'] is booking_model.Booking &&
+              extra['tx_ref'] is String) {
+            return PaymentStatusScreen(
+              booking: extra['booking'] as booking_model.Booking,
+              txRef: extra['tx_ref'] as String,
+            );
+          }
+          // Wrong/missing extra — pop back instead of crashing.
+          return _fallbackPop(
+            context,
+            const Scaffold(
+                body: Center(child: Text('Payment data unavailable'))),
           );
         },
       ),

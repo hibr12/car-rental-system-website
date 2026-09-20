@@ -1,6 +1,7 @@
 import '../../data/api/api_client.dart';
 import '../../data/api/token_storage.dart';
 import '../../data/repositories/user_repository.dart';
+import '../routes/app_routes.dart';
 
 /// Lightweight, synchronous auth state holder.
 ///
@@ -33,11 +34,17 @@ class AuthState {
     await TokenStorage.deleteToken();
   }
 
-  /// Wire the API client's 401 callback.
+  /// Wire the API client's 401 callback: clear the session and send the
+  /// user to login. Skips re-navigation when already on a public screen
+  /// (e.g. a failed login attempt also produces a 401).
   static void initApiClientCallback() {
     ApiClient.instance.onUnauthorized = () {
+      final wasAuthenticated = _token.isNotEmpty;
       _token = '';
       TokenStorage.deleteToken();
+      if (wasAuthenticated) {
+        AppRoutes.router.go(AppRoutes.login);
+      }
     };
   }
 

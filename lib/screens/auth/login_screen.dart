@@ -191,63 +191,126 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// The backend has no self-service password reset endpoint, so recovery
-  /// goes through the real support contact form.
   void _showForgotPasswordSheet() {
+    final emailController =
+        TextEditingController(text: _emailController.text.trim());
+    final sheetFormKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
       ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.pagePadding),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: AppSpacing.pagePadding,
+              right: AppSpacing.pagePadding,
+              top: AppSpacing.pagePadding,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom +
+                  AppSpacing.pagePadding,
+            ),
+            child: Form(
+              key: sheetFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
-                    ),
-                    child: const Icon(
-                      LucideIcons.keyRound,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: const Icon(
+                          LucideIcons.keyRound,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text('Reset your password',
+                            style: AppTypography.textTheme.headlineMedium),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text('Reset your password',
-                        style: AppTypography.textTheme.headlineMedium),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Enter your registered email address and we will send you '
+                    'a link to reset your password.',
+                    style: AppTypography.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary, height: 1.5),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppTextField(
+                    label: 'Email address',
+                    hint: 'Enter your email',
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: LucideIcons.mail,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Email is required';
+                      }
+                      if (!RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(val.trim())) {
+                        return 'Enter a valid email address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  PrimaryButton(
+                    text: 'Send Reset Link',
+                    isLoading: isSubmitting,
+                    icon: LucideIcons.send,
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (!sheetFormKey.currentState!.validate()) return;
+                            setSheetState(() => isSubmitting = true);
+
+                            final navigator = Navigator.of(sheetContext);
+                            final messenger = ScaffoldMessenger.of(context);
+                            final sheetMessenger =
+                                ScaffoldMessenger.of(sheetContext);
+
+                            final res = await UserRepository.instance
+                                .forgotPassword(emailController.text.trim());
+
+                            if (res.success) {
+                              navigator.pop();
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(res.message ??
+                                      'Password reset link sent to your email.'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            } else {
+                              setSheetState(() => isSubmitting = false);
+                              sheetMessenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(res.error?.message ??
+                                      'Failed to send reset link. Please check your email and try again.'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          },
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Password resets are handled by our support team. Send us '
-                'a message with your account email and we will help you '
-                'regain access.',
-                style: AppTypography.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary, height: 1.5),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              PrimaryButton(
-                text: 'Contact Support',
-                icon: LucideIcons.mail,
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  context.push(AppRoutes.support);
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),
