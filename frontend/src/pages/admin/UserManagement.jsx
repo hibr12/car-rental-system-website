@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Shield, UserCheck, Wrench, User as UserIcon, Edit } from 'lucide-react';
 import adminApi from '../../api/adminApi';
-import { formatDate, getRoleBadgeStyle, formatStatus } from '../../utils/formatters';
+import { formatDate, formatDateTime, getRoleBadgeStyle, formatStatus } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
@@ -102,7 +102,7 @@ export const UserManagement = () => {
                         {formatStatus(u.role)}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(u.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(u.created_at)}</td>
                     <td className="py-4 px-4 text-right">
                       <ManagementButton
                         variant="secondary"

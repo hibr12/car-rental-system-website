@@ -124,7 +124,7 @@ export const BookingReviewPage = () => {
       <div className="max-w-lg mx-auto py-16 px-4 text-center space-y-4 bg-white">
         <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
         <h1 className="text-2xl font-bold text-[#0F172A]">Review Submitted</h1>
-        <p className="text-sm text-[#64748B]">Thank you for sharing your experience with Apex Rentals.</p>
+        <p className="text-sm text-[#64748B]">Thank you for sharing your experience with Abay Car Rentals.</p>
         <Link
           to="/dashboard"
           className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#2563EB] text-white text-sm font-semibold"

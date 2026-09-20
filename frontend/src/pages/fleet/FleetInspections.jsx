@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Loader2, Search, CheckCircle2 } from 'lucide-react';
 import inspectionApi from '../../api/inspectionApi';
-import { formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
@@ -114,7 +114,7 @@ export default function FleetInspections() {
                 <td className="py-4 px-4 text-xs">{r.vehicle?.branch?.name || '—'}</td>
                 <td className="py-4 px-4"><span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(r.status)}`}>{formatStatus(r.status)}</span></td>
                 <td className="py-4 px-4"><span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(r.result)}`}>{formatStatus(r.result)}</span></td>
-                <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(r.created_at)}</td>
+                <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(r.created_at)}</td>
                 <td className="py-4 px-4">
                   {r.status !== 'completed' && (
                     <button type="button" onClick={() => setCompleteModal(r)} className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1">

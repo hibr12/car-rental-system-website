@@ -182,7 +182,7 @@ export default function BranchesPage() {
                   <p className="text-[#64748B]">Pending</p>
                 </div>
                 <div className="bg-emerald-50 rounded-lg py-2 border border-emerald-100">
-                  <p className="font-bold text-[#10B981] text-sm">{b.monthly_revenue ? formatCurrency(b.monthly_revenue) : '$0'}</p>
+                  <p className="font-bold text-[#10B981] text-sm">{b.monthly_revenue ? formatCurrency(b.monthly_revenue) : formatCurrency(0)}</p>
                   <p className="text-[#64748B]">Month Rev.</p>
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function BranchesPage() {
                   {form.create_manager && (
                     <>
                       <p className="text-xs text-[#64748B]">
-                        Default login: <strong>{form.code ? `${form.code.toLowerCase()}.manager@apexrentals.com` : '{code}.manager@apexrentals.com'}</strong> / password: <strong>password</strong>
+                        Default login: <strong>{form.code ? `${form.code.toLowerCase()}.manager@abaycarrentals.com` : '{code}.manager@abaycarrentals.com'}</strong> / password: <strong>password</strong>
                       </p>
                       <div>
                         <label className={LABEL_CLS}>Manager Name (optional)</label>

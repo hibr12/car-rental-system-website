@@ -69,7 +69,7 @@ export const RegisterPage = () => {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-theme-primary tracking-tight">
             Create Your Account
           </h2>
-          <p className="text-xs text-theme-muted">Join ApexRentals for effortless vehicle booking.</p>
+          <p className="text-xs text-theme-muted">Join Abay Car Rentals for effortless vehicle booking.</p>
         </div>
 
         {errorMessage && (

@@ -3,6 +3,7 @@ import { Bell, BellOff, Check, Trash2, CheckCheck, AlertCircle } from 'lucide-re
 import notificationApi from '../../api/notificationApi';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { formatDateTime } from '../../utils/formatters';
 
 export const NotificationsPage = () => {
   const toast = useToast();
@@ -62,22 +63,6 @@ export const NotificationsPage = () => {
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   return (
     <div className="space-y-8">
@@ -148,7 +133,7 @@ export const NotificationsPage = () => {
                           <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                         )}
                         <span className="text-[10px] text-theme-muted whitespace-nowrap">
-                          {formatTimestamp(notification.created_at || notification.timestamp)}
+                          {formatDateTime(notification.created_at || notification.timestamp)}
                         </span>
                       </div>
                     </div>

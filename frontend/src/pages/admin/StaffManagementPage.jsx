@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, Loader2, X, Check } from 'lucide-react';
 import apiClient from '../../api/client';
 import adminApi from '../../api/adminApi';
+import { formatDateTime } from '../../utils/formatters';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -99,7 +100,7 @@ export default function StaffManagementPage() {
             <table className="w-full text-sm text-[#334155]">
               <thead>
                 <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
-                  {['Name', 'Email', 'Phone', 'Role', 'Branch', 'Actions'].map(h => (
+                  {['Name', 'Email', 'Phone', 'Role', 'Branch', 'Joined', 'Actions'].map(h => (
                     <th key={h} className="text-left text-xs font-semibold text-[#334155] px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -123,6 +124,7 @@ export default function StaffManagementPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-[#64748B]">{s.branch?.name || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-[#64748B]">{formatDateTime(s.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg text-[#64748B] hover:text-[#2563EB] hover:bg-blue-50 transition-colors">

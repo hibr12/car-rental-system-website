@@ -10,7 +10,7 @@ import {
   CornerDownLeft,
 } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../components/common/Toast';
 import Modal from '../../components/common/Modal';
@@ -290,6 +290,7 @@ export const StaffBookings = () => {
                     <td className="py-4 px-4 text-xs text-[#64748B]">
                       <p>{formatDate(booking.pickup_date)}</p>
                       <p>to {formatDate(booking.return_date)}</p>
+                      <p className="text-[10px] text-[#94A3B8] mt-0.5">Booked: {formatDateTime(booking.created_at)}</p>
                     </td>
                     <td className="py-4 px-4">{getActionButtons(booking)}</td>
                   </tr>

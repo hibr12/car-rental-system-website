@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
-import { formatCurrency, formatDate, getStatusBadgeStyle, formatStatus } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, getStatusBadgeStyle, formatStatus } from '../../utils/formatters';
 
 export const BookingConfirmationPage = () => {
   const { id } = useParams();
@@ -145,6 +145,12 @@ export const BookingConfirmationPage = () => {
         </div>
 
         <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-theme-muted">Booked On</span>
+            <span className="font-semibold text-theme-primary">
+              {formatDateTime(booking.created_at)}
+            </span>
+          </div>
           <div className="flex justify-between">
             <span className="text-theme-muted">Pickup Date</span>
             <span className="font-semibold text-theme-primary">

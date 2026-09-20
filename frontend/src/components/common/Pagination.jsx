@@ -29,7 +29,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-theme bg-slate-900/60 text-theme-secondary hover:bg-theme-hover hover:text-theme-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg border border-theme bg-white text-theme-secondary hover:bg-theme-hover hover:text-theme-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous Page"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -39,7 +39,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
           <>
             <button
               onClick={() => onPageChange(1)}
-              className="px-3 py-1.5 rounded-lg border border-theme bg-slate-900/60 text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-theme bg-white text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors"
             >
               1
             </button>
@@ -54,7 +54,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               currentPage === page
                 ? 'bg-blue-600 text-white font-semibold shadow-md'
-                : 'border border-theme bg-slate-900/60 text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                : 'border border-theme bg-white text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
             }`}
           >
             {page}
@@ -66,7 +66,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
             {endPage < lastPage - 1 && <span className="px-1 text-slate-600">...</span>}
             <button
               onClick={() => onPageChange(lastPage)}
-              className="px-3 py-1.5 rounded-lg border border-theme bg-slate-900/60 text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-theme bg-white text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors"
             >
               {lastPage}
             </button>
@@ -76,7 +76,7 @@ export const Pagination = ({ currentPage = 1, lastPage = 1, onPageChange, total 
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === lastPage}
-          className="p-2 rounded-lg border border-theme bg-slate-900/60 text-theme-secondary hover:bg-theme-hover hover:text-theme-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg border border-theme bg-white text-theme-secondary hover:bg-theme-hover hover:text-theme-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Next Page"
         >
           <ChevronRight className="w-4 h-4" />

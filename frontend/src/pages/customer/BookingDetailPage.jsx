@@ -15,7 +15,7 @@ import {
   CircleDot,
 } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
 
 const customerStatusMessage = (booking) => {
@@ -166,6 +166,7 @@ export const BookingDetailPage = () => {
             <h1 className="text-2xl font-extrabold text-theme-primary tracking-tight font-mono">
               {booking.booking_reference}
             </h1>
+            <p className="text-xs text-theme-muted">Booked on {formatDateTime(booking.created_at)}</p>
             <p className="text-sm font-semibold text-theme-primary mt-2">{statusMsg.title}</p>
             {statusMsg.detail && <p className="text-xs text-theme-muted">{statusMsg.detail}</p>}
           </div>
@@ -218,6 +219,7 @@ export const BookingDetailPage = () => {
               <div className="bg-theme-secondary p-4 rounded-2xl border border-theme">
                 <p className="text-[10px] uppercase font-bold text-theme-muted mb-1">Pickup</p>
                 <p className="text-sm font-bold text-theme-primary">{formatDate(booking.pickup_date)}</p>
+                {booking.picked_up_at && <p className="text-[10px] text-theme-muted mt-0.5">Actual: {formatDateTime(booking.picked_up_at)}</p>}
               </div>
               <div className="bg-theme-secondary p-4 rounded-2xl border border-theme flex flex-col items-center justify-center">
                 <p className="text-[10px] uppercase font-bold text-theme-muted mb-1">Duration</p>
@@ -226,6 +228,7 @@ export const BookingDetailPage = () => {
               <div className="bg-theme-secondary p-4 rounded-2xl border border-theme">
                 <p className="text-[10px] uppercase font-bold text-theme-muted mb-1">Return</p>
                 <p className="text-sm font-bold text-theme-primary">{formatDate(booking.return_date)}</p>
+                {booking.returned_at && <p className="text-[10px] text-theme-muted mt-0.5">Actual: {formatDateTime(booking.returned_at)}</p>}
               </div>
             </div>
           </div>
@@ -355,6 +358,7 @@ export const BookingDetailPage = () => {
                       <p className={`text-xs font-bold ${isCurrent ? 'text-blue-400' : isDone ? 'text-emerald-400' : 'text-theme-muted'}`}>
                         {step.label}
                       </p>
+                      {step.at && <p className="text-[10px] text-theme-muted mt-0.5">{formatDateTime(step.at)}</p>}
                       {step.detail && <p className="text-[10px] text-theme-muted mt-0.5">{step.detail}</p>}
                     </div>
                   </div>

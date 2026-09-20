@@ -2,9 +2,9 @@ import React from 'react';
 import { Search, Filter, RotateCcw } from 'lucide-react';
 
 const INPUT_CLS =
-  'w-full bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#64748B] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/30 transition-colors';
+  'w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/30 transition-colors';
 
-const LABEL_CLS = 'block text-xs font-semibold text-[#CBD5E1] mb-1.5';
+const LABEL_CLS = 'block text-xs font-semibold text-[#334155] mb-1.5';
 
 export const VehicleFilter = ({
   filters,
@@ -26,10 +26,10 @@ export const VehicleFilter = ({
   };
 
   return (
-    <div className="bg-[#0F172A] border border-[#1e293b] rounded-2xl shadow-xl flex flex-col max-h-[min(720px,calc(100vh-7rem))] lg:max-h-[calc(100vh-7rem)] overflow-hidden">
-      {/* Header — matches admin sidebar tone */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e293b] shrink-0">
-        <div className="flex items-center gap-2.5 text-white font-semibold">
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl shadow-sm flex flex-col max-h-[min(720px,calc(100vh-7rem))] lg:max-h-[calc(100vh-7rem)] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2E8F0] shrink-0">
+        <div className="flex items-center gap-2.5 text-[#0F172A] font-semibold">
           <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center shrink-0">
             <Filter className="w-4 h-4 text-white" />
           </div>
@@ -38,7 +38,7 @@ export const VehicleFilter = ({
         <button
           type="button"
           onClick={onReset}
-          className="flex items-center gap-1.5 text-xs text-[#CBD5E1] hover:text-white transition-colors py-1.5 px-2.5 rounded-lg border border-[#334155] hover:bg-[#1e293b] hover:border-[#475569]"
+          className="flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#0F172A] transition-colors py-1.5 px-2.5 rounded-lg border border-[#CBD5E1] hover:bg-[#F1F5F9] hover:border-[#94A3B8]"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Reset</span>

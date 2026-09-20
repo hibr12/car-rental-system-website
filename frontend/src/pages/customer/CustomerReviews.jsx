@@ -5,7 +5,7 @@ import reviewApi from '../../api/reviewApi';
 import StarRating from '../../components/common/StarRating';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 export const CustomerReviews = () => {
   const toast = useToast();
@@ -183,7 +183,7 @@ export const CustomerReviews = () => {
                     )}
                   </div>
                   {review.comment && <p className="text-sm text-theme-secondary">{review.comment}</p>}
-                  <p className="text-[10px] text-theme-muted">{formatDate(review.created_at)}</p>
+                  <p className="text-[10px] text-theme-muted">{formatDateTime(review.created_at)}</p>
                 </div>
               ))}
             </div>

@@ -7,6 +7,7 @@ import {
 import { licenseApi } from '../../api/licenseApi';
 import { useToast } from '../../components/common/Toast';
 import LicenseDocumentButton from '../../components/shared/LicenseDocumentButton';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
@@ -204,6 +205,8 @@ function LicenseDetails({ license }) {
     { label: 'Issue Date', value: formatDate(license.issue_date) },
     { label: 'Expiry Date', value: formatDate(license.expiry_date) },
     { label: 'Issuing Authority', value: license.issuing_authority || '—' },
+    { label: 'Submitted', value: formatDateTime(license.submitted_at || license.created_at) },
+    ...(license.verified_at ? [{ label: 'Verified', value: formatDateTime(license.verified_at) }] : []),
   ];
 
   return (
@@ -548,7 +551,7 @@ export const DriverLicensePage = () => {
       <div className="border-b border-theme pb-6">
         <h1 className="text-3xl font-extrabold text-theme-primary tracking-tight">Driver's License</h1>
         <p className="text-sm text-theme-muted mt-1">
-          A verified driver's license is required to book vehicles on Apex Rentals.
+          A verified driver's license is required to book vehicles on Abay Car Rentals.
         </p>
       </div>
 
@@ -611,13 +614,6 @@ export const DriverLicensePage = () => {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
-}
 
 function inputClass(error) {
   return `w-full bg-theme-secondary border rounded-xl px-3.5 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors ${

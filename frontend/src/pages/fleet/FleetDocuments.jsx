@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import documentApi from '../../api/documentApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
@@ -129,6 +129,7 @@ export default function FleetDocuments() {
               <th className="py-3.5 px-4">Type</th>
               <th className="py-3.5 px-4">Number</th>
               <th className="py-3.5 px-4">Expiry</th>
+              <th className="py-3.5 px-4">Created</th>
               <th className="py-3.5 px-4">Status</th>
               <th className="py-3.5 px-4">Required</th>
               <th className="py-3.5 px-4"></th>
@@ -142,6 +143,7 @@ export default function FleetDocuments() {
                 <td className="py-4 px-4 capitalize">{formatStatus(r.document_type)}</td>
                 <td className="py-4 px-4 font-mono text-xs">{r.document_number || '—'}</td>
                 <td className="py-4 px-4 text-xs">{formatDate(r.expiry_date)}</td>
+                <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(r.created_at)}</td>
                 <td className="py-4 px-4"><span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(r.status)}`}>{formatStatus(r.status)}</span></td>
                 <td className="py-4 px-4 text-xs">{r.is_required ? 'Yes' : 'No'}</td>
                 <td className="py-4 px-4">

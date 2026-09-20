@@ -5,7 +5,7 @@ import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import adminApi from '../../api/adminApi';
 import transferApi from '../../api/transferApi';
-import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDateTime, formatDate } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
@@ -708,7 +708,7 @@ export const VehicleManagement = () => {
                           {(h.from_branch?.name || h.fromBranch?.name || '—')} → {(h.to_branch?.name || h.toBranch?.name || '—')}
                         </p>
                         <p className="text-xs text-[#64748B]">
-                          {h.completed_at ? new Date(h.completed_at).toLocaleDateString() : '—'}
+                          {h.completed_at ? formatDateTime(h.completed_at) : '—'}
                         </p>
                       </div>
                       <span className="text-[10px] font-semibold uppercase text-[#16A34A]">Completed</span>

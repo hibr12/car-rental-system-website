@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import maintenanceApi from '../../api/maintenanceApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
@@ -234,7 +234,7 @@ export const FleetMaintenance = () => {
                     </td>
                     <td className="py-4 px-4 text-[#334155] capitalize">{record.maintenance_type || record.type || 'General'}</td>
                     <td className="py-4 px-4 text-xs text-[#64748B] max-w-[200px] truncate">{record.description || '-'}</td>
-                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(record.scheduled_date || record.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(record.scheduled_date || record.created_at)}</td>
                     <td className="py-4 px-4 font-bold text-[#16A34A]">{formatCurrency(record.cost || 0)}</td>
                     <td className="py-4 px-4">
                       <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(record.status)}`}>

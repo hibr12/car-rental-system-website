@@ -11,7 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import paymentApi from '../../api/paymentApi';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
 
 // Poll schedule: immediate, then 3s intervals up to ~30s total
@@ -237,7 +237,7 @@ export const PaymentStatusPage = () => {
             <h2 className="text-3xl font-bold text-theme-primary">Thank You!</h2>
             <p className="text-sm text-theme-muted max-w-sm mx-auto flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Verified with Chapa and recorded in Apex Rentals.
+              Verified with Chapa and recorded in Abay Car Rentals.
             </p>
           </div>
 
@@ -264,6 +264,12 @@ export const PaymentStatusPage = () => {
               <div className="flex justify-between">
                 <span className="text-theme-muted">Payment Status</span>
                 <span className="font-bold text-emerald-400 uppercase">Paid</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-theme-muted">Paid At</span>
+                <span className="font-semibold text-theme-primary text-xs">
+                  {formatDateTime(paymentData.paid_at || paymentData.created_at)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-theme-muted">Verification</span>

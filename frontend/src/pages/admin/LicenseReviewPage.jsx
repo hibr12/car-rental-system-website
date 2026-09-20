@@ -6,6 +6,7 @@ import {
 import { licenseApi } from '../../api/licenseApi';
 import { useToast } from '../../components/common/Toast';
 import LicenseDocumentButton from '../../components/shared/LicenseDocumentButton';
+import { formatDateTime } from '../../utils/formatters';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ const CATEGORIES = {
   heavy: 'Heavy Vehicle',
 };
 
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (d) => d ? formatDateTime(d) : '—';
 
 // ─── Rejection modal ──────────────────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ function LicenseDetailPanel({ license, onApprove, onReject, onClose }) {
             <Row label="Authority" value={license.issuing_authority || '—'} />
             <Row label="Country" value={license.issuing_country || '—'} />
             <Row label="Submitted" value={fmtDate(license.submitted_at)} />
+            {license.verified_at && <Row label="Verified" value={fmtDate(license.verified_at)} />}
           </Section>
 
           {/* Documents */}

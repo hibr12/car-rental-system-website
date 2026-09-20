@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Car, Loader2, CheckCircle2, LogIn, AlertCircle, X } from 'lucide-react';
 import branchApi from '../../api/branchApi';
-import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDate } from '../../utils/formatters';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -95,7 +95,7 @@ export default function BranchRentalsPage() {
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadgeStyle(b.status)}`}>{formatStatus(b.status)}</span>
                   </div>
                   <p className="text-sm text-[#64748B]">{b.user?.name} · {b.vehicle?.brand} {b.vehicle?.model} ({b.vehicle?.registration_number})</p>
-                  <p className="text-xs text-[#64748B] mt-0.5">{b.pickup_date?.split('T')[0]} → {b.return_date?.split('T')[0]} · {formatCurrency(b.total_price)}</p>
+                  <p className="text-xs text-[#64748B] mt-0.5">{formatDate(b.pickup_date)} → {formatDate(b.return_date)} · {formatCurrency(b.total_price)}</p>
                 </div>
                 <div className="flex gap-2">
                   {b.status === 'confirmed' && b.payment_status === 'paid' && (

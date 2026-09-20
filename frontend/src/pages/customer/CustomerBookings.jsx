@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarCheck, AlertCircle, XCircle, CheckCircle2, Eye, Filter, CreditCard } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
@@ -118,6 +118,7 @@ export const CustomerBookings = () => {
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
                   <th className="py-3.5 px-4 font-semibold">Pickup</th>
                   <th className="py-3.5 px-4 font-semibold">Return</th>
+                  <th className="py-3.5 px-4 font-semibold">Booked</th>
                   <th className="py-3.5 px-4 font-semibold">Total Price</th>
                   <th className="py-3.5 px-4 font-semibold">Booking Status</th>
                   <th className="py-3.5 px-4 font-semibold">Payment</th>
@@ -137,6 +138,7 @@ export const CustomerBookings = () => {
                     </td>
                     <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(booking.pickup_date)}</td>
                     <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(booking.return_date)}</td>
+                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDateTime(booking.created_at)}</td>
                     <td className="py-4 px-4 font-bold text-emerald-400">
                       {formatCurrency(booking.total_price)}
                     </td>

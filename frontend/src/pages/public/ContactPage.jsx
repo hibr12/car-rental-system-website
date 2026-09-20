@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2, MessageSquare, Clock } from 'lucide-react';
 import contactApi from '../../api/contactApi';
 import { useToast } from '../../components/common/Toast';
+import { contactInfo } from '../../config/contactInfo';
+
+const LinkedinIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
 
 export const ContactPage = () => {
   const toast = useToast();
@@ -35,13 +42,13 @@ export const ContactPage = () => {
       {/* Header */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
-          24/7 Concierge Support
+          Local Support Team
         </span>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-theme-primary tracking-tight">
-          Get In Touch With ApexRentals
+          Get In Touch With {contactInfo.companyName}
         </h1>
         <p className="text-theme-muted text-sm sm:text-base leading-relaxed">
-          Have questions about our fleet, booking policies, or corporate rentals? Fill out the form below or reach our team directly.
+          Have questions about our fleet, booking policies, or need assistance? Fill out the form below or reach our team directly.
         </p>
       </div>
 
@@ -54,9 +61,11 @@ export const ContactPage = () => {
             </div>
             <div>
               <h3 className="text-base font-bold text-theme-primary">Call Us Directly</h3>
-              <p className="text-xs text-theme-muted mt-1">Available 24 hours a day, 7 days a week</p>
+              <p className="text-xs text-theme-muted mt-1">Available during business hours</p>
             </div>
-            <p className="text-sm font-semibold text-blue-400">+1 (800) 555-APEX</p>
+            <a href={contactInfo.phoneLink} className="text-sm font-semibold text-blue-400 hover:text-blue-500 transition-colors">
+              {contactInfo.phone}
+            </a>
           </div>
 
           <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
@@ -65,9 +74,11 @@ export const ContactPage = () => {
             </div>
             <div>
               <h3 className="text-base font-bold text-theme-primary">Email Inquiries</h3>
-              <p className="text-xs text-theme-muted mt-1">We typically reply within 2 hours</p>
+              <p className="text-xs text-theme-muted mt-1">We typically reply within 24 hours</p>
             </div>
-            <p className="text-sm font-semibold text-indigo-400">support@apexrentals.com</p>
+            <a href={contactInfo.emailLink} className="text-sm font-semibold text-indigo-400 hover:text-indigo-500 transition-colors">
+              {contactInfo.email}
+            </a>
           </div>
 
           <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
@@ -75,10 +86,28 @@ export const ContactPage = () => {
               <MapPin className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-theme-primary">Headquarters Terminal</h3>
-              <p className="text-xs text-theme-muted mt-1">100 Premium Boulevard, Grand City</p>
+              <h3 className="text-base font-bold text-theme-primary">Our Location</h3>
+              <p className="text-xs text-theme-muted mt-1">Bahir Dar, Amhara Region</p>
             </div>
-            <p className="text-xs text-theme-muted">Open for key pickups & returns daily: 06:00 AM - 11:00 PM</p>
+            <p className="text-xs text-theme-muted">{contactInfo.fullAddress}</p>
+          </div>
+
+          <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#0A66C2]/10 text-[#0A66C2] flex items-center justify-center border border-[#0A66C2]/20">
+              <LinkedinIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-theme-primary">LinkedIn</h3>
+              <p className="text-xs text-theme-muted mt-1">Connect with our founder</p>
+            </div>
+            <a
+              href={contactInfo.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-[#0A66C2] hover:text-[#004182] transition-colors"
+            >
+              {contactInfo.linkedinLabel}
+            </a>
           </div>
         </div>
 
@@ -130,7 +159,7 @@ export const ContactPage = () => {
                 <label className="block text-xs font-semibold text-theme-secondary mb-1.5">Phone Number</label>
                 <input
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+251 92 667 3294"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
@@ -142,7 +171,7 @@ export const ContactPage = () => {
                 <input
                   type="text"
                   required
-                  placeholder="Booking inquiry, corporate rate, support..."
+                  placeholder="Booking inquiry, vehicle availability, support..."
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   className="w-full bg-theme-secondary border border-theme rounded-xl px-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"

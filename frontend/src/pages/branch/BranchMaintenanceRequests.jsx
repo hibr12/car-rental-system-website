@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, Plus, Loader2 } from 'lucide-react';
 import branchApi from '../../api/branchApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
 import {
@@ -83,7 +83,7 @@ export default function BranchMaintenanceRequests() {
                 <td className="py-3 px-4">{r.title}</td>
                 <td className="py-3 px-4 capitalize">{r.priority}</td>
                 <td className="py-3 px-4"><span className={`px-2 py-1 text-xs font-bold rounded-lg border ${getStatusBadgeStyle(r.status)}`}>{formatStatus(r.status)}</span></td>
-                <td className="py-3 px-4 text-xs text-[#64748B]">{formatDate(r.created_at)}</td>
+                <td className="py-3 px-4 text-xs text-[#64748B]">{formatDateTime(r.created_at)}</td>
               </tr>
             ))}
           </tbody>

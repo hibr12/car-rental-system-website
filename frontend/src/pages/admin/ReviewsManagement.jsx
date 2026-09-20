@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, Flag, Archive, Send, X,
 } from 'lucide-react';
 import adminApi from '../../api/adminApi';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
 import Modal from '../../components/common/Modal';
@@ -272,7 +272,7 @@ export const ReviewsManagement = () => {
                         {r.status}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(r.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(r.created_at)}</td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-1">
                         <ManagementButton variant="outline" onClick={() => openReview(r)} title="View">
@@ -381,7 +381,7 @@ export const ReviewsManagement = () => {
                 <p className="text-[10px] uppercase font-bold text-[#64748B] mb-1">Branch Response</p>
                 <p className="leading-relaxed">{selectedReview.admin_response}</p>
                 {selectedReview.admin_response_at && (
-                  <p className="text-[10px] text-[#64748B] mt-2">{formatDate(selectedReview.admin_response_at)}</p>
+                  <p className="text-[10px] text-[#64748B] mt-2">{formatDateTime(selectedReview.admin_response_at)}</p>
                 )}
               </div>
             )}

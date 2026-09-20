@@ -113,29 +113,29 @@ const ManagementSidebar = ({ portal = 'admin', isOpen, onClose }) => {
       <aside
         className={`
           fixed top-0 left-0 z-50 w-64 h-screen
-          bg-[#0F172A] border-r border-[#1e293b]
+          bg-white border-r border-[#E2E8F0]
           flex flex-col overflow-hidden
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="shrink-0 p-5 border-b border-[#1e293b] relative">
+        <div className="shrink-0 p-5 border-b border-[#E2E8F0] relative">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl ${meta.accent} flex items-center justify-center`}>
               <Car className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-base leading-tight">Apex Rentals</h1>
-              <p className="text-[#CBD5E1] text-[11px] font-medium">{meta.label}</p>
+              <h1 className="text-[#0F172A] font-bold text-base leading-tight">Abay Car Rentals</h1>
+              <p className="text-[#64748B] text-[11px] font-medium">{meta.label}</p>
               {branchName && (
-                <p className="text-[#0EA5E9] text-[10px] font-semibold mt-0.5">{branchName}</p>
+                <p className="text-[#2563EB] text-[10px] font-semibold mt-0.5">{branchName}</p>
               )}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="absolute top-4 right-3 p-1 rounded-lg text-[#CBD5E1] hover:text-white hover:bg-[#1e293b] transition-colors lg:hidden"
+            className="absolute top-4 right-3 p-1 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors lg:hidden"
           >
             <X className="w-5 h-5" />
           </button>
@@ -158,8 +158,8 @@ const ManagementSidebar = ({ portal = 'admin', isOpen, onClose }) => {
                     flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                     transition-all duration-150
                     ${isActive
-                      ? 'bg-[#2563EB] text-white'
-                      : 'text-[#CBD5E1] hover:text-white hover:bg-[#1e293b]'}
+                      ? 'bg-[#2563EB]/10 text-[#2563EB]'
+                      : 'text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9]'}
                   `}
                 >
                   <Icon className="w-[18px] h-[18px] shrink-0" />
@@ -170,10 +170,10 @@ const ManagementSidebar = ({ portal = 'admin', isOpen, onClose }) => {
           </div>
         </nav>
 
-        <div className="shrink-0 p-3 border-t border-[#1e293b]">
+        <div className="shrink-0 p-3 border-t border-[#E2E8F0]">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#CBD5E1] hover:text-white hover:bg-[#1e293b] transition-all duration-150"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-all duration-150"
           >
             <LogOut className="w-[18px] h-[18px] shrink-0" />
             <span>Logout</span>

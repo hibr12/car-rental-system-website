@@ -14,7 +14,7 @@ import {
 import paymentApi from '../../api/paymentApi';
 import useAuthStore from '../../store/authStore';
 import { isAdminRole } from '../../utils/roles';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
 import Modal from '../../components/common/Modal';
@@ -232,7 +232,7 @@ export const PaymentsPage = () => {
                         {formatStatus(p.verification_status || 'unverified')}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(p.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(p.paid_at || p.created_at)}</td>
                     <td className="py-4 px-4 text-right space-x-2">
                       <button
                         onClick={() => setSelectedPayment(p)}

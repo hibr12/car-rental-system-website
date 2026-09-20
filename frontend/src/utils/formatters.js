@@ -17,11 +17,13 @@ export const formatDate = (dateString, includeTime = false) => {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    ...(includeTime ? { hour: '2-digit', minute: '2-digit', hour12: true } : {}),
   };
 
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
+
+export const formatDateTime = (dateString) => formatDate(dateString, true);
 
 export const formatStatus = (status) => {
   if (!status) return '';

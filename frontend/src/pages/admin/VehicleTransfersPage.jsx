@@ -7,6 +7,7 @@ import transferApi from '../../api/transferApi';
 import adminApi from '../../api/adminApi';
 import vehicleApi from '../../api/vehicleApi';
 import useAuthStore from '../../store/authStore';
+import { formatDateTime, formatDate } from '../../utils/formatters';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -173,7 +174,7 @@ export default function VehicleTransfersPage() {
       <ManagementPageHeader
         eyebrow="Fleet"
         title="Vehicle Transfers"
-        description="Manage vehicle movement between Apex Rentals branches."
+        description="Manage vehicle movement between Abay Car Rentals branches."
         actions={
           (isBranchManager || isAdmin) ? (
             <ManagementButton onClick={() => { setForm({ vehicle_id: '', to_branch_id: '', transfer_date: '', reason: '', notes: '' }); setError(''); setShowModal(true); }}>
@@ -284,7 +285,7 @@ export default function VehicleTransfersPage() {
                     </td>
                     <td className="px-4 py-3 text-[#334155]">{t.fromBranch?.name || t.from_branch?.name || '—'}</td>
                     <td className="px-4 py-3 text-[#334155]">{t.toBranch?.name || t.to_branch?.name || '—'}</td>
-                    <td className="px-4 py-3 text-[#64748B]">{t.transfer_date || '—'}</td>
+                    <td className="px-4 py-3 text-[#64748B]">{formatDate(t.transfer_date)}</td>
                     <td className="px-4 py-3 text-[#64748B]">{t.requester?.name || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_STYLES[t.status] || 'bg-[#F8FAFC] text-[#64748B]'}`}>
@@ -483,12 +484,12 @@ export default function VehicleTransfersPage() {
                     <div>
                       <div className="text-xs font-semibold text-[#64748B] mb-1">From</div>
                       <div className="text-sm font-semibold text-[#0F172A]">{detailTransfer.from_branch?.name || detailTransfer.fromBranch?.name || '—'}</div>
-                      <div className="text-xs text-[#64748B]">Requested: {detailTransfer.requested_at ? new Date(detailTransfer.requested_at).toLocaleString() : '—'}</div>
+                      <div className="text-xs text-[#64748B]">Requested: {detailTransfer.requested_at ? formatDateTime(detailTransfer.requested_at) : '—'}</div>
                     </div>
                     <div>
                       <div className="text-xs font-semibold text-[#64748B] mb-1">To</div>
                       <div className="text-sm font-semibold text-[#0F172A]">{detailTransfer.to_branch?.name || detailTransfer.toBranch?.name || '—'}</div>
-                      <div className="text-xs text-[#64748B]">Transfer Date: {detailTransfer.transfer_date ? new Date(detailTransfer.transfer_date).toLocaleDateString() : '—'}</div>
+                      <div className="text-xs text-[#64748B]">Transfer Date: {detailTransfer.transfer_date ? formatDate(detailTransfer.transfer_date) : '—'}</div>
                     </div>
                   </div>
 
@@ -519,7 +520,7 @@ export default function VehicleTransfersPage() {
                             <div className={`mt-0.5 text-xs font-bold ${done ? 'text-[#16A34A]' : 'text-[#CBD5E1]'}`}>{done ? '✓' : '•'}</div>
                             <div>
                               <div className="font-semibold text-[#0F172A]">{label}</div>
-                              <div className="text-xs text-[#64748B]">{ts ? new Date(ts).toLocaleString() : '—'}{actor ? ` • ${actor}` : ''}</div>
+                              <div className="text-xs text-[#64748B]">{ts ? formatDateTime(ts) : '—'}{actor ? ` • ${actor}` : ''}</div>
                             </div>
                           </div>
                         );
@@ -532,8 +533,8 @@ export default function VehicleTransfersPage() {
                             <div className="font-semibold text-[#0F172A]">{detailTransfer.status.toUpperCase()}</div>
                             <div className="text-xs text-[#64748B]">
                               {detailTransfer.status === 'rejected'
-                                ? (detailTransfer.rejected_at ? new Date(detailTransfer.rejected_at).toLocaleString() : '—')
-                                : (detailTransfer.cancelled_at ? new Date(detailTransfer.cancelled_at).toLocaleString() : '—')}
+                                ? (detailTransfer.rejected_at ? formatDateTime(detailTransfer.rejected_at) : '—')
+                                : (detailTransfer.cancelled_at ? formatDateTime(detailTransfer.cancelled_at) : '—')}
                             </div>
                             <div className="text-xs text-[#64748B]">
                               Reason: {detailTransfer.status === 'rejected' ? (detailTransfer.rejection_reason || '—') : (detailTransfer.cancellation_reason || '—')}
@@ -572,7 +573,7 @@ export default function VehicleTransfersPage() {
                               {h.from_branch?.name || h.fromBranch?.name || '—'} → {h.to_branch?.name || h.toBranch?.name || '—'}
                             </div>
                             <div className="text-[#64748B] text-xs">
-                              {h.completed_at ? new Date(h.completed_at).toLocaleDateString() : '—'}
+                              {h.completed_at ? formatDateTime(h.completed_at) : '—'}
                             </div>
                           </div>
                         ))}

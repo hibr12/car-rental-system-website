@@ -91,7 +91,7 @@ export const ManagementLoginPage = ({ portal = 'admin' }) => {
             <Car className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">Apex Rentals</h1>
+            <h1 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">Abay Car Rentals</h1>
             <p className="text-xs uppercase font-bold tracking-widest text-[#2563EB] mt-1">{portalLabel}</p>
           </div>
           <p className="text-sm text-[#64748B] max-w-xs mx-auto">
@@ -173,11 +173,11 @@ export const ManagementLoginPage = ({ portal = 'admin' }) => {
             {portal === 'fleet' ? (
               <p>Fleet manager: fleet@carrental.com</p>
             ) : portal === 'manager' || portal === 'branch' ? (
-              <p>Branch manager: cmc.manager@apexrentals.com · bole.manager@apexrentals.com</p>
+              <p>Branch manager: cmc.manager@abaycarrentals.com · bole.manager@abaycarrentals.com</p>
             ) : (
               <>
                 <p>Admin: admin@carrental.com · Staff: staff@carrental.com</p>
-                <p>Branch manager: cmc.manager@apexrentals.com</p>
+                <p>Branch manager: cmc.manager@abaycarrentals.com</p>
               </>
             )}
           </div>

@@ -13,7 +13,7 @@ import {
 import bookingApi from '../../api/bookingApi';
 import useAuthStore from '../../store/authStore';
 import { isAdminRole, isBranchManagerRole } from '../../utils/roles';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
@@ -462,6 +462,7 @@ export const AdminBookings = () => {
                   <th className="py-3.5 px-4 font-semibold">Admin Approval</th>
                   <th className="py-3.5 px-4 font-semibold">Booking Status</th>
                   <th className="py-3.5 px-4 font-semibold">Pickup / Return</th>
+                  <th className="py-3.5 px-4 font-semibold">Booked</th>
                   <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -509,6 +510,7 @@ export const AdminBookings = () => {
                       <div>P: {formatDate(b.pickup_date)}</div>
                       <div>R: {formatDate(b.return_date)}</div>
                     </td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(b.created_at)}</td>
                     <td className="py-4 px-4 text-right">{renderActions(b)}</td>
                   </tr>
                 ))}

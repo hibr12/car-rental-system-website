@@ -11,6 +11,7 @@ import categoryApi from '../../api/categoryApi';
 import branchApi from '../../api/branchesApi';
 import VehicleCard from '../../components/vehicles/VehicleCard';
 import { VehicleCardSkeleton } from '../../components/common/Skeleton';
+import { contactInfo, heroContent, testimonials } from '../../config/contactInfo';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1750715832285-ca20adc444b6?auto=format&fit=crop&w=1920&q=85';
 const WHY_IMAGE = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
@@ -88,24 +89,28 @@ export const HomePage = () => {
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 py-12">
           {/* Tagline */}
           <span className="inline-block mb-4 text-xs sm:text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
-            Premium Car Rental Service
+            {heroContent.tagline}
           </span>
 
           {/* Main Title */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.08] text-white max-w-4xl mx-auto mb-5">
-            Drive Your Journey{' '}
-            <span className="text-blue-500">With Absolute</span>{' '}
-            Confidence
+            {heroContent.title}
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg text-gray-200 max-w-2xl mx-auto leading-relaxed">
-            Unlock extraordinary driving experiences with our handpicked fleet of premium, standard, high-performance SUVs, and eco-friendly electric vehicles.
+          <p className="text-base sm:text-lg text-blue-50 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] font-medium">
+            {heroContent.subtitle}
           </p>
         </div>
+      </section>
 
-        {/* Search / Filter Bar Card — anchored to bottom of hero, fully visible */}
-        <div className="relative z-20 w-full max-w-5xl mx-auto px-4 sm:px-6 pb-4">
+
+      {/* ============================================= */}
+      {/* FEATURED FLEET COLLECTIONS                    */}
+      {/* ============================================= */}
+      <section className="py-20 bg-white relative">
+        {/* Search / Filter Bar Card — floating at top of fleet section */}
+        <div className="relative z-20 -mt-10 max-w-5xl mx-auto px-4 sm:px-6">
           <form
             onSubmit={handleHeroSearch}
             className="bg-white rounded-2xl shadow-2xl p-3 flex flex-col md:flex-row items-stretch gap-3"
@@ -190,13 +195,7 @@ export const HomePage = () => {
             </div>
           </form>
         </div>
-      </section>
 
-
-      {/* ============================================= */}
-      {/* FEATURED FLEET COLLECTIONS                    */}
-      {/* ============================================= */}
-      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-10">
@@ -278,7 +277,7 @@ export const HomePage = () => {
                 {
                   step: '01',
                   title: 'Choose Vehicle',
-                  desc: 'Browse our diverse luxury fleet and pick your ideal vehicle for any occasion.',
+                  desc: 'Browse our diverse fleet and pick your ideal vehicle for any occasion.',
                   icon: Car,
                 },
                 {
@@ -296,7 +295,7 @@ export const HomePage = () => {
                 {
                   step: '04',
                   title: 'Enjoy Your Drive',
-                  desc: 'Pick up your keys and experience unparalleled comfort and performance.',
+                  desc: 'Pick up your keys and experience comfort and performance on Bahir Dar roads.',
                   icon: Key,
                 },
               ].map((item) => {
@@ -339,18 +338,18 @@ export const HomePage = () => {
                 Why Choose Us
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                Designed For Drivers Who Expect Exceptional Quality
+                Reliable Car Rentals for Bahir Dar and Beyond
               </h2>
               <p className="text-gray-500 leading-relaxed">
-                We eliminate rental complexities with transparent pricing, zero hidden fees, and pristine vehicles maintained to strict manufacturer standards.
+                We eliminate rental complexities with transparent pricing in ETB, zero hidden fees, and well-maintained vehicles for your journeys across the Amhara region.
               </p>
 
               <div className="space-y-4 pt-2">
                 {[
-                  'Wide vehicle selection ranging from compact sedans to luxury SUVs',
-                  'Transparent pricing with comprehensive insurance coverage included',
-                  '24/7 roadside assistance & dedicated concierge support',
-                  'Rigorous multi-point safety inspections before every rental',
+                  'Wide vehicle selection from compact sedans to spacious SUVs',
+                  'Transparent pricing in ETB with comprehensive insurance options',
+                  'Local support team based in Bahir Dar, Amhara Region',
+                  'Rigorous safety inspections before every rental',
                 ].map((feat, idx) => (
                   <div key={idx} className="flex items-start gap-3">
                     <div className="mt-0.5 w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
@@ -377,7 +376,7 @@ export const HomePage = () => {
               <div className="rounded-3xl overflow-hidden shadow-2xl">
                 <img
                   src={WHY_IMAGE}
-                  alt="Premium SUV in scenic setting"
+                  alt="Vehicle in scenic Bahir Dar setting"
                   className="w-full h-[420px] object-cover"
                 />
               </div>
@@ -402,77 +401,147 @@ export const HomePage = () => {
 
 
       {/* ============================================= */}
-      {/* TESTIMONIALS                                  */}
+      {/* TESTIMONIALS + CONTACT US (side by side)      */}
       {/* ============================================= */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-amber-500">
-              Verified Reviews
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mt-1">
-              What Our Drivers Say
-            </h2>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            {/* LEFT: What Our Drivers Say */}
+            <div className="space-y-8">
+              <div className="text-center lg:text-left">
+                <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-amber-500">
+                  Verified Reviews
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mt-1">
+                  What Our Drivers Say
+                </h2>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: 'Alexander Wright',
-                location: 'New York, USA',
-                comment:
-                  'Exceptional vehicle condition! The booking process took less than two minutes and pickup at the terminal was flawless.',
-                rating: 5,
-                avatar: 'AW',
-              },
-              {
-                name: 'Sophia Martinez',
-                location: 'Los Angeles, USA',
-                comment:
-                  'Rented a 7-seater SUV for a weekend road trip. Super clean, comfortable, and the daily rates were unbeatable.',
-                rating: 5,
-                avatar: 'SM',
-              },
-              {
-                name: 'Marcus Vance',
-                location: 'Chicago, USA',
-                comment:
-                  'ApexRentals has been my go-to car rental service for over a year now. Truly professional staff and great customer service.',
-                rating: 5,
-                avatar: 'MV',
-              },
-            ].map((rev, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                {/* Stars */}
-                <div className="flex gap-1 mb-5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-amber-400 text-amber-400"
-                    />
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {testimonials.map((rev, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                  >
+                    {/* Stars */}
+                    <div className="flex gap-1 mb-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className="w-4 h-4 fill-amber-400 text-amber-400"
+                        />
+                      ))}
+                    </div>
+
+                    {/* Quote */}
+                    <p className="text-sm text-gray-600 leading-relaxed mb-5">
+                      "{rev.comment}"
+                    </p>
+
+                    {/* User */}
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                        {rev.avatar}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">{rev.name}</h4>
+                        <p className="text-xs text-gray-400">{rev.location}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT: Contact Us */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 h-full">
+              <div className="space-y-6">
+                <div>
+                  <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-blue-500">
+                    Get In Touch
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mt-1">
+                    Contact Us
+                  </h3>
+                  <p className="text-gray-500 leading-relaxed mt-2">
+                    Have a question or need a vehicle? Get in touch with us.
+                  </p>
                 </div>
 
-                {/* Quote */}
-                <p className="text-sm text-gray-600 leading-relaxed mb-6">
-                  "{rev.comment}"
-                </p>
+                <div className="space-y-5 pt-4 border-t border-gray-100">
+                  {/* Location */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">Location</h4>
+                      <p className="text-sm text-gray-500 mt-1">{contactInfo.fullAddress}</p>
+                    </div>
+                  </div>
 
-                {/* User */}
-                <div className="flex items-center gap-3 pt-5 border-t border-gray-100">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                    {rev.avatar}
+                  {/* Phone */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                      <Phone className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">Phone</h4>
+                      <a
+                        href={contactInfo.phoneLink}
+                        className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block font-medium"
+                      >
+                        {contactInfo.phone}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900">{rev.name}</h4>
-                    <p className="text-xs text-gray-400">{rev.location}</p>
+
+                  {/* Email */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                      <Mail className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">Email</h4>
+                      <a
+                        href={contactInfo.emailLink}
+                        className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block font-medium"
+                      >
+                        {contactInfo.email}
+                      </a>
+                    </div>
                   </div>
+
+                  {/* LinkedIn */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#0A66C2] flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">LinkedIn</h4>
+                      <a
+                        href={contactInfo.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block font-medium"
+                      >
+                        {contactInfo.linkedinLabel}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <Link
+                    to="/contact"
+                    className="inline-flex items-center gap-2 w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all group justify-center"
+                  >
+                    Send a Message
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -499,13 +568,13 @@ export const HomePage = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-blue-300 mb-4">
-              Ready To Hit The Open Road?
+              Ready To Explore Bahir Dar?
             </span>
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
-              Your Next Adventure Awaits
+              Your Next Journey Starts Here
             </h2>
             <p className="text-blue-100/80 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
-              Choose from hundreds of available vehicles and start your rental reservation in seconds.
+              Choose from our available vehicles and start your rental reservation in seconds.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               <Link
@@ -519,7 +588,7 @@ export const HomePage = () => {
                 to="/contact"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/25 text-white font-semibold text-sm hover:bg-white/10 transition-all"
               >
-                Contact Support
+                Contact Us
               </Link>
             </div>
           </div>

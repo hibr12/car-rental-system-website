@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Wrench, Calendar, DollarSign, Edit, Trash2 } from 'lucide-react';
 import maintenanceApi from '../../api/maintenanceApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
@@ -153,6 +153,7 @@ export const MaintenancePage = () => {
                   <th className="py-3.5 px-4 font-semibold">Title / Type</th>
                   <th className="py-3.5 px-4 font-semibold">Vehicle</th>
                   <th className="py-3.5 px-4 font-semibold">Start Date</th>
+                  <th className="py-3.5 px-4 font-semibold">End Date</th>
                   <th className="py-3.5 px-4 font-semibold">Cost</th>
                   <th className="py-3.5 px-4 font-semibold">Status</th>
                   <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
@@ -168,7 +169,8 @@ export const MaintenancePage = () => {
                     <td className="py-4 px-4 text-xs font-semibold text-[#334155]">
                       {m.vehicle ? `${m.vehicle.brand} ${m.vehicle.model}` : `Vehicle #${m.vehicle_id}`}
                     </td>
-                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(m.start_date)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(m.start_date)}</td>
+                    <td className="py-4 px-4 text-xs text-[#64748B]">{m.end_date ? formatDateTime(m.end_date) : '—'}</td>
                     <td className="py-4 px-4 font-bold text-[#DC2626]">
                       {formatCurrency(m.cost || 0)}
                     </td>

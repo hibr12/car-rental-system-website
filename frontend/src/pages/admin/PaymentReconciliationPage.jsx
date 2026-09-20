@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Scale, Loader2 } from 'lucide-react';
 import paymentApi from '../../api/paymentApi';
-import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
 
 export const PaymentReconciliationPage = () => {
@@ -86,6 +86,7 @@ export const PaymentReconciliationPage = () => {
                   <th className="py-3 px-4">Difference</th>
                   <th className="py-3 px-4">Gateway</th>
                   <th className="py-3 px-4">Verification</th>
+                  <th className="py-3 px-4">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E8F0]">
@@ -105,6 +106,7 @@ export const PaymentReconciliationPage = () => {
                         {formatStatus(row.verification_status)}
                       </span>
                     </td>
+                    <td className="py-3 px-4 text-xs text-[#64748B]">{formatDateTime(row.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

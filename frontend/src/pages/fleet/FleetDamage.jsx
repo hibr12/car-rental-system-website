@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Loader2, Search } from 'lucide-react';
 import damageApi from '../../api/damageApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../components/common/Toast';
 import {
@@ -97,7 +97,7 @@ export default function FleetDamage() {
                 <td className="py-4 px-4"><span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border ${getStatusBadgeStyle(r.severity)}`}>{formatStatus(r.severity)}</span></td>
                 <td className="py-4 px-4 text-xs max-w-xs truncate">{r.description}</td>
                 <td className="py-4 px-4 font-bold text-[#16A34A]">{formatCurrency(r.estimated_repair_cost || 0)}</td>
-                <td className="py-4 px-4 text-xs text-[#64748B]">{formatDate(r.reported_at)}</td>
+                <td className="py-4 px-4 text-xs text-[#64748B]">{formatDateTime(r.reported_at)}</td>
                 <td className="py-4 px-4">
                   <select className="text-xs border rounded-lg px-2 py-1" value={r.repair_status} onChange={(e) => updateRepairStatus(r.id, e.target.value)}>
                     <option value="pending">Pending</option>

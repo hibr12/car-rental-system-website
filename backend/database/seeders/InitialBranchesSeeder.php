@@ -19,12 +19,12 @@ class InitialBranchesSeeder extends Seeder
     public function run(): void
     {
         $company = Company::updateOrCreate(
-            ['code' => 'APEX'],
+            ['code' => 'ABAY'],
             [
-                'name'      => 'Apex Rentals',
-                'address'   => '123 Main Street, Addis Ababa, Ethiopia',
-                'phone'     => '+251 11 123 4567',
-                'email'     => 'info@apexrentals.com',
+                'name'      => 'Abay Car Rentals',
+                'address'   => 'Bahir Dar, Amhara Region, Ethiopia',
+                'phone'     => '+251 92 667 3294',
+                'email'     => '12hibr13@gmail.com',
                 'is_active' => true,
             ]
         );
@@ -51,30 +51,30 @@ class InitialBranchesSeeder extends Seeder
 
         $branchesData = [
             [
-                'name'    => 'Bole Branch',
-                'code'    => 'BOLE',
-                'address' => 'Bole Road, Bole Subcity, Addis Ababa',
-                'city'    => 'Addis Ababa',
-                'phone'   => '+251 11 111 1111',
-                'email'   => 'bole@apexrentals.com',
+                'name'    => 'Main Branch',
+                'code'    => 'MAIN',
+                'address' => 'Tana Road, Bahir Dar',
+                'city'    => 'Bahir Dar',
+                'phone'   => '+251 92 667 3294',
+                'email'   => 'main@abaycarrentals.com',
                 'status'  => 'active',
             ],
             [
-                'name'    => 'Kazanchis Branch',
-                'code'    => 'KAZ',
-                'address' => 'Kazanchis, Kirkos Subcity, Addis Ababa',
-                'city'    => 'Addis Ababa',
-                'phone'   => '+251 11 444 4444',
-                'email'   => 'kazanchis@apexrentals.com',
+                'name'    => 'Airport Branch',
+                'code'    => 'AIRPORT',
+                'address' => 'Bahir Dar Airport, Bahir Dar',
+                'city'    => 'Bahir Dar',
+                'phone'   => '+251 92 667 3295',
+                'email'   => 'airport@abaycarrentals.com',
                 'status'  => 'active',
             ],
             [
-                'name'    => 'CMC Branch',
-                'code'    => 'CMC',
-                'address' => 'CMC Michael, Yeka Subcity, Addis Ababa',
-                'city'    => 'Addis Ababa',
-                'phone'   => '+251 11 222 2222',
-                'email'   => 'cmc@apexrentals.com',
+                'name'    => 'University Branch',
+                'code'    => 'UNIV',
+                'address' => 'Bahir Dar University Road, Bahir Dar',
+                'city'    => 'Bahir Dar',
+                'phone'   => '+251 92 667 3296',
+                'email'   => 'university@abaycarrentals.com',
                 'status'  => 'active',
             ],
         ];

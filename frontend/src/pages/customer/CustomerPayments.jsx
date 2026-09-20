@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Receipt } from 'lucide-react';
 import paymentApi from '../../api/paymentApi';
-import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
 
@@ -78,7 +78,7 @@ export const CustomerPayments = () => {
                         {formatStatus(p.status)}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDate(p.paid_at || p.created_at)}</td>
+                    <td className="py-4 px-4 text-xs text-theme-muted">{formatDateTime(p.paid_at || p.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

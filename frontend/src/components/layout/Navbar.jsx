@@ -102,7 +102,7 @@ export const Navbar = ({ transparent = false }) => {
           </div>
           <div className="flex flex-col">
             <span className={`text-xl font-bold tracking-tight flex items-center gap-1 ${textColor}`}>
-              Appex<span className="text-blue-400">Rentals</span>
+              Abay<span className="text-blue-400">Car Rentals</span>
             </span>
             <span className={`text-[10px] uppercase tracking-wider font-semibold ${
               transparent && !scrolled
@@ -111,7 +111,7 @@ export const Navbar = ({ transparent = false }) => {
                   ? 'text-slate-400'
                   : 'text-theme-muted'
             }`}>
-              Drive Your Journey
+              Drive Your Journey Across Bahir Dar
             </span>
           </div>
         </Link>
