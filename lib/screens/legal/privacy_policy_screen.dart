@@ -33,7 +33,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _buildSection(
               title: '1. Information We Collect',
               content:
-                  'Apex Rentals collects personal information necessary to deliver our car rental services:\n\n'
+                  'Abay Car Rentals collects personal information necessary to deliver our car rental services:\n\n'
                   '• Account Information: Your full name, email address, and contact phone number when you register.\n'
                   '• Identification & Verification: Driver\'s license details, license category, expiry dates, and document photos for legal identity and driving eligibility verification.\n'
                   '• Rental & Booking Data: Pickup and drop-off locations, rental dates, vehicle preferences, and transaction records.\n'
@@ -67,7 +67,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               title: '4. Third-Party Services',
               content:
                   'We partner with reputable third-party services to operate the platform:\n\n'
-                  '• Payment Gateways (e.g. Chapa): For secure electronic payments. Apex Rentals does not store your credit card or bank credentials.\n'
+                  '• Payment Gateways (e.g. Chapa): For secure electronic payments. Abay Car Rentals does not store your credit card or bank credentials.\n'
                   '• Map Services: OpenStreetMap tiles are used to display branch locations and directions.',
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -85,7 +85,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _buildSection(
               title: '6. Contact Us',
               content:
-                  'If you have any questions or privacy concerns regarding this policy, please reach out to our privacy and support team at support@apexrentals.com or visit any of our official branches.',
+                  'If you have any questions or privacy concerns regarding this policy, please reach out to our privacy and support team at support@abaycarrentals.com or visit any of our official branches.',
             ),
             const SizedBox(height: AppSpacing.xxl),
           ],

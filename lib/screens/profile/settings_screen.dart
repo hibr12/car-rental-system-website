@@ -123,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.pagePadding),
             child: Text(
-              'Apex Rentals v1.0.0',
+              'Abay Car Rentals v1.0.0',
               textAlign: TextAlign.center,
               style: AppTypography.textTheme.bodySmall
                   ?.copyWith(color: AppColors.textTertiary),

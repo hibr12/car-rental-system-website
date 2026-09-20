@@ -23,7 +23,7 @@ class DriverRequirementsScreen extends StatelessWidget {
             Text('Who can drive?', style: AppTypography.textTheme.displaySmall),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'To rent and drive with Apex Rentals you need an account and a '
+              'To rent and drive with Abay Car Rentals you need an account and a '
               'verified driver\'s license. Here is how it works.',
               style: AppTypography.textTheme.bodyLarge,
             ),

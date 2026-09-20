@@ -33,7 +33,7 @@ class TermsOfServiceScreen extends StatelessWidget {
             _buildSection(
               title: '1. Acceptance of Terms',
               content:
-                  'By creating an account or using the Apex Rentals application, you agree to be bound by these Terms of Service and all related rental guidelines. If you do not agree, please do not use the application.',
+                  'By creating an account or using the Abay Car Rentals application, you agree to be bound by these Terms of Service and all related rental guidelines. If you do not agree, please do not use the application.',
             ),
             const SizedBox(height: AppSpacing.lg),
 
@@ -71,14 +71,14 @@ class TermsOfServiceScreen extends StatelessWidget {
               content:
                   '• You may request permanent deletion of your account at any time via Settings.\n'
                   '• Deletion is processed immediately provided there are no pending or active rentals.\n'
-                  '• Apex Rentals reserves the right to suspend or terminate accounts in violation of safety rules or payment obligations.',
+                  '• Abay Car Rentals reserves the right to suspend or terminate accounts in violation of safety rules or payment obligations.',
             ),
             const SizedBox(height: AppSpacing.lg),
 
             _buildSection(
               title: '6. Limitation of Liability',
               content:
-                  'Apex Rentals shall not be liable for indirect, incidental, or consequential damages resulting from platform downtime, vehicle breakdowns, or force majeure events, subject to mandatory local laws.',
+                  'Abay Car Rentals shall not be liable for indirect, incidental, or consequential damages resulting from platform downtime, vehicle breakdowns, or force majeure events, subject to mandatory local laws.',
             ),
             const SizedBox(height: AppSpacing.xxl),
           ],

@@ -122,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Join Apex Rentals and book your first car in minutes.',
+                      'Join Abay Car Rentals and book your first car in minutes.',
                       style: AppTypography.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.xxl),

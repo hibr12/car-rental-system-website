@@ -5,7 +5,7 @@
     <!-- Required for driver license document capture -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="Apex Rentals"
+        android:label="Abay Car Rentals"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:networkSecurityConfig="@xml/network_security_config">

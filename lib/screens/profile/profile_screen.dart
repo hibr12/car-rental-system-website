@@ -148,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out of Apex Rentals?'),
+        content: const Text('Are you sure you want to log out of Abay Car Rentals?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

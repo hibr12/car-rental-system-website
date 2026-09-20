@@ -169,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'New to Apex Rentals?',
+                          'New to Abay Car Rentals?',
                           style: AppTypography.textTheme.bodyMedium,
                         ),
                         TextButton(

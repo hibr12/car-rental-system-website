@@ -26,16 +26,16 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  runApp(const ApexRentalsApp());
+  runApp(const AbayCarRentalsApp());
 }
 
-class ApexRentalsApp extends StatelessWidget {
-  const ApexRentalsApp({super.key});
+class AbayCarRentalsApp extends StatelessWidget {
+  const AbayCarRentalsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Apex Rentals',
+      title: 'Abay Car Rentals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: AppRoutes.router,

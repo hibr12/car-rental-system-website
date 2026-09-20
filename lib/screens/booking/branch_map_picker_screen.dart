@@ -26,7 +26,7 @@ class BranchPickerArgs {
 
 /// Map-based branch picker.
 ///
-/// Customers always select a real Apex Rentals branch — never arbitrary
+/// Customers always select a real Abay Car Rentals branch — never arbitrary
 /// GPS coordinates. Markers come from the live branch API; only branches
 /// that actually carry coordinates appear on the map, while every branch
 /// remains reachable through the list view.

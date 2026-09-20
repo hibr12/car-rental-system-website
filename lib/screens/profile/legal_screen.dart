@@ -63,7 +63,7 @@ class LegalScreen extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
             child: Text(
-              'Privacy\n\nApex Rentals collects only the information needed to '
+              'Privacy\n\nAbay Car Rentals collects only the information needed to '
               'manage your rentals — your account details, contact information, '
               'and driver\'s license documents for verification. License '
               'documents are accessible only to you and authorized staff. For '

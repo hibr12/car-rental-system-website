@@ -61,7 +61,7 @@ class AppLogo {
           children: [
             Text.rich(
               TextSpan(
-                text: 'Apex',
+                text: 'Abay ',
                 style: AppTypography.textTheme.headlineMedium?.copyWith(
                   color: textColor,
                   fontWeight: FontWeight.w800,
@@ -69,7 +69,7 @@ class AppLogo {
                 ),
                 children: [
                   TextSpan(
-                    text: 'Rentals',
+                    text: 'Car Rentals',
                     style: AppTypography.textTheme.headlineMedium?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
@@ -82,7 +82,7 @@ class AppLogo {
             if (showTagline) ...[
               const SizedBox(height: 2),
               Text(
-                'DRIVE PREMIUM',
+                'DRIVE YOUR JOURNEY',
                 style: AppTypography.textTheme.labelSmall?.copyWith(
                   color: taglineColor,
                   fontWeight: FontWeight.w700,
