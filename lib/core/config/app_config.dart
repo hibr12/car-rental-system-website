@@ -20,7 +20,7 @@ class AppConfig {
   /// Base URL for the Laravel API (the `/api` prefix is part of it).
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8000/api',
+    defaultValue: 'https://car-rental-backend-oioo.onrender.com/api',
   );
 
   /// Connection / read timeout for every HTTP request.
