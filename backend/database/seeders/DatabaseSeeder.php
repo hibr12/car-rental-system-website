@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Booking;
-use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\ContactMessage;
