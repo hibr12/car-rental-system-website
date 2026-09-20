@@ -1,0 +1,11 @@
+vendor/
+node_modules/
+.env
+.env.*
+!.env.example
+*.md
+.git/
+.gitignore
+tests/
+docker-compose.yml
+render.yaml
