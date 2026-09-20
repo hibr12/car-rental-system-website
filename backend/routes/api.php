@@ -35,6 +35,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum,web');
     Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:sanctum,web');
     Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:sanctum,web');
+    Route::delete('/account',[AuthController::class, 'deleteAccount'])->middleware('auth:sanctum,web');
 
     // Password reset (all portals)
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
