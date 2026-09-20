@@ -13,6 +13,7 @@ WORKDIR /var/www/html
 COPY backend/ .
 
 RUN composer install --no-dev --no-interaction --optimize-autoloader \
+    && cp .env.example .env \
     && php artisan key:generate --force \
     && mkdir -p storage/framework/{cache,sessions,testing,views} \
     && mkdir -p storage/logs \
