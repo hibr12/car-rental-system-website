@@ -480,9 +480,13 @@ class DatabaseSeeder extends Seeder
                 'vehicle_id' => $booking->vehicle_id,
                 'booking_id' => $booking->id,
                 'branch_id' => $booking->branch_id,
-                'rating' => $rating,
+                'overall_rating' => $rating,
+                'vehicle_rating' => $rating,
+                'cleanliness_rating' => $rating,
+                'staff_rating' => $rating,
+                'value_rating' => $rating,
                 'comment' => $comments[array_rand($comments)],
-                'status' => 'approved',
+                'status' => 'published',
             ]);
         }
     }
