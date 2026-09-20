@@ -12,9 +12,10 @@ WORKDIR /var/www/html
 
 COPY backend/ .
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 RUN composer install --no-dev --no-interaction --optimize-autoloader \
-    && cp .env.example .env \
-    && php artisan key:generate --force \
     && mkdir -p storage/framework/{cache,sessions,testing,views} \
     && mkdir -p storage/logs \
     && mkdir -p bootstrap/cache \
@@ -23,4 +24,4 @@ RUN composer install --no-dev --no-interaction --optimize-autoloader \
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+ENTRYPOINT ["entrypoint.sh"]
