@@ -11,12 +11,13 @@ class UserFactory extends Factory
 
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name' => $faker->name(),
+            'email' => $faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => 'password',
-            'phone' => fake()->phoneNumber(),
+            'phone' => $faker->phoneNumber(),
             'role' => 'customer',
             'remember_token' => \Illuminate\Support\Str::random(10),
         ];
