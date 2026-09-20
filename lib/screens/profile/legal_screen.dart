@@ -21,6 +21,18 @@ class LegalScreen extends StatelessWidget {
             'Agreements & Policies',
             [
               _MenuItem(
+                icon: LucideIcons.fileCheck,
+                title: 'Terms of Service',
+                subtitle: 'Platform terms and customer obligations',
+                onTap: () => context.push(AppRoutes.termsOfService),
+              ),
+              _MenuItem(
+                icon: LucideIcons.lock,
+                title: 'Privacy Policy',
+                subtitle: 'How we protect and manage your data',
+                onTap: () => context.push(AppRoutes.privacyPolicy),
+              ),
+              _MenuItem(
                 icon: LucideIcons.fileText,
                 title: 'Rental Agreement',
                 subtitle: 'Master terms and conditions',

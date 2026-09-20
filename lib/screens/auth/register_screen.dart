@@ -239,6 +239,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       isLoading: _isLoading,
                       onPressed: _handleRegister,
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'By creating an account, you agree to our ',
+                          style: AppTypography.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        GestureDetector(
+                          onTap: () => context.push(AppRoutes.termsOfService),
+                          child: Text(
+                            'Terms of Service',
+                            style: AppTypography.textTheme.bodySmall?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          ' and ',
+                          style: AppTypography.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        GestureDetector(
+                          onTap: () => context.push(AppRoutes.privacyPolicy),
+                          child: Text(
+                            'Privacy Policy',
+                            style: AppTypography.textTheme.bodySmall?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '.',
+                          style: AppTypography.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.lg),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

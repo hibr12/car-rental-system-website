@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/booking_model.dart';
 import 'package:mobile/models/vehicle_model.dart';
+import 'package:mobile/core/config/api_endpoints.dart';
+import 'package:mobile/core/routes/app_routes.dart';
 
 void main() {
   group('BookingStatus', () {
@@ -146,6 +148,20 @@ void main() {
       expect(v.color, '');
       expect(v.imageUrls, [placeholderVehicleImage]);
       expect(v.category, 'Other');
+    });
+  });
+
+  group('Production Readiness Endpoints & Legal Routes', () {
+    test('ApiEndpoints defines authDeleteAccount pointing to backend /auth/account', () {
+      expect(ApiEndpoints.authDeleteAccount, '/auth/account');
+      expect(ApiEndpoints.authForgotPassword, '/auth/forgot-password');
+    });
+
+    test('AppRoutes exposes public legal routes for terms and privacy', () {
+      expect(AppRoutes.privacyPolicy, '/privacy-policy');
+      expect(AppRoutes.termsOfService, '/terms-of-service');
+      expect(AppRoutes.rentalAgreement, '/rental-agreement');
+      expect(AppRoutes.insurancePolicy, '/insurance-policy');
     });
   });
 }

@@ -48,3 +48,8 @@ app.*.map.json
 /frontend-prompt.md
 /backend-prompt.md
 /.zcode/
+
+# Android signing keys
+key.properties
+*.jks
+*.keystore

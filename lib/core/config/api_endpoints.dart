@@ -18,6 +18,7 @@ class ApiEndpoints {
   static const String authMe = '/auth/me';
   static const String authProfile = '/auth/profile';
   static const String authForgotPassword = '/auth/forgot-password';
+  static const String authDeleteAccount = '/auth/account';
 
   // ── Driver License ──────────────────────────────────────────
   static const String customerLicense = '/customer/license';

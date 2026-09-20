@@ -24,6 +24,8 @@ import '../../screens/legal/rental_agreement_screen.dart';
 import '../../screens/legal/insurance_policy_screen.dart';
 import '../../screens/legal/cancellation_policy_screen.dart';
 import '../../screens/legal/driver_requirements_screen.dart';
+import '../../screens/legal/privacy_policy_screen.dart';
+import '../../screens/legal/terms_of_service_screen.dart';
 import '../../screens/reservations/reservation_details_screen.dart';
 import '../../screens/reservations/cancel_reservation_screen.dart';
 import '../../screens/reservations/write_review_screen.dart';
@@ -69,6 +71,8 @@ class AppRoutes {
   static const String insurancePolicy = '/insurance-policy';
   static const String cancellationPolicy = '/cancellation-policy';
   static const String driverRequirements = '/driver-requirements';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String termsOfService = '/terms-of-service';
   static const String reservationDetails = '/reservation-details';
   static const String cancelReservation = '/cancel-reservation';
   static const String writeReview = '/write-review';
@@ -298,6 +302,12 @@ class AppRoutes {
       GoRoute(
           path: driverRequirements,
           builder: (_, __) => const DriverRequirementsScreen()),
+      GoRoute(
+          path: privacyPolicy,
+          builder: (_, __) => const PrivacyPolicyScreen()),
+      GoRoute(
+          path: termsOfService,
+          builder: (_, __) => const TermsOfServiceScreen()),
       GoRoute(
         path: payment,
         builder: (context, state) {

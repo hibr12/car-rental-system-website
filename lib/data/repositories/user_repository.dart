@@ -121,6 +121,19 @@ class UserRepository {
     }
   }
 
+  /// Permanently delete the authenticated user's account and personal data.
+  /// Complies with Apple Guideline 5.1.1 and Google Play account deletion requirement.
+  Future<ApiResponse<bool>> deleteAccount() async {
+    try {
+      final json = await _api.delete(ApiEndpoints.authDeleteAccount);
+      await TokenStorage.deleteToken();
+      final message = json['message'] as String? ?? 'Account permanently deleted.';
+      return ApiResponse.success(true, message: message);
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.error);
+    }
+  }
+
   /// Check if the user is currently authenticated (has a stored token).
   Future<bool> isAuthenticated() async {
     final token = await TokenStorage.getToken();
