@@ -215,6 +215,9 @@ class VehicleController extends Controller
 
         $vehicle->load(['category', 'images', 'primaryImage', 'branch']);
 
+        // Fire VehicleCreated event
+        event(new \App\Events\VehicleCreated($vehicle));
+
         return response()->json([
             'success' => true,
             'message' => 'Vehicle created successfully',
@@ -229,6 +232,9 @@ class VehicleController extends Controller
         $validated = $this->branchScope->stripBranchId($request->user(), $request->validated());
         $user = $request->user();
 
+        $oldStatus = $vehicle->status;
+        $changes = [];
+
         if (isset($validated['status']) && $validated['status'] !== $vehicle->status) {
             $this->vehicleStatusService->transition(
                 $vehicle,
@@ -236,6 +242,7 @@ class VehicleController extends Controller
                 $user,
                 'Manual vehicle status update'
             );
+            $changes['status'] = ['old' => $oldStatus, 'new' => $validated['status']];
             unset($validated['status']);
         }
 
@@ -246,10 +253,16 @@ class VehicleController extends Controller
                 $user,
                 $request->boolean('mileage_correction')
             );
+            $changes['mileage'] = ['old' => $vehicle->mileage, 'new' => $validated['mileage']];
             unset($validated['mileage']);
         }
 
         if (!empty($validated)) {
+            foreach ($validated as $key => $value) {
+                if ($vehicle->getAttribute($key) !== $value) {
+                    $changes[$key] = ['old' => $vehicle->getAttribute($key), 'new' => $value];
+                }
+            }
             $vehicle->update($validated);
         }
 
@@ -261,9 +274,20 @@ class VehicleController extends Controller
                     'is_primary' => $image['is_primary'] ?? ($index === 0),
                 ]);
             }
+            $changes['images'] = true;
         }
 
         $vehicle->load(['category', 'images', 'primaryImage', 'branch']);
+
+        // Fire VehicleUpdated event if there are changes
+        if (!empty($changes)) {
+            event(new \App\Events\VehicleUpdated($vehicle, $changes));
+        }
+
+        // Fire VehicleStatusChanged event if status changed
+        if (isset($changes['status']) && $changes['status']['old'] !== $changes['status']['new']) {
+            event(new \App\Events\VehicleStatusChanged($vehicle, $changes['status']['old'], $changes['status']['new']));
+        }
 
         return response()->json([
             'success' => true,
@@ -276,7 +300,14 @@ class VehicleController extends Controller
     {
         Gate::authorize('delete', $vehicle);
 
+        $vehicleId = $vehicle->id;
+        $vehicleName = $vehicle->brand . ' ' . $vehicle->model;
+        $branchId = $vehicle->branch_id;
+
         $vehicle->delete();
+
+        // Fire VehicleDeleted event
+        event(new \App\Events\VehicleDeleted($vehicleId, $vehicleName, $branchId));
 
         return response()->json([
             'success' => true,

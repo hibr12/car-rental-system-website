@@ -1,10 +1,12 @@
 <?php
 
+use App\Services\ValidationMessageService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -33,65 +35,88 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->renderable(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Resource not found.',
+                'message' => 'The requested resource was not found.',
             ], 404);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Resource not found.',
+                'message' => 'The requested resource was not found.',
             ], 404);
         });
 
-        $exceptions->renderable(function (\Illuminate\Validation\ValidationException $e) {
+        $exceptions->renderable(function (ValidationException $e) {
+            $errors = $e->errors();
+            $friendlyErrors = ValidationMessageService::translateErrors($errors);
+            
+            // Get first error for quick message
+            $firstError = $friendlyErrors[0] ?? 'Validation failed. Please check your input.';
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
+                'message' => $firstError,
+                'errors' => $errors,
+                'friendly_errors' => $friendlyErrors,
             ], 422);
         });
 
         $exceptions->renderable(function (\Illuminate\Auth\Access\AuthorizationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage() ?: 'Unauthorized. Insufficient permissions.',
+                'message' => 'You don\'t have permission to perform this action.',
             ], 403);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to perform this action.',
+                'message' => 'You don\'t have permission to perform this action.',
             ], 403);
         });
 
-        $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e) {
+        $exceptions->renderable(function (AuthenticationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'message' => 'Your session has expired. Please sign in again.',
             ], 401);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Too many requests. Please try again later.',
+                'message' => 'Too many requests. Please wait a minute before trying again.',
             ], 429);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'The requested method is not allowed.',
+                'message' => 'This action is not allowed.',
             ], 405);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\BadRequestHttpException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage() ?: 'Bad request.',
+                'message' => $e->getMessage() ?: 'Invalid request.',
             ], 400);
+        });
+
+        // Catch-all for unhandled exceptions
+        $exceptions->renderable(function (\Throwable $e) {
+            // Log the actual error for debugging
+            \Illuminate\Support\Facades\Log::error('Unhandled exception', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong on our end. Please try again later.',
+            ], 500);
         });
 
         $exceptions->shouldRenderJsonWhen(function (\Illuminate\Http\Request $request, \Throwable $e) {

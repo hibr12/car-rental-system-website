@@ -83,6 +83,7 @@ Route::middleware(['auth:web'])->group(function () {
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {
         Route::get('/',                         [NotificationController::class, 'index']);
+        Route::get('/unread-count',             [NotificationController::class, 'unreadCount']);
         Route::put('/read-all',                 [NotificationController::class, 'markAllAsRead']);
         Route::get('/{notification}',           [NotificationController::class, 'show']);
         Route::put('/{notification}/read',      [NotificationController::class, 'markAsRead']);

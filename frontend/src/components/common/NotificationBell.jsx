@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash2, X } from 'lucide-react';
+import { Bell, Check, Trash2, X, AlertCircle, RefreshCw } from 'lucide-react';
 import notificationApi from '../../api/notificationApi';
+import { ApiError } from '../../api/client';
 import { formatDate } from '../../utils/formatters';
 
 const NotificationBell = () => {
@@ -8,16 +9,29 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRetry = false) => {
     try {
-      setLoading(true);
+      if (!isRetry) setLoading(true);
+      setError(null);
       const res = await notificationApi.getAll({ per_page: 10 });
       setNotifications(res.data || []);
       setUnreadCount(res.meta?.unread_count || 0);
     } catch (err) {
       console.warn('Failed to load notifications:', err);
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError('Your session has expired. Please sign in again.');
+        } else if (err.status === 403) {
+          setError('You do not have permission to view notifications.');
+        } else {
+          setError(err.message || 'Failed to load notifications. Please try again.');
+        }
+      } else {
+        setError('Failed to load notifications. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -26,7 +40,7 @@ const NotificationBell = () => {
   useEffect(() => {
     fetchNotifications();
     // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(() => fetchNotifications(true), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -49,6 +63,9 @@ const NotificationBell = () => {
       );
     } catch (err) {
       console.warn('Failed to mark notifications as read:', err);
+      if (err instanceof ApiError) {
+        setError(err.message || 'Failed to mark all as read.');
+      }
     }
   };
 
@@ -61,6 +78,9 @@ const NotificationBell = () => {
       );
     } catch (err) {
       console.warn('Failed to mark notification as read:', err);
+      if (err instanceof ApiError) {
+        setError(err.message || 'Failed to mark as read.');
+      }
     }
   };
 
@@ -71,6 +91,14 @@ const NotificationBell = () => {
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (s) => s.toUpperCase())
       .trim();
+  };
+
+  const handleRetry = () => {
+    fetchNotifications(true);
+  };
+
+  const handleDismissError = () => {
+    setError(null);
   };
 
   return (
@@ -92,22 +120,63 @@ const NotificationBell = () => {
         <div className="absolute right-0 top-12 w-80 sm:w-96 bg-theme-card border border-theme rounded-2xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-theme">
             <h3 className="font-bold text-theme-primary text-sm">Notifications</h3>
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <Check className="w-3 h-3" />
+                  Mark all read
+                </button>
+              )}
               <button
-                onClick={handleMarkAllRead}
-                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded hover:bg-theme-hover text-theme-muted"
               >
-                <Check className="w-3 h-3" />
-                Mark all read
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
+
+          {error && (
+            <div className="p-3 border-b border-theme bg-rose-500/10 text-rose-300 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="truncate">{error}</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handleRetry}
+                  className="px-2 py-1 text-[10px] font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry
+                </button>
+                <button
+                  onClick={handleDismissError}
+                  className="p-1 rounded hover:bg-theme-hover text-rose-300"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="max-h-80 overflow-y-auto">
             {loading && notifications.length === 0 ? (
-              <div className="p-6 text-center text-theme-muted text-xs">Loading notifications...</div>
+              <div className="p-6 text-center text-theme-muted text-xs flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
+                Loading notifications...
+              </div>
             ) : notifications.length === 0 ? (
-              <div className="p-6 text-center text-theme-muted text-xs">No notifications yet.</div>
+              <div className="p-6 text-center text-theme-muted text-xs">
+                {error ? (
+                  <span>Unable to load notifications</span>
+                ) : (
+                  <span>No notifications yet.</span>
+                )}
+              </div>
             ) : (
               notifications.map((n) => (
                 <div

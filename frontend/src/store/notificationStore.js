@@ -1,14 +1,16 @@
 import { create } from 'zustand';
 import notificationApi from '../api/notificationApi';
+import { ApiError } from '../api/client';
 
 const useNotificationStore = create((set, get) => ({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
   pagination: null,
+  error: null,
 
   fetchNotifications: async (page = 1) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       const response = await notificationApi.getAll({ page });
       const data = response.data;
@@ -21,10 +23,21 @@ const useNotificationStore = create((set, get) => ({
           total: data.total,
         },
         isLoading: false,
+        error: null,
       });
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      set({ isLoading: false });
+      let errorMessage = 'Failed to load notifications. Please try again.';
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          errorMessage = 'Your session has expired. Please sign in again.';
+        } else if (err.status === 403) {
+          errorMessage = 'You do not have permission to view notifications.';
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+      }
+      set({ isLoading: false, error: errorMessage });
     }
   },
 
@@ -45,9 +58,12 @@ const useNotificationStore = create((set, get) => ({
           n.id === id ? { ...n, read_at: new Date().toISOString() } : n
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
-      }));
+      ));
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
+      if (err instanceof ApiError) {
+        set({ error: err.message || 'Failed to mark as read.' });
+      }
     }
   },
 
@@ -63,6 +79,9 @@ const useNotificationStore = create((set, get) => ({
       }));
     } catch (err) {
       console.error('Failed to mark all as read:', err);
+      if (err instanceof ApiError) {
+        set({ error: err.message || 'Failed to mark all as read.' });
+      }
     }
   },
 
@@ -74,8 +93,13 @@ const useNotificationStore = create((set, get) => ({
       }));
     } catch (err) {
       console.error('Failed to delete notification:', err);
+      if (err instanceof ApiError) {
+        set({ error: err.message || 'Failed to delete notification.' });
+      }
     }
   },
+
+  clearError: () => set({ error: null }),
 }));
 
 export default useNotificationStore;

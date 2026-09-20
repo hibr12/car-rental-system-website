@@ -3,17 +3,21 @@ import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '../../components/common/Toast';
 import authApi from '../../api/authApi';
+import { ApiError } from '../../api/client';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFieldErrors({});
+
     if (!email) {
-      toast.error('Please enter your email address.');
+      setFieldErrors({ email: 'Please enter your email address.' });
       return;
     }
 
@@ -23,10 +27,27 @@ export const ForgotPasswordPage = () => {
       setSubmitted(true);
       toast.success('Password reset link sent to your email.');
     } catch (err) {
-      toast.error(err.message || 'Unable to send reset link. Email not found.');
+      const hasValidationErrors = err.errors && Object.keys(err.errors).length > 0;
+      if (hasValidationErrors) {
+        const newFieldErrors = {};
+        for (const [field, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            newFieldErrors[field] = messages[0];
+          }
+        }
+        setFieldErrors(newFieldErrors);
+      }
+      if (!fieldErrors.email) {
+        toast.error(err.message || 'Unable to send reset link. Email not found.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    setFieldErrors(prev => ({ ...prev, email: null }));
   };
 
   return (
@@ -67,10 +88,13 @@ export const ForgotPasswordPage = () => {
                   required
                   placeholder="yourname@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
+                  onChange={handleEmailChange}
+                  className={`w-full bg-theme-secondary border rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 ${
+                    fieldErrors.email ? 'border-red-500/50' : 'border-theme'
+                  }`}
                 />
               </div>
+              {fieldErrors.email && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.email}</p>}
             </div>
 
             <button

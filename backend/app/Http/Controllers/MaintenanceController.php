@@ -77,6 +77,9 @@ class MaintenanceController extends Controller
 
         $maintenance->load(['vehicle', 'creator']);
 
+        // Fire MaintenanceCreated event
+        event(new \App\Events\MaintenanceCreated($maintenance));
+
         return response()->json([
             'success' => true,
             'message' => 'Maintenance created successfully',
@@ -103,9 +106,19 @@ class MaintenanceController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        $maintenance->update($request->validated());
+        $changes = [];
+        $validated = $request->validated();
 
-        if ($maintenance->status === 'completed' && $maintenance->vehicle) {
+        foreach ($validated as $key => $value) {
+            if ($maintenance->getAttribute($key) !== $value) {
+                $changes[$key] = ['old' => $maintenance->getAttribute($key), 'new' => $value];
+            }
+        }
+
+        $oldStatus = $maintenance->status;
+        $maintenance->update($validated);
+
+        if ($maintenance->status === 'completed' && $oldStatus !== 'completed' && $maintenance->vehicle) {
             $this->vehicleStatusService->transition(
                 $maintenance->vehicle,
                 Vehicle::STATUS_INSPECTION_REQUIRED,
@@ -113,6 +126,14 @@ class MaintenanceController extends Controller
                 'Maintenance completed — inspection required',
                 true
             );
+
+            // Fire MaintenanceCompleted event
+            event(new \App\Events\MaintenanceCompleted($maintenance->loadMissing(['vehicle', 'branch'])));
+        }
+
+        if (!empty($changes)) {
+            $maintenance->load(['vehicle', 'creator']);
+            event(new \App\Events\MaintenanceUpdated($maintenance, $changes));
         }
 
         $maintenance->load(['vehicle', 'creator']);

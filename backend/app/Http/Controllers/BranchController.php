@@ -183,6 +183,9 @@ class BranchController extends Controller
             ]), $request->user());
         }
 
+        // Fire BranchCreated event
+        event(new \App\Events\BranchCreated($branch));
+
         return response()->json([
             'success' => true,
             'message' => 'Branch created successfully.',
@@ -214,6 +217,8 @@ class BranchController extends Controller
         }
 
         DB::transaction(function () use ($branch, $data, $request) {
+            $changes = [];
+
             if (array_key_exists('manager_id', $data)) {
                 if ($data['manager_id']) {
                     $this->managerProvisioning->assignManager(
@@ -226,13 +231,27 @@ class BranchController extends Controller
                         ->where('role', User::ROLE_BRANCH_MANAGER)
                         ->update(['role' => User::ROLE_BRANCH_STAFF]);
                     $branch->update(['manager_id' => null]);
+                    $changes['manager_id'] = ['old' => $branch->manager_id, 'new' => null];
                 }
             }
 
-            $branch->update(collect($data)->except([
+            $updateData = collect($data)->except([
                 'manager_id', 'create_manager', 'manager_name', 'manager_email', 'manager_password',
-            ])->toArray());
+            ])->toArray();
+
+            foreach ($updateData as $key => $value) {
+                if ($branch->getAttribute($key) !== $value) {
+                    $changes[$key] = ['old' => $branch->getAttribute($key), 'new' => $value];
+                }
+            }
+
+            $branch->update($updateData);
         });
+
+        // Fire BranchUpdated event if there are changes
+        if (!empty($changes)) {
+            event(new \App\Events\BranchUpdated($branch, $changes));
+        }
 
         return response()->json([
             'success' => true,
@@ -245,13 +264,25 @@ class BranchController extends Controller
 
     public function activate(Branch $branch): JsonResponse
     {
+        $oldStatus = $branch->status;
         $branch->update(['status' => 'active']);
+        
+        if ($oldStatus !== 'active') {
+            event(new \App\Events\BranchUpdated($branch, ['status' => ['old' => $oldStatus, 'new' => 'active']]));
+        }
+        
         return response()->json(['success' => true, 'message' => 'Branch activated.', 'data' => $branch->fresh()]);
     }
 
     public function deactivate(Branch $branch): JsonResponse
     {
+        $oldStatus = $branch->status;
         $branch->update(['status' => 'inactive']);
+        
+        if ($oldStatus !== 'inactive') {
+            event(new \App\Events\BranchUpdated($branch, ['status' => ['old' => $oldStatus, 'new' => 'inactive']]));
+        }
+        
         return response()->json(['success' => true, 'message' => 'Branch deactivated.', 'data' => $branch->fresh()]);
     }
 

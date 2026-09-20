@@ -20,4 +20,15 @@ class AdminReviewStatusRequest extends FormRequest
             'reason' => ['nullable', 'string', 'max:500'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'status.required' => 'Please select a status.',
+            'status.string' => 'Status must be text.',
+            'status.in' => 'Please select a valid status.',
+            'reason.string' => 'Reason must be text.',
+            'reason.max' => 'Reason must not exceed 500 characters.',
+        ];
+    }
 }

@@ -164,6 +164,9 @@ export const Navbar = ({ transparent = false }) => {
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
+          {/* Notification Bell */}
+          {isAuthenticated && <NotificationBell />}
+
           {/* Profile Icon / Dropdown */}
           {isAuthenticated ? (
             <div className="relative">
@@ -321,6 +324,7 @@ export const Navbar = ({ transparent = false }) => {
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+          {isAuthenticated && <NotificationBell />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className={`p-2.5 rounded-lg transition-colors ${
