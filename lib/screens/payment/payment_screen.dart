@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/colors/app_colors.dart';
 import '../../core/spacing/app_spacing.dart';
 import '../../core/typography/app_typography.dart';
-import '../../core/routes/app_routes.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../../models/booking_model.dart';
 import '../../widgets/buttons/app_buttons.dart';
+import 'chapa_checkout_screen.dart';
 
 /// Initiates a payment for a booking.
 ///
 /// Two backend-supported flows:
-///  * Online (Chapa): initialize → open checkout in browser → return →
-///    the status screen verifies the transaction server-side.
+///  * Online (Chapa): initialize → open checkout in-app WebView →
+///    auto-verify when Chapa redirects back.
 ///  * Cash: creates a `cash_pending` payment that branch staff confirm
 ///    in person. The app NEVER marks it paid by itself.
 class PaymentScreen extends StatefulWidget {
@@ -31,8 +30,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isInitializing = false;
   bool _isPayingCash = false;
   String? _error;
-  String? _txRef;
-  String? _checkoutUrl;
 
   Future<void> _initializePayment() async {
     setState(() {
@@ -52,12 +49,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final txRef = data['tx_ref'] as String?;
 
       if (checkoutUrl != null && checkoutUrl.isNotEmpty) {
-        setState(() {
-          _checkoutUrl = checkoutUrl;
-          _txRef = txRef;
-          _isInitializing = false;
-        });
-        _openCheckout(checkoutUrl);
+        if (!mounted) return;
+        setState(() => _isInitializing = false);
+        _openInAppCheckout(checkoutUrl, txRef!);
       } else {
         setState(() {
           _isInitializing = false;
@@ -73,31 +67,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Future<void> _openCheckout(String url) async {
-    final uri = Uri.parse(url);
-    try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched && mounted) {
-        setState(() {
-          _error = 'Could not open the payment page. Please try again.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Could not open the payment page. Please try again.';
-        });
-      }
-    }
-  }
-
-  void _checkPaymentStatus() {
-    if (_txRef != null) {
-      context.push(AppRoutes.paymentStatus, extra: {
-        'booking': widget.booking,
-        'tx_ref': _txRef,
-      });
-    }
+  void _openInAppCheckout(String url, String txRef) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChapaCheckoutScreen(
+          booking: widget.booking,
+          checkoutUrl: url,
+          txRef: txRef,
+        ),
+      ),
+    );
   }
 
   /// Real backend flow: `POST /payments { payment_method: 'cash' }` →
@@ -240,36 +219,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ],
 
               // Action buttons
-              if (_checkoutUrl == null) ...[
-                // Initial state — online payment entry point.
-                PrimaryButton(
-                  text: 'Pay Now with Chapa',
-                  icon: LucideIcons.creditCard,
-                  isLoading: _isInitializing,
-                  onPressed: _isInitializing ? null : _initializePayment,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SecondaryButton(
-                  text: 'Pay with Cash at Branch',
-                  icon: LucideIcons.banknote,
-                  isLoading: _isPayingCash,
-                  onPressed:
-                      (_isPayingCash || _isInitializing) ? null : _payWithCash,
-                ),
-              ] else ...[
-                // After checkout URL obtained
-                PrimaryButton(
-                  text: 'I Have Completed Payment',
-                  icon: LucideIcons.checkCircle,
-                  onPressed: _checkPaymentStatus,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SecondaryButton(
-                  text: 'Open Payment Page Again',
-                  icon: LucideIcons.externalLink,
-                  onPressed: () => _openCheckout(_checkoutUrl!),
-                ),
-              ],
+              PrimaryButton(
+                text: 'Pay Now with Chapa',
+                icon: LucideIcons.creditCard,
+                isLoading: _isInitializing,
+                onPressed: _isInitializing ? null : _initializePayment,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SecondaryButton(
+                text: 'Pay with Cash at Branch',
+                icon: LucideIcons.banknote,
+                isLoading: _isPayingCash,
+                onPressed:
+                    (_isPayingCash || _isInitializing) ? null : _payWithCash,
+              ),
 
               const SizedBox(height: AppSpacing.xxl),
 
@@ -287,13 +250,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     Text('How it works',
                         style: AppTypography.textTheme.titleMedium),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildStep('1', 'Tap "Pay Now" to open the Chapa payment page'),
+                    _buildStep('1', 'Tap "Pay Now" to open the secure Chapa payment page'),
                     const SizedBox(height: AppSpacing.xs),
                     _buildStep('2', 'Complete payment using your preferred method'),
                     const SizedBox(height: AppSpacing.xs),
-                    _buildStep('3', 'Return here and tap "I Have Completed Payment"'),
-                    const SizedBox(height: AppSpacing.xs),
-                    _buildStep('4', 'We will verify your payment automatically'),
+                    _buildStep('3', 'Payment is verified automatically when complete'),
                   ],
                 ),
               ),
