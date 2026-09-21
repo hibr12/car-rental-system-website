@@ -128,7 +128,8 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
     setState(() => _isSubmitting = true);
 
     final fields = {
-      'license_number': _licenseNumberController.text.trim(),
+      'document_type': 'driver_license',
+      'document_number': _licenseNumberController.text.trim(),
       'full_name': _fullNameController.text.trim(),
       'license_category': _selectedCategory,
       'issue_date': _issueDateController.text.trim(),

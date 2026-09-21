@@ -24,7 +24,7 @@ class AppConfig {
   );
 
   /// Connection / read timeout for every HTTP request.
-  static const Duration timeoutDuration = Duration(seconds: 20);
+  static const Duration timeoutDuration = Duration(seconds: 60);
 
   /// Default page size used for paginated vehicle listings.
   static const int defaultPageSize = 12;
