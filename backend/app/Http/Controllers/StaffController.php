@@ -73,6 +73,9 @@ class StaffController extends Controller
             'branch_id' => $data['branch_id'],
         ]);
 
+        // Fire StaffCreated event
+        event(new \App\Events\StaffCreated($staff));
+
         return response()->json([
             'success' => true,
             'message' => 'Staff member created successfully.',
@@ -108,6 +111,9 @@ class StaffController extends Controller
 
         $user->update($data);
 
+        // Fire StaffUpdated event
+        event(new \App\Events\StaffUpdated($user, $data));
+
         return response()->json([
             'success' => true,
             'message' => 'Staff updated.',
@@ -127,7 +133,14 @@ class StaffController extends Controller
             return response()->json(['success' => false, 'message' => 'You cannot remove yourself.'], 422);
         }
 
+        $staffId = $user->id;
+        $staffName = $user->name;
+        $branchId = $user->branch_id;
+
         $user->delete();
+
+        // Fire StaffDeleted event
+        event(new \App\Events\StaffDeleted($staffId, $staffName, $branchId));
 
         return response()->json(['success' => true, 'message' => 'Staff member removed.']);
     }

@@ -3,12 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Lock, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '../../components/common/Toast';
 import authApi from '../../api/authApi';
+import { ApiError } from '../../api/client';
 
 export const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const toast = useToast();
   const [searchParams] = useSearchParams();
 
@@ -17,12 +19,14 @@ export const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFieldErrors({});
+
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match.');
+      setFieldErrors({ password_confirmation: 'Passwords do not match.' });
       return;
     }
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long.');
+      setFieldErrors({ password: 'Password must be at least 8 characters long.' });
       return;
     }
     if (!token || !email) {
@@ -36,10 +40,28 @@ export const ResetPasswordPage = () => {
       setSuccess(true);
       toast.success('Password updated successfully! Please sign in.');
     } catch (err) {
-      toast.error(err.message || 'Invalid or expired reset token.');
+      const hasValidationErrors = err.errors && Object.keys(err.errors).length > 0;
+      if (hasValidationErrors) {
+        const newFieldErrors = {};
+        for (const [field, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            newFieldErrors[field] = messages[0];
+          }
+        }
+        setFieldErrors(newFieldErrors);
+      }
+      if (!fieldErrors.password && !fieldErrors.password_confirmation) {
+        toast.error(err.message || 'Invalid or expired reset token.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePasswordChange = (field) => (e) => {
+    if (field === 'password') setPassword(e.target.value);
+    if (field === 'confirmPassword') setConfirmPassword(e.target.value);
+    setFieldErrors(prev => ({ ...prev, [field]: null }));
   };
 
   return (
@@ -80,10 +102,13 @@ export const ResetPasswordPage = () => {
                   required
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
+                  onChange={handlePasswordChange('password')}
+                  className={`w-full bg-theme-secondary border rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 ${
+                    fieldErrors.password ? 'border-red-500/50' : 'border-theme'
+                  }`}
                 />
               </div>
+              {fieldErrors.password && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password}</p>}
             </div>
 
             <div>
@@ -95,10 +120,13 @@ export const ResetPasswordPage = () => {
                   required
                   placeholder="••••••••"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500"
+                  onChange={handlePasswordChange('confirmPassword')}
+                  className={`w-full bg-theme-secondary border rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 ${
+                    fieldErrors.password_confirmation ? 'border-red-500/50' : 'border-theme'
+                  }`}
                 />
               </div>
+              {fieldErrors.password_confirmation && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password_confirmation}</p>}
             </div>
 
             <button

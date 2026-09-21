@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\VehicleStatusChanged;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -114,6 +115,10 @@ class VehicleStatusService
             $notes,
             $vehicle->branch_id
         );
+
+        // Fire VehicleStatusChanged event
+        $vehicle->load('branch');
+        event(new VehicleStatusChanged($vehicle, $oldStatus, $newStatus));
 
         return $vehicle->fresh();
     }

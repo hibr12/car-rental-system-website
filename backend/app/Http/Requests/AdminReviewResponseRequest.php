@@ -19,4 +19,13 @@ class AdminReviewResponseRequest extends FormRequest
             'admin_response' => ['required', 'string', 'max:' . Review::MAX_COMMENT_LENGTH],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'admin_response.required' => 'Please enter your response.',
+            'admin_response.string' => 'Response must be text.',
+            'admin_response.max' => 'Response must not exceed ' . Review::MAX_COMMENT_LENGTH . ' characters.',
+        ];
+    }
 }

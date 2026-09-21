@@ -9,7 +9,7 @@ export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const { login, isLoading } = useAuthStore();
   const navigate = useNavigate();
@@ -20,10 +20,15 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage('');
+    setFieldErrors({});
 
-    if (!email || !password) {
-      setErrorMessage('Please enter both email and password.');
+    // Clear field errors on submit
+    if (!email) {
+      setFieldErrors(prev => ({ ...prev, email: 'Please enter your email address.' }));
+      return;
+    }
+    if (!password) {
+      setFieldErrors(prev => ({ ...prev, password: 'Please enter your password.' }));
       return;
     }
 
@@ -36,8 +41,28 @@ export const LoginPage = () => {
 
       navigate(from !== '/dashboard' ? from : targetPath, { replace: true });
     } catch (err) {
-      setErrorMessage(err.message || 'Invalid email or password credentials.');
+      // Handle ApiError with structured errors
+      const hasValidationErrors = err.errors && Object.keys(err.errors).length > 0;
+      if (hasValidationErrors) {
+        const newFieldErrors = {};
+        for (const [field, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            newFieldErrors[field] = messages[0];
+          }
+        }
+        setFieldErrors(newFieldErrors);
+      } else {
+        // General error (e.g., invalid credentials)
+        toast.error(err.message || 'Incorrect email or password. Please check your credentials and try again.');
+      }
     }
+  };
+
+  const handleInputChange = (field) => (e) => {
+    if (field === 'email') setEmail(e.target.value);
+    if (field === 'password') setPassword(e.target.value);
+    // Clear error when user starts typing
+    setFieldErrors(prev => ({ ...prev, [field]: null }));
   };
 
   return (
@@ -55,11 +80,11 @@ export const LoginPage = () => {
           <p className="text-xs text-theme-muted">Enter your credentials to access your rental dashboard.</p>
         </div>
 
-        {errorMessage && (
-          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl flex items-center gap-3 text-rose-300 text-xs">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
+        {fieldErrors.email && (
+          <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.email}</p>
+        )}
+        {fieldErrors.password && (
+          <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -72,10 +97,13 @@ export const LoginPage = () => {
                 required
                 placeholder="customer@carrental.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={handleInputChange('email')}
+                className={`w-full bg-theme-input border rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
+                  fieldErrors.email ? 'border-red-500/50' : 'border-theme'
+                }`}
               />
             </div>
+            {fieldErrors.email && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.email}</p>}
           </div>
 
           <div>
@@ -92,8 +120,10 @@ export const LoginPage = () => {
                 required
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-10 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={handleInputChange('password')}
+                className={`w-full bg-theme-input border rounded-xl pl-10 pr-10 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
+                  fieldErrors.password ? 'border-red-500/50' : 'border-theme'
+                }`}
               />
               <button
                 type="button"
@@ -103,6 +133,7 @@ export const LoginPage = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {fieldErrors.password && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password}</p>}
           </div>
 
           <button

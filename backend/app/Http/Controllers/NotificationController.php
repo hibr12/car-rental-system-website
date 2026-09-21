@@ -31,6 +31,19 @@ class NotificationController extends Controller
         ]);
     }
 
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $unreadCount = $user->unreadNotifications()->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'unread_count' => $unreadCount,
+            ],
+        ]);
+    }
+
     public function show(Request $request, string $notificationId): JsonResponse
     {
         $notification = $request->user()

@@ -158,6 +158,9 @@ class VehicleTransferController extends Controller
             return response()->json(['success' => false, 'message' => $msg], $code);
         }
 
+        // Fire VehicleTransferCreated event
+        event(new \App\Events\VehicleTransferCreated($transfer));
+
         return response()->json([
             'success' => true,
             'message' => 'Transfer request created.',
@@ -201,6 +204,9 @@ class VehicleTransferController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
 
+        // Fire VehicleTransferStatusChanged event
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, VehicleTransfer::STATUS_PENDING, $transfer->status));
+
         return response()->json(['success' => true, 'message' => 'Transfer approved.', 'data' => $transfer]);
     }
 
@@ -216,6 +222,9 @@ class VehicleTransferController extends Controller
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferStatusChanged event
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, VehicleTransfer::STATUS_PENDING, $transfer->status));
 
         return response()->json(['success' => true, 'message' => 'Transfer rejected.', 'data' => $transfer]);
     }
@@ -265,11 +274,15 @@ class VehicleTransferController extends Controller
         ]);
 
         try {
+            $oldStatus = $transfer->status;
             $transfer = $this->transferService->release($transfer, $request->user(), $data);
         } catch (\RuntimeException $e) {
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferStatusChanged event
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, $oldStatus, $transfer->status));
 
         return response()->json(['success' => true, 'message' => 'Transfer marked as in transit.', 'data' => $transfer]);
     }
@@ -288,11 +301,15 @@ class VehicleTransferController extends Controller
         ]);
 
         try {
+            $oldStatus = $transfer->status;
             $transfer = $this->transferService->receive($transfer, $request->user(), $data);
         } catch (\RuntimeException $e) {
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferStatusChanged event
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, $oldStatus, $transfer->status));
 
         return response()->json(['success' => true, 'message' => 'Vehicle received.', 'data' => $transfer]);
     }
@@ -300,11 +317,17 @@ class VehicleTransferController extends Controller
     public function complete(Request $request, VehicleTransfer $transfer): JsonResponse
     {
         try {
+            $oldStatus = $transfer->status;
             $transfer = $this->transferService->complete($transfer, $request->user());
         } catch (\RuntimeException $e) {
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferCompleted event
+        event(new \App\Events\VehicleTransferCompleted($transfer));
+        // Also fire status changed
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, $oldStatus, $transfer->status));
 
         return response()->json([
             'success' => true,
@@ -320,11 +343,15 @@ class VehicleTransferController extends Controller
         ]);
 
         try {
+            $oldStatus = $transfer->status;
             $transfer = $this->transferService->markFailed($transfer, $request->user(), $data['reason']);
         } catch (\RuntimeException $e) {
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferStatusChanged event
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, $oldStatus, $transfer->status));
 
         return response()->json(['success' => true, 'message' => 'Transfer marked as failed.', 'data' => $transfer]);
     }
@@ -332,11 +359,17 @@ class VehicleTransferController extends Controller
     public function executeNow(Request $request, VehicleTransfer $transfer): JsonResponse
     {
         try {
+            $oldStatus = $transfer->status;
             $transfer = $this->transferService->executeNow($transfer, $request->user());
         } catch (\RuntimeException $e) {
             $code = str_contains($e->getMessage(), 'authorized') ? 403 : 422;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $code);
         }
+
+        // Fire VehicleTransferCompleted event
+        event(new \App\Events\VehicleTransferCompleted($transfer));
+        // Also fire status changed
+        event(new \App\Events\VehicleTransferStatusChanged($transfer, $oldStatus, $transfer->status));
 
         return response()->json([
             'success' => true,

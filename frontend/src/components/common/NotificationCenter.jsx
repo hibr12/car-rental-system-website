@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, X, AlertCircle, RefreshCw } from "lucide-react";
 import useNotificationStore from "../../store/notificationStore";
 import { formatDate } from "../../utils/formatters";
 
@@ -9,11 +9,13 @@ const NotificationCenter = () => {
     notifications,
     unreadCount,
     isLoading,
+    error,
     fetchNotifications,
     fetchUnreadCount,
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    clearError,
   } = useNotificationStore();
   const dropdownRef = useRef(null);
 
@@ -38,6 +40,14 @@ const NotificationCenter = () => {
     if (!isOpen) {
       fetchNotifications();
     }
+  };
+
+  const handleRetry = () => {
+    fetchNotifications();
+  };
+
+  const handleDismissError = () => {
+    clearError();
   };
 
   const getNotificationIcon = (type) => {
@@ -106,14 +116,38 @@ const NotificationCenter = () => {
             </div>
           </div>
 
+          {error && (
+            <div className="p-3 border-b border-theme bg-rose-500/10 text-rose-300 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="truncate">{error}</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handleRetry}
+                  className="px-2 py-1 text-[10px] font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry
+                </button>
+                <button
+                  onClick={handleDismissError}
+                  className="p-1 rounded hover:bg-theme-hover text-rose-300"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="max-h-96 overflow-y-auto">
-            {isLoading ? (
+            {isLoading && notifications.length === 0 ? (
               <div className="p-8 text-center text-theme-muted">
                 <div className="animate-spin w-6 h-6 border-2 border-theme border-t-transparent rounded-full mx-auto" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-theme-muted">
-                No notifications yet.
+                {error ? "Unable to load notifications" : "No notifications yet."}
               </div>
             ) : (
               notifications.map((notification) => (

@@ -21,4 +21,24 @@ class StoreContactMessageRequest extends FormRequest
             'message' => ['required', 'string', 'max:4000'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Please enter your name.',
+            'name.string' => 'Name must be text.',
+            'name.max' => 'Name must not exceed 255 characters.',
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email must not exceed 255 characters.',
+            'phone.string' => 'Phone number must be text.',
+            'phone.max' => 'Phone number is too long.',
+            'subject.required' => 'Please enter a subject.',
+            'subject.string' => 'Subject must be text.',
+            'subject.max' => 'Subject must not exceed 255 characters.',
+            'message.required' => 'Please enter your message.',
+            'message.string' => 'Message must be text.',
+            'message.max' => 'Message must not exceed 4000 characters.',
+        ];
+    }
 }

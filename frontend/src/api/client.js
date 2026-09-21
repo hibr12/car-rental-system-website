@@ -41,32 +41,65 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Custom error class to carry structured error data
+export class ApiError extends Error {
+  constructor(message, status, errors = [], friendlyErrors = []) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.errors = errors;           // Raw Laravel validation errors (field => [messages])
+    this.friendlyErrors = friendlyErrors; // Translated user-friendly messages
+  }
+}
+
 // Response interceptor to extract data from axios response
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const status = error.response?.status
-    let message = 'Something went wrong. Please try again later.'
+    const status = error.response?.status;
+    const responseData = error.response?.data;
+    let message = 'Something went wrong. Please try again later.';
+    let errors = {};
+    let friendlyErrors = [];
 
     if (status === 429) {
-      message = 'Too many requests. Please wait a minute before trying again.'
+      message = 'Too many requests. Please wait a minute before trying again.';
     } else if (status === 422) {
-      // Validation errors - extract first error message
-      const errors = error.response?.data?.errors
-      if (errors && Object.keys(errors).length > 0) {
-        const firstField = Object.keys(errors)[0]
-        message = errors[firstField][0] || message
+      // Validation errors - extract all errors
+      errors = responseData?.errors || {};
+      friendlyErrors = responseData?.friendly_errors || [];
+      
+      if (Object.keys(errors).length > 0) {
+        // Use first friendly error as main message, or fall back to first raw error
+        message = friendlyErrors[0] || Object.values(errors)[0][0] || 'Validation failed. Please check your input.';
       } else {
-        message = 'Validation failed. Please check your input.'
+        message = responseData?.message || 'Validation failed. Please check your input.';
       }
-    } else if (status === 401 || status === 404) {
-      message = 'This link has expired or is invalid. Please request a new one.'
+    } // For login endpoint, 401 means invalid credentials - preserve original message
+    // For other endpoints, 401 means session expired
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    if (status === 401) {
+      if (isLoginRequest && responseData?.message) {
+        message = responseData.message;
+      } else {
+        message = 'Your session has expired. Please sign in again.';
+      }
+    } else if (status === 403) {
+      message = 'You don\'t have permission to perform this action.';
+    } else if (status === 404) {
+      message = 'The requested resource was not found.';
     } else if (status === 500) {
-      message = 'Something went wrong on our end. Please try again later.'
+      message = 'Something went wrong on our end. Please try again later.';
+    } else if (status === 400) {
+      message = responseData?.message || 'Invalid request.';
+    } else if (status === 405) {
+      message = 'This action is not allowed.';
+    } else if (responseData?.message) {
+      message = responseData.message;
     }
 
-    // Reject with a standardized error object
-    return Promise.reject(new Error(message))
+    // Reject with a structured error object
+    return Promise.reject(new ApiError(message, status, errors, friendlyErrors));
   }
 );
 

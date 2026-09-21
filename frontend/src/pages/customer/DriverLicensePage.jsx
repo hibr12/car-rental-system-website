@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ShieldCheck, ShieldX, Clock, AlertTriangle, Upload,
   RefreshCw, CheckCircle2, X, FileText, ChevronRight, Loader2,
-  User, Calendar, Building, GraduationCap,
+  User, Calendar, Building,
 } from 'lucide-react';
 import { licenseApi } from '../../api/licenseApi';
 import { useToast } from '../../components/common/Toast';
@@ -264,9 +264,18 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
   const [frontDoc, setFrontDoc] = useState(null);
   const [backDoc, setBackDoc] = useState(null);
 
-  const set = (field) => (e) => {
+  const setField = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
     setErrors((er) => ({ ...er, [field]: null }));
+  };
+
+  const handleDocChange = (side) => (file) => {
+    if (side === 'front') {
+      setFrontDoc(file);
+    } else {
+      setBackDoc(file);
+    }
+    setErrors((er) => ({ ...er, [`${side}_document`]: null }));
   };
 
   const validate = () => {
@@ -287,7 +296,6 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
     }
     
     if (form.document_type === 'university_id') {
-      if (!form.university_name) errs.university_name = 'University/Institution name is required.';
       if (!form.expiry_date) errs.expiry_date = 'Expiry date is required.';
     }
     
@@ -318,9 +326,19 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
       toast.success(isResubmit ? 'License resubmitted for verification.' : 'License submitted for verification.');
       onSuccess(res.data);
     } catch (err) {
-      const apiErrors = err.errors || {};
-      setErrors(apiErrors);
-      toast.error(err.message || 'Submission failed. Please check the form.');
+      // Handle ApiError with structured errors
+      if (err.errors) {
+        const newErrors = {};
+        for (const [field, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            newErrors[field] = messages[0];
+          }
+        }
+        setErrors(newErrors);
+      }
+      if (Object.keys(errors).length === 0) {
+        toast.error(err.message || 'Submission failed. Please check the form.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -347,7 +365,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           <input
             type="text"
             value={form.document_number}
-            onChange={set('document_number')}
+            onChange={setField('document_number')}
             placeholder="e.g. ETH-12345678"
             className={inputClass(errors.document_number)}
             aria-describedby={errors.document_number ? 'err-document_number' : undefined}
@@ -361,7 +379,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             <input
               type="text"
               value={form.full_name}
-              onChange={set('full_name')}
+              onChange={setField('full_name')}
               className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
@@ -374,7 +392,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             <input
               type="date"
               value={form.date_of_birth}
-              onChange={set('date_of_birth')}
+              onChange={setField('date_of_birth')}
               className="w-full bg-theme-secondary border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
@@ -385,7 +403,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           <div className="relative">
             <select
               value={form.license_category}
-              onChange={set('license_category')}
+              onChange={setField('license_category')}
               className={inputClass(errors.license_category)}
             >
               {LICENSE_CATEGORIES.map((c) => (
@@ -401,7 +419,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             type="date"
             value={form.issue_date}
             max={new Date().toISOString().slice(0, 10)}
-            onChange={set('issue_date')}
+            onChange={setField('issue_date')}
             className={inputClass(errors.issue_date)}
           />
           {errors.issue_date && <p className="text-[11px] text-red-400 mt-1">{errors.issue_date}</p>}
@@ -412,54 +430,26 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
             type="date"
             value={form.expiry_date}
             min={new Date().toISOString().slice(0, 10)}
-            onChange={set('expiry_date')}
+            onChange={setField('expiry_date')}
             className={inputClass(errors.expiry_date)}
           />
           {errors.expiry_date && <p className="text-[11px] text-red-400 mt-1">{errors.expiry_date}</p>}
         </Field>
 
         <Field label="Issuing Authority" error={errors.issuing_authority}>
-          <div className="relative">
-            <Building className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={form.issuing_authority}
-              onChange={set('issuing_authority')}
-              placeholder="e.g. DRIVA Ethiopia"
-              className={inputClass(errors.issuing_authority)}
-            />
-          </div>
+          <input
+            type="text"
+            value={form.issuing_authority}
+            onChange={setField('issuing_authority')}
+            placeholder="e.g. DRIVA Ethiopia"
+            className={inputClass(errors.issuing_authority)}
+          />
           {errors.issuing_authority && <p className="text-[11px] text-red-400 mt-1">{errors.issuing_authority}</p>}
         </Field>
 
         <Field label="Country of Issue" error={errors.issuing_country}>
-          <input type="text" value={form.issuing_country} onChange={set('issuing_country')} placeholder="e.g. Ethiopia" className={inputClass(errors.issuing_country)} />
+          <input type="text" value={form.issuing_country} onChange={setField('issuing_country')} placeholder="e.g. Ethiopia" className={inputClass(errors.issuing_country)} />
           {errors.issuing_country && <p className="text-[11px] text-red-400 mt-1">{errors.issuing_country}</p>}
-        </Field>
-
-        <Field label="University/Institution Name" error={errors.university_name}>
-          <div className="relative">
-            <GraduationCap className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={form.university_name}
-              onChange={set('university_name')}
-              placeholder="e.g. Addis Ababa University"
-              className={inputClass(errors.university_name)}
-            />
-          </div>
-          {errors.university_name && <p className="text-[11px] text-red-400 mt-1">{errors.university_name}</p>}
-        </Field>
-
-        <Field label="Department" error={errors.department}>
-          <input
-            type="text"
-            value={form.department}
-            onChange={set('department')}
-            placeholder="e.g. Computer Science"
-            className={inputClass(errors.department)}
-          />
-          {errors.department && <p className="text-[11px] text-red-400 mt-1">{errors.department}</p>}
         </Field>
       </div>
 
@@ -469,7 +459,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           accept=".jpg,.jpeg,.png,.webp,.pdf"
           maxMb={5}
           value={frontDoc}
-          onChange={(f) => { setFrontDoc(f); setErrors((e) => ({ ...e, front_document: null })); }}
+          onChange={handleDocChange('front')}
           error={errors.front_document}
           helperText="Upload a photo/scan of the FRONT side of your license/ID"
         />
@@ -478,7 +468,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           accept=".jpg,.jpeg,.png,.webp,.pdf"
           maxMb={5}
           value={backDoc}
-          onChange={(f) => { setBackDoc(f); setErrors((e) => ({ ...e, back_document: null })); }}
+          onChange={handleDocChange('back')}
           error={errors.back_document}
           helperText="Upload a photo/scan of the BACK side of your license/ID"
         />

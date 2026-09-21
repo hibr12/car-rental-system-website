@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, Loader2, X, Check } from 'lucide-react';
-import apiClient from '../../api/client';
+import apiClient, { ApiError } from '../../api/client';
 import adminApi from '../../api/adminApi';
 import { formatDateTime } from '../../utils/formatters';
 import {
@@ -58,7 +58,14 @@ export default function StaffManagementPage() {
 
   const remove = async (id) => {
     if (!window.confirm('Remove this staff member?')) return;
-    try { await apiClient.delete(`/staff/${id}`); load(); } catch {}
+    try { await apiClient.delete(`/staff/${id}`); load(); } 
+    catch (err) {
+      if (err instanceof ApiError) {
+        alert(err.message);
+      } else {
+        alert('Failed to remove staff member.');
+      }
+    }
   };
 
   const save = async (e) => {
@@ -70,8 +77,12 @@ export default function StaffManagementPage() {
       else await apiClient.post('/staff', payload);
       setShowModal(false); load();
     } catch (err) {
-      const msgs = err.response?.data?.errors;
-      setError(msgs ? Object.values(msgs).flat().join(' ') : err.response?.data?.message || 'Failed to save.');
+      if (err instanceof ApiError && err.errors) {
+        const msgs = Object.values(err.errors).flat();
+        setError(msgs.join(' '));
+      } else {
+        setError(err.message || 'Failed to save.');
+      }
     } finally { setSaving(false); }
   };
 
@@ -179,10 +190,19 @@ export default function StaffManagementPage() {
                 </div>
                 <div>
                   <label className={LABEL_CLS}>Branch *</label>
-                  <select required value={form.branch_id} onChange={e => setForm(p => ({...p, branch_id: e.target.value}))} className={INPUT_CLS}>
-                    <option value="">Select branch</option>
-                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  <select required value={form.branch_id} onChange={e => setForm(p => ({...p, branch_id: e.target.value}))} className={INPUT_CLS} disabled={branches.length === 0}>
+                    {branches.length === 0 ? (
+                      <option value="">No branches available</option>
+                    ) : (
+                      <>
+                        <option value="">Select branch</option>
+                        {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </>
+                    )}
                   </select>
+                  {branches.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">Create a branch first before adding staff.</p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 pt-2">

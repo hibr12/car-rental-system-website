@@ -49,10 +49,20 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
+        $email = $request->input('email');
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No account was found with this email. Please check your email or create an account.',
+            ], 401);
+        }
+
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Incorrect password. Please check your credentials and try again.',
             ], 401);
         }
 
@@ -60,7 +70,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
         }
 
-        $user = User::with('branch')->where('email', $request->email)->firstOrFail();
+        $user = User::with('branch')->where('email', $email)->firstOrFail();
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([

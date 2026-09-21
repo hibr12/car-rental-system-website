@@ -17,4 +17,12 @@ class CancelBookingRequest extends FormRequest
             'reason' => ['nullable', 'string', 'max:500'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'reason.string' => 'Reason must be text.',
+            'reason.max' => 'Reason must not exceed 500 characters.',
+        ];
+    }
 }

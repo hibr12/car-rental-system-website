@@ -1,20 +1,55 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
+import { Car, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, AlertCircle, Globe } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { useToast } from '../../components/common/Toast';
+import { ApiError } from '../../api/client';
+
+// Country codes with dialing codes
+const COUNTRY_CODES = [
+  { name: 'Ethiopia', code: 'ET', dialCode: '+251' },
+  { name: 'United States', code: 'US', dialCode: '+1' },
+  { name: 'United Kingdom', code: 'GB', dialCode: '+44' },
+  { name: 'Kenya', code: 'KE', dialCode: '+254' },
+  { name: 'Uganda', code: 'UG', dialCode: '+256' },
+  { name: 'Tanzania', code: 'TZ', dialCode: '+255' },
+  { name: 'Rwanda', code: 'RW', dialCode: '+250' },
+  { name: 'South Africa', code: 'ZA', dialCode: '+27' },
+  { name: 'Nigeria', code: 'NG', dialCode: '+234' },
+  { name: 'Ghana', code: 'GH', dialCode: '+233' },
+  { name: 'Egypt', code: 'EG', dialCode: '+20' },
+  { name: 'Canada', code: 'CA', dialCode: '+1' },
+  { name: 'Australia', code: 'AU', dialCode: '+61' },
+  { name: 'Germany', code: 'DE', dialCode: '+49' },
+  { name: 'France', code: 'FR', dialCode: '+33' },
+  { name: 'China', code: 'CN', dialCode: '+86' },
+  { name: 'India', code: 'IN', dialCode: '+91' },
+  { name: 'United Arab Emirates', code: 'AE', dialCode: '+971' },
+  { name: 'Saudi Arabia', code: 'SA', dialCode: '+966' },
+  { name: 'Qatar', code: 'QA', dialCode: '+974' },
+];
+
+const getFieldError = (fieldErrors, field) => {
+  if (!fieldErrors || !fieldErrors[field]) return null;
+  const messages = fieldErrors[field];
+  return Array.isArray(messages) ? messages[0] : messages;
+};
+
+const clearFieldError = (setFieldErrors, field) => {
+  setFieldErrors(prev => ({ ...prev, [field]: null }));
+};
 
 export const RegisterPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    countryCode: '+251', // Default to Ethiopia
     password: '',
     password_confirmation: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
   const { register, isLoading } = useAuthStore();
@@ -23,38 +58,58 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage('');
     setFieldErrors({});
 
     if (formData.password !== formData.password_confirmation) {
-      setErrorMessage('Password confirmation does not match.');
+      setFieldErrors(prev => ({ ...prev, password_confirmation: 'Password confirmation does not match.' }));
       return;
     }
 
     if (formData.password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters long.');
+      setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters long.' }));
       return;
     }
 
+    // Combine country code with phone number for storage
+    const fullPhone = formData.phone ? `${formData.countryCode}${formData.phone}` : '';
+
     try {
-      await register(formData);
+      await register({ ...formData, phone: fullPhone });
       toast.success('Registration successful!');
 
       // Redirect to dashboard after registration
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const validationErrors = err.response?.data?.errors;
-      if (validationErrors) {
-        setFieldErrors(validationErrors);
-        // Show user-friendly message for duplicate email
-        if (validationErrors.email && validationErrors.email[0]?.includes('unique')) {
-          setErrorMessage('This email is already registered. Please use another email or sign in.');
-        } else if (validationErrors.email && validationErrors.email[0]) {
-          setErrorMessage(validationErrors.email[0]);
+      // Handle ApiError with structured errors
+      const hasValidationErrors = err.errors && Object.keys(err.errors).length > 0;
+      if (hasValidationErrors) {
+        const newFieldErrors = {};
+        for (const [field, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            newFieldErrors[field] = messages[0];
+          }
         }
+        setFieldErrors(newFieldErrors);
+        
+        // Show toast for general errors (like duplicate email)
+        if (err.friendlyErrors && err.friendlyErrors.length > 0) {
+          toast.error(err.friendlyErrors[0]);
+        } else if (err.message && !err.message.includes('Validation failed')) {
+          toast.error(err.message);
+        }
+      } else if (err.message) {
+        toast.error(err.message);
       }
-      setErrorMessage(err.response?.data?.message || err.message || 'Registration failed. Please check input values.');
     }
+  };
+
+  const handleChange = (field) => (e) => {
+    let value = e.target.value;
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '');
+    }
+    setFormData(prev => ({ ...prev, [field]: value }));
+    clearFieldError(setFieldErrors, field);
   };
 
   return (
@@ -72,13 +127,6 @@ export const RegisterPage = () => {
           <p className="text-xs text-theme-muted">Join Abay Car Rentals for effortless vehicle booking.</p>
         </div>
 
-        {errorMessage && (
-          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl flex items-center gap-3 text-rose-300 text-xs">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-theme-secondary mb-1">Full Name *</label>
@@ -89,11 +137,13 @@ export const RegisterPage = () => {
                 required
                 placeholder="Jane Doe"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={handleChange('name')}
+                className={`w-full bg-theme-input border rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
+                  fieldErrors.name ? 'border-red-500/50' : 'border-theme'
+                }`}
               />
             </div>
-            {fieldErrors.name && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.name[0]}</p>}
+            {fieldErrors.name && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.name}</p>}
           </div>
 
           <div>
@@ -105,25 +155,44 @@ export const RegisterPage = () => {
                 required
                 placeholder="jane@example.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={handleChange('email')}
+                className={`w-full bg-theme-input border rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
+                  fieldErrors.email ? 'border-red-500/50' : 'border-theme'
+                }`}
               />
             </div>
-            {fieldErrors.email && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.email[0]}</p>}
+            {fieldErrors.email && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.email}</p>}
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-theme-secondary mb-1">Phone Number</label>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-theme-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
-              />
+            <div className="flex gap-2">
+              <div className="relative w-28 shrink-0">
+                <Globe className="w-4 h-4 text-theme-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                <select
+                  value={formData.countryCode}
+                  onChange={handleChange('countryCode')}
+                  className="w-full bg-theme-input border border-theme rounded-xl pl-8 pr-4 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-blue-500 transition-colors appearance-none bg-no-repeat bg-right-2"
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3e%3cpath fill=%27none%27 stroke=%27%23343a40%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M2 5l6 6 6-6%27/%3e%3c/svg%3e")', backgroundSize: '16px 12px' }}
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.dialCode} value={c.dialCode}>
+                      {c.name} ({c.dialCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative flex-1">
+                <input
+                  type="tel"
+                  placeholder="Phone number"
+                  value={formData.phone}
+                  onChange={handleChange('phone')}
+                  className="w-full bg-theme-input border border-theme rounded-xl pl-4 pr-4 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
             </div>
+            {fieldErrors.phone && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.phone}</p>}
           </div>
 
           <div>
@@ -135,8 +204,10 @@ export const RegisterPage = () => {
                 required
                 placeholder="Minimum 8 characters"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-10 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={handleChange('password')}
+                className={`w-full bg-theme-input border rounded-xl pl-10 pr-10 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
+                  fieldErrors.password ? 'border-red-500/50' : 'border-theme'
+                }`}
               />
               <button
                 type="button"
@@ -146,7 +217,7 @@ export const RegisterPage = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {fieldErrors.password && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password[0]}</p>}
+            {fieldErrors.password && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password}</p>}
           </div>
 
           <div>
@@ -158,10 +229,11 @@ export const RegisterPage = () => {
                 required
                 placeholder="Re-enter password"
                 value={formData.password_confirmation}
-                onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                onChange={handleChange('password_confirmation')}
                 className="w-full bg-theme-input border border-theme rounded-xl pl-10 pr-10 py-2.5 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
+            {fieldErrors.password_confirmation && <p className="text-[11px] text-rose-400 mt-1">{fieldErrors.password_confirmation}</p>}
           </div>
 
           <button

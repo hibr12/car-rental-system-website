@@ -92,7 +92,7 @@ class DriverLicenseController extends Controller
             case DriverLicense::DOCUMENT_TYPE_UNIVERSITY_ID:
                 $rules = array_merge($rules, [
                     'document_number'   => ['required', 'string', 'max:100'],
-                    'university_name'   => ['required', 'string', 'max:200'],
+                    'university_name'   => ['nullable', 'string', 'max:200'],
                     'department'        => ['nullable', 'string', 'max:200'],
                     'date_of_birth'     => ['nullable', 'date', 'before:today'],
                     'issue_date'        => ['nullable', 'date', 'before_or_equal:today'],
@@ -114,6 +114,9 @@ class DriverLicenseController extends Controller
                 $request->file('front_document'),
                 $request->file('back_document'),
             );
+
+            // Fire LicenseSubmitted event
+            event(new \App\Events\LicenseSubmitted($license));
 
             return response()->json([
                 'success' => true,
@@ -236,6 +239,9 @@ class DriverLicenseController extends Controller
         try {
             $approved = $this->licenseService->approve($license, $request->user());
 
+            // Fire LicenseApproved event
+            event(new \App\Events\LicenseApproved($approved));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Identity document approved.',
@@ -259,6 +265,9 @@ class DriverLicenseController extends Controller
 
         try {
             $rejected = $this->licenseService->reject($license, $request->user(), $data['reason']);
+
+            // Fire LicenseRejected event
+            event(new \App\Events\LicenseRejected($rejected, $data['reason']));
 
             return response()->json([
                 'success' => true,
