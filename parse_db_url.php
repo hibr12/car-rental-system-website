@@ -1,8 +1,16 @@
 <?php
 
-$url = getenv('DB_URL');
+// Render provides DATABASE_URL, not DB_URL. Check both.
+$url = getenv('DB_URL') ?: getenv('DATABASE_URL');
+
 if (!$url) {
-    fwrite(STDERR, "DB_URL not set\n");
+    // Check if individual DB vars are already set (e.g. from Render database link)
+    $host = getenv('DB_HOST');
+    if ($host) {
+        echo "DB_HOST already set, skipping DB_URL parse\n";
+        exit(0);
+    }
+    fwrite(STDERR, "Neither DB_URL nor DATABASE_URL set, and DB_HOST is missing\n");
     exit(1);
 }
 
