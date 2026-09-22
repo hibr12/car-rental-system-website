@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use App\Services\AuditLogService;
 use App\Services\BookingService;
 use App\Services\BookingWorkflowService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,8 @@ class BookingController extends Controller
     public function __construct(
         private BookingService $bookingService,
         private BookingWorkflowService $workflow,
-        private AuditLogService $auditLogService
+        private AuditLogService $auditLogService,
+        private PaymentService $paymentService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -56,6 +58,9 @@ class BookingController extends Controller
     public function show(Request $request, Booking $booking): JsonResponse
     {
         Gate::authorize('view', $booking);
+
+        // Heal legacy payment_processing rows / expire abandoned attempts on read.
+        $this->paymentService->reconcileStalePaymentState($booking);
 
         $booking->load([
             'vehicle.category',

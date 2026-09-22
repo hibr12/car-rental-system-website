@@ -20,6 +20,13 @@ use Illuminate\Support\Str;
 
 class PaymentService
 {
+    /**
+     * Minutes after which a gateway-pending checkout is considered abandoned.
+     * A late Chapa success after this still settles via markAsPaid — the TTL
+     * only stops pretending money is in flight for checkouts nobody finished.
+     */
+    private const ABANDON_TTL_MINUTES = 15;
+
     public function __construct(
         private ChapaService $chapaService,
         private AuditLogService $auditLogService,
@@ -112,7 +119,7 @@ class PaymentService
         $this->validateBookingOwnership($booking, $userId);
         $this->validateBookingEligibleForPayment($booking);
         $this->assertBookingAmountIntegrity($booking);
-        $this->cleanUpOrphanedPayments($booking);
+        $this->reconcileStalePaymentState($booking);
 
         // Reuse a recent pending online payment instead of creating duplicates
         $existingPending = $booking->payments()
@@ -153,9 +160,10 @@ class PaymentService
                     'idempotency_key'       => 'chapa:' . $booking->id . ':' . $txRef,
                 ]);
 
+                // Only the payment intent is pending here — no money has moved yet.
+                // The booking stays payment_required so the customer can still pay or cancel.
                 $booking->update([
                     'payment_status' => Booking::PAYMENT_STATUS_PENDING,
-                    'status' => Booking::STATUS_PAYMENT_PROCESSING,
                 ]);
 
                 return $payment;
@@ -306,10 +314,25 @@ class PaymentService
             }
 
             if (in_array($verification['status'], ['pending', 'processing'], true)) {
-                $payment->update([
-                    'status' => Payment::STATUS_PROCESSING,
-                    'verification_status' => Payment::VERIFICATION_GATEWAY_PENDING,
-                ]);
+                $isLive = in_array($payment->status, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING], true);
+
+                if ($isLive && $payment->created_at?->lt(now()->subMinutes(self::ABANDON_TTL_MINUTES))) {
+                    // Abandoned checkout — stop pretending money is in flight.
+                    return $this->markAsFailed(
+                        $payment,
+                        'Checkout abandoned — payment was not completed within ' . self::ABANDON_TTL_MINUTES . ' minutes.',
+                        Payment::VERIFICATION_UNVERIFIED
+                    );
+                }
+
+                if ($isLive) {
+                    $payment->update([
+                        'status' => Payment::STATUS_PROCESSING,
+                        'verification_status' => Payment::VERIFICATION_GATEWAY_PENDING,
+                    ]);
+                }
+
+                // Never resurrect failed/expired/cancelled rows when gateway still says pending.
                 Log::info('[Chapa] Still pending/processing', ['tx_ref' => $txRef, 'status' => $verification['status']]);
                 return $payment->fresh()->load('booking');
             }
@@ -320,13 +343,24 @@ class PaymentService
                 Payment::VERIFICATION_GATEWAY_FAILED
             );
         } catch (PaymentVerificationRetryableException $e) {
-            if (!in_array($payment->status, [Payment::STATUS_PAID, Payment::STATUS_INVALID], true)) {
+            $isLive = in_array($payment->status, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING], true);
+
+            if ($isLive && $payment->created_at?->lt(now()->subMinutes(self::ABANDON_TTL_MINUTES))) {
+                return $this->markAsFailed(
+                    $payment,
+                    'Checkout abandoned — payment was not completed within ' . self::ABANDON_TTL_MINUTES . ' minutes.',
+                    Payment::VERIFICATION_UNVERIFIED
+                );
+            }
+
+            if ($isLive) {
                 $payment->update([
                     'status' => Payment::STATUS_PROCESSING,
                     'verification_status' => Payment::VERIFICATION_ERROR,
                     'failure_reason' => $e->getMessage(),
                 ]);
             }
+
             Log::info('[Chapa] Retryable verification', ['tx_ref' => $txRef, 'message' => $e->getMessage()]);
             throw $e;
         } catch (\InvalidArgumentException $e) {
@@ -1004,16 +1038,8 @@ class PaymentService
                 );
             }
 
+            // SendPaymentRefundedNotification (queued listener) notifies the customer.
             event(new PaymentRefunded($payment->booking, $payment));
-
-            $this->createNotification(
-                $payment->user_id,
-                'payment_refunded',
-                'Payment Refunded',
-                "Payment for reservation #{$payment->booking->booking_reference} has been refunded.",
-                Booking::class,
-                $payment->booking_id
-            );
 
             return $payment->fresh();
         });
@@ -1339,7 +1365,15 @@ class PaymentService
         }
     }
 
-    private function cleanUpOrphanedPayments(Booking $booking): void
+    /**
+     * Expires abandoned checkout sessions and heals bookings parked in
+     * payment_processing with nothing live left to wait for.
+     *
+     * Called from the customer booking read path as well as initialize, because
+     * there is no scheduler to sweep stale rows. Returns true when the booking
+     * row itself changed, so callers can refresh their in-memory copy.
+     */
+    public function reconcileStalePaymentState(Booking $booking): bool
     {
         $booking->payments()
             ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
@@ -1350,6 +1384,34 @@ class PaymentService
                 'verification_status' => Payment::VERIFICATION_UNVERIFIED,
                 'failure_reason' => 'Expired pending payment',
             ]);
+
+        if ($booking->normalizeStatus() !== Booking::STATUS_PAYMENT_PROCESSING) {
+            return false;
+        }
+
+        $hasLivePayment = $booking->payments()
+            ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
+            ->where('is_archived', false)
+            ->exists();
+
+        $hasPaidPayment = $booking->payments()
+            ->where('status', Payment::STATUS_PAID)
+            ->exists();
+
+        if ($hasLivePayment || $hasPaidPayment) {
+            return false;
+        }
+
+        $booking->update([
+            'status' => Booking::STATUS_PAYMENT_REQUIRED,
+            'payment_status' => Booking::PAYMENT_STATUS_PENDING,
+        ]);
+
+        Log::info('Booking reverted to payment_required — abandoned checkout', [
+            'booking_id' => $booking->id,
+        ]);
+
+        return true;
     }
 
     private function validatePaymentAmount(array $data, Booking $booking): void
