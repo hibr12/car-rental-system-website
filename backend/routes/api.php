@@ -344,4 +344,20 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     Route::get('/reports/revenue', [ReportController::class, 'companyRevenue'])
         ->middleware(['role:admin']);
 
+    // TEMPORARY DEBUG — remove after
+    Route::get('/_debug-chapa', function () {
+        $mode = config('services.chapa.mode');
+        $key = config('services.chapa.secret_key');
+        $baseUrl = config('services.chapa.base_url');
+        $keyLen = strlen($key);
+        $keyPrefix = substr($key, 0, 12);
+        return response()->json([
+            'mode' => $mode,
+            'key_length' => $keyLen,
+            'key_prefix' => $keyPrefix,
+            'base_url' => $baseUrl,
+            'env_chapa_key' => substr(env('CHAPA_SECRET_KEY', ''), 0, 12),
+        ]);
+    })->middleware('role:admin');
+
 });
