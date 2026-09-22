@@ -85,12 +85,13 @@ class _ChapaCheckoutScreenState extends State<ChapaCheckoutScreen> {
       return NavigationDecision.prevent;
     }
 
-    // Backstop: the return URL always carries tx_ref (caught above), so this
-    // only matters if that param is ever stripped in transit. Match the
-    // actual configured return path rather than generic words — those also
-    // show up on Chapa's own failure/cancel pages and would fire early.
+    // The configured CHAPA_RETURN_URL points at the backend's own
+    // /payments/verify/{tx_ref} — an authenticated route, so tx_ref is a
+    // path segment here, not a query param, and the check above never
+    // fires for it. Catch it by path instead, before it loads and the
+    // WebView renders the raw (401, unauthenticated) API response.
     final path = uri.path.toLowerCase();
-    if (path.contains('/payments/status')) {
+    if (path.contains('/payments/verify') || path.contains('/payments/status')) {
       _handlePaymentComplete(uri);
       return NavigationDecision.prevent;
     }
