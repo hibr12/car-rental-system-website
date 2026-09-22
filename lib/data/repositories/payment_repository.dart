@@ -24,9 +24,13 @@ class PaymentRepository {
   Future<ApiResponse<Map<String, dynamic>>> initializePayment(
       {required String bookingId}) async {
     try {
+      // Safe to retry on timeout: PaymentService::initializePayment reuses a
+      // recent pending payment for the same booking instead of creating a
+      // new one, so a cold-start timeout resolves to the real checkout
+      // session instead of a false error.
       final json = await _api.post(ApiEndpoints.paymentsInitialize, body: {
         'booking_id': int.tryParse(bookingId) ?? bookingId,
-      });
+      }, retries: 1);
       final data = json['data'] as Map<String, dynamic>? ?? json;
       return ApiResponse.success(data);
     } on ApiException catch (e) {

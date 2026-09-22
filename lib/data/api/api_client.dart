@@ -74,9 +74,15 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  /// [retries] should only be non-zero when the endpoint is safe to resend —
+  /// i.e. the backend itself de-duplicates the side effect (e.g. booking
+  /// creation returns the existing match instead of a new row). A timeout
+  /// doesn't mean the server gave up; it means the client stopped waiting,
+  /// so blindly retrying a non-idempotent POST could double the side effect.
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic>? body,
+    int retries = 0,
   }) async {
     final uri = _uri(path);
     final headers = await _headers();
@@ -87,6 +93,7 @@ class ApiClient {
         headers: headers,
         body: body != null ? jsonEncode(body) : null,
       ),
+      retries: retries,
     );
     return _handleResponse(response);
   }

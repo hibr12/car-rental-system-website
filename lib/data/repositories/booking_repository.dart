@@ -86,7 +86,11 @@ class BookingRepository {
         if (draft.notes.isNotEmpty) 'notes': draft.notes,
       };
 
-      final json = await _api.post(ApiEndpoints.bookings, body: body);
+      // Safe to retry on timeout: BookingService::createBooking returns the
+      // caller's existing overlapping booking instead of a new one, so a
+      // cold-start timeout (request succeeded server-side, client just gave
+      // up waiting) resolves to the real booking instead of a false error.
+      final json = await _api.post(ApiEndpoints.bookings, body: body, retries: 1);
       final bookingData = json['data'] as Map<String, dynamic>;
       final created = Booking.fromJson(bookingData);
       return ApiResponse.success(created);
