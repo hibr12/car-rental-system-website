@@ -46,30 +46,6 @@ class BookingService
         $returnDate = Carbon::parse($data['return_date']);
         $this->validateDates($pickupDate, $returnDate);
 
-        // Prevent duplicate bookings — if user already has a pending/active booking for same vehicle+dates, return it
-        $existingBooking = Booking::where('user_id', $userId)
-            ->where('vehicle_id', $vehicle->id)
-            ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_REJECTED, Booking::STATUS_EXPIRED, Booking::STATUS_COMPLETED])
-            ->where(function ($q) use ($pickupDate, $returnDate) {
-                $q->whereBetween('pickup_date', [$pickupDate, $returnDate])
-                    ->orWhereBetween('return_date', [$pickupDate, $returnDate])
-                    ->orWhere(function ($q2) use ($pickupDate, $returnDate) {
-                        $q2->where('pickup_date', '<=', $pickupDate)
-                            ->where('return_date', '>=', $returnDate);
-                    });
-            })
-            ->first();
-
-        if ($existingBooking) {
-            Log::info('Duplicate booking blocked — returning existing booking', [
-                'existing_booking_id' => $existingBooking->id,
-                'booking_reference' => $existingBooking->booking_reference,
-                'user_id' => $userId,
-                'vehicle_id' => $vehicle->id,
-            ]);
-            return $existingBooking->load('vehicle', 'user', 'branch');
-        }
-
         $numberOfDays = $this->calculateNumberOfDays($pickupDate, $returnDate);
         $pricePerDay = $this->getPricePerDay($vehicle);
         $subtotal = $this->calculateSubtotal($numberOfDays, $pricePerDay);
@@ -88,10 +64,8 @@ class BookingService
             $pricePerDay, $subtotal, $additionalCharges,
             $discount, $totalPrice, $lockKey
         ) {
-            // Acquire advisory lock for PostgreSQL (blocks concurrent bookings for same vehicle)
-            if (DB::connection()->getDriverName() === 'pgsql') {
-                DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
-            }
+            // Acquire advisory lock for this vehicle (blocks concurrent bookings for same vehicle)
+            DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
 
             // Re-check overlap inside the locked transaction
             $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);

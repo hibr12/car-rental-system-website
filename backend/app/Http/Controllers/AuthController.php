@@ -6,7 +6,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,21 +27,15 @@ class AuthController extends Controller
             'role' => 'customer',
         ]);
 
-        // Create a session for the user if session is available (web SPA cookie auth)
-        if ($request->hasSession()) {
-            Auth::login($user);
-            $request->session()->regenerate();
-        }
-
-        // Issue Sanctum token for mobile and API clients
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Create a session for the user (cookie-based auth)
+        Auth::login($user);
+        $request->session()->regenerate();
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful.',
             'data' => [
                 'user' => new UserResource($user),
-                'token' => $token,
             ],
         ], 201);
     }
@@ -66,36 +59,24 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if ($request->hasSession()) {
-            $request->session()->regenerate();
-        }
+        $request->session()->regenerate();
 
         $user = User::with('branch')->where('email', $email)->firstOrFail();
-        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
                 'user'  => new UserResource($user),
-                'token' => $token,
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        // Revoke current access token if request was made using a Bearer token
-        if ($request->user()?->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
-        }
-
-        Auth::guard('web')->logout();
-
-        if ($request->hasSession()) {
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-        }
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,
@@ -204,66 +185,4 @@ class AuthController extends Controller
             ], 422);
     }
 
-    /**
-     * Permanently delete user account and associated personal data.
-     * Complies with Apple App Store Guideline 5.1.1 and Google Play account deletion policy.
-     */
-    public function deleteAccount(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
-        // Administrative and staff accounts must be managed through company controls
-        if (!$user->isCustomer()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Staff and administrative accounts cannot be deleted directly. Please contact an administrator.',
-            ], 403);
-        }
-
-        // Ensure user has no ongoing or pending rentals/bookings
-        $terminalStatuses = [
-            Booking::STATUS_COMPLETED,
-            Booking::STATUS_CANCELLED,
-            Booking::STATUS_REJECTED,
-            Booking::STATUS_EXPIRED,
-        ];
-
-        $hasActiveBookings = $user->bookings()
-            ->whereNotIn('status', $terminalStatuses)
-            ->exists();
-
-        if ($hasActiveBookings) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You cannot delete your account while you have active bookings or pending rentals. Please complete or cancel them first.',
-            ], 422);
-        }
-
-        // Revoke all personal access tokens
-        if (method_exists($user, 'tokens')) {
-            $user->tokens()->delete();
-        }
-
-        // Invalidate session if present (web SPA)
-        if ($request->hasSession()) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-        }
-
-        // Delete user (associated licenses, reviews, etc. cascade delete)
-        $user->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Your account and personal data have been permanently deleted.',
-        ]);
     }
-}

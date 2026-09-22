@@ -7,10 +7,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (DB::connection()->getDriverName() !== 'pgsql') {
-            return;
-        }
-
         DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_status_check');
         DB::statement("
             ALTER TABLE bookings 
@@ -29,10 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (DB::connection()->getDriverName() !== 'pgsql') {
-            return;
-        }
-
         DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_status_check');
         DB::statement("
             ALTER TABLE bookings 

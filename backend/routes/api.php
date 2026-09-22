@@ -32,10 +32,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
     Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum,web');
-    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:sanctum,web');
-    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:sanctum,web');
-    Route::delete('/account',[AuthController::class, 'deleteAccount'])->middleware('auth:sanctum,web');
+    Route::post('/logout',   [AuthController::class, 'logout'])->middleware('auth:web');
+    Route::get('/me',        [AuthController::class, 'me'])->middleware('auth:web');
+    Route::put('/profile',   [AuthController::class, 'updateProfile'])->middleware('auth:web');
 
     // Password reset (all portals)
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
@@ -63,7 +62,7 @@ Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])
-    ->middleware('auth:sanctum,web');
+    ->middleware('auth:web');
 Route::get('/branches/{branch}',   [BranchController::class, 'show']);
 Route::get('/branches/{branch}/reviews', [ReviewController::class, 'branchIndex']);
 
@@ -79,7 +78,7 @@ Route::post('/payments/chapa/webhook', [PaymentController::class, 'webhook'])
 //  AUTHENTICATED ROUTES
 // ════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth:sanctum,web'])->group(function () {
+Route::middleware(['auth:web'])->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────
     Route::prefix('notifications')->group(function () {
@@ -104,12 +103,11 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
         ->where('side', 'front|back');
 
     // ── Customer: Bookings ────────────────────────────────────────
-    Route::middleware('auth:sanctum,web')->group(function () {
+    Route::middleware('auth:web')->group(function () {
         Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
         Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
         Route::get('/bookings',                     [BookingController::class, 'index']);
-        Route::post('/bookings',                    [BookingController::class, 'store'])
-            ->middleware('throttle:booking-create');
+        Route::post('/bookings',                    [BookingController::class, 'store']);
         Route::get('/bookings/{booking}',           [BookingController::class, 'show']);
         Route::put('/bookings/{booking}/cancel',    [BookingController::class, 'cancel']);
     });
@@ -117,8 +115,7 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // ── Customer: Payments ────────────────────────────────────────
     Route::get('/payments',                     [PaymentController::class, 'index']);
     Route::post('/payments',                    [PaymentController::class, 'store']);
-    Route::post('/payments/initialize',         [PaymentController::class, 'initialize'])
-        ->middleware('throttle:payment-initialize');
+    Route::post('/payments/initialize',         [PaymentController::class, 'initialize']);
     Route::get('/payments/verify/{tx_ref}',     [PaymentController::class, 'verify'])->name('payments.verify');
     Route::get('/payments/{payment}/status',     [PaymentController::class, 'paymentStatus']);
     Route::get('/bookings/{booking}/payment-status', [PaymentController::class, 'bookingPaymentStatus']);
