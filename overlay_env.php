@@ -46,9 +46,9 @@ $vars = [
 ];
 
 foreach ($vars as $var) {
-    $value = getenv($var);
-    if ($value === false || $value === '') {
-        continue; // Don't override with empty — keep .env.example default
+    $value = trim(getenv($var));
+    if ($value === '' || $value === false) {
+        continue;
     }
 
     // Quote values containing spaces to make .env parser happy
