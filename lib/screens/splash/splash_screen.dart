@@ -47,8 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     final curve = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _logoFade =
-        Tween(begin: 0.0, end: 1.0).animate(curve);
+    _logoFade = Tween(begin: 0.0, end: 1.0).animate(curve);
     _logoScale = Tween(begin: 0.86, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
@@ -196,7 +195,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ).animate(_wordmarkSlide),
                       child: Text.rich(
                         TextSpan(
-                          text: 'Apex',
+                          text: 'Abay',
                           style:
                               AppTypography.textTheme.displayMedium?.copyWith(
                             color: AppColors.surface,
@@ -231,8 +230,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       child: Text(
                         'DRIVE PREMIUM',
-                        style:
-                            AppTypography.textTheme.labelSmall?.copyWith(
+                        style: AppTypography.textTheme.labelSmall?.copyWith(
                           color: AppColors.surface.withOpacity(0.85),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

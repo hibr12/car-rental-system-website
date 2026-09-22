@@ -9,6 +9,7 @@ import '../../models/booking_draft.dart';
 import '../../models/branch_model.dart';
 import '../../models/vehicle_model.dart';
 import '../../data/repositories/branch_repository.dart';
+import '../../data/api/api_client.dart';
 import '../../widgets/buttons/app_buttons.dart';
 import 'branch_map_picker_screen.dart';
 import 'components/booking_date_components.dart';
@@ -41,6 +42,10 @@ class _BookingDateScreenState extends State<BookingDateScreen> {
   @override
   void initState() {
     super.initState();
+    // Wake the backend now (it may be cold from inactivity) so the
+    // availability/pricing calls on the summary screen are fast on first try.
+    // Fire-and-forget: navigation must not wait on it.
+    ApiClient.instance.warmUp();
     _prefillHomeBranch();
   }
 

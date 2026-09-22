@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/config/api_endpoints.dart';
 import '../../core/config/app_config.dart';
 import '../models/api_models.dart';
 import 'token_storage.dart';
@@ -63,8 +64,12 @@ class ApiClient {
     final uri = _uri(path, queryParams: queryParams);
     final headers = await _headers();
 
+    // GETs are idempotent, so a single retry is safe. This absorbs the
+    // backend cold start (e.g. Render free tier): the first call wakes the
+    // instance and may time out, the retry then succeeds.
     final response = await _safeRequest(
       () => _httpClient.get(uri, headers: headers),
+      retries: 1,
     );
     return _handleResponse(response);
   }
@@ -147,37 +152,65 @@ class ApiClient {
 
   // ─── Error-safe request wrappers ──────────────────────────────────
 
+  /// Fire-and-forget request that wakes a sleeping backend (e.g. a Render
+  /// free-tier cold start) so the next real request is fast. The response is
+  /// irrelevant — even a 401/404 proves the instance is up — so this never
+  /// throws and should not be awaited by UI navigation.
+  Future<void> warmUp() async {
+    try {
+      await _httpClient
+          .get(_uri(ApiEndpoints.categories), headers: await _headers())
+          .timeout(AppConfig.timeoutDuration);
+    } catch (_) {
+      // Waking the instance is the only goal; ignore every outcome.
+    }
+  }
+
   /// Wraps an [http.Client] call so that network-level failures are
   /// converted into [ApiException]s instead of unhandled [SocketException]s.
+  ///
+  /// [retries] is the number of *additional* attempts made after a timeout.
+  /// Only pass a non-zero value for idempotent requests (GET); retrying a
+  /// POST/PUT could duplicate a side effect on the server.
   Future<http.Response> _safeRequest(
-      Future<http.Response> Function() fn) async {
-    try {
-      return await fn().timeout(AppConfig.timeoutDuration);
-    } on TimeoutException {
-      throw const ApiException(ApiError(
-        statusCode: 0,
-        message:
-            'Request timed out. Please check your connection and try again.',
-        isTimeout: true,
-      ));
-    } on SocketException {
-      throw const ApiException(ApiError(
-        statusCode: 0,
-        message: 'No internet connection. Please check your network.',
-        isNetworkError: true,
-      ));
-    } on HandshakeException {
-      throw const ApiException(ApiError(
-        statusCode: 0,
-        message: 'Unable to connect to the server. Please try again later.',
-        isNetworkError: true,
-      ));
-    } on http.ClientException {
-      throw const ApiException(ApiError(
-        statusCode: 0,
-        message: 'Connection failed. Please check your network settings.',
-        isNetworkError: true,
-      ));
+    Future<http.Response> Function() fn, {
+    int retries = 0,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await fn().timeout(AppConfig.timeoutDuration);
+      } on TimeoutException {
+        if (attempt < retries) {
+          attempt++;
+          // The timed-out call is already waking the backend; retry once.
+          continue;
+        }
+        throw const ApiException(ApiError(
+          statusCode: 0,
+          message:
+              'Request timed out. Please check your connection and try again.',
+          isTimeout: true,
+        ));
+      } on SocketException {
+        throw const ApiException(ApiError(
+          statusCode: 0,
+          message: 'No internet connection. Please check your network.',
+          isNetworkError: true,
+        ));
+      } on HandshakeException {
+        throw const ApiException(ApiError(
+          statusCode: 0,
+          message: 'Unable to connect to the server. Please try again later.',
+          isNetworkError: true,
+        ));
+      } on http.ClientException {
+        throw const ApiException(ApiError(
+          statusCode: 0,
+          message: 'Connection failed. Please check your network settings.',
+          isNetworkError: true,
+        ));
+      }
     }
   }
 
