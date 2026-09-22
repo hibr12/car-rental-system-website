@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Database\Connectors\NeonPostgresConnector;
 use App\Models\Booking;
 use App\Models\Branch;
 use App\Models\Category;
@@ -24,6 +25,8 @@ use App\Policies\UserPolicy;
 use App\Policies\VehiclePolicy;
 use App\Services\ChapaConfigValidator;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Connection;
+use Illuminate\Database\PostgresConnection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,7 +36,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        Connection::resolverFor('neon', function ($connection, $database, $prefix, $config) {
+            $connector = new NeonPostgresConnector();
+            $pdo = $connector->connect($config);
+            
+            return new PostgresConnection(
+                $pdo,
+                $database,
+                $prefix,
+                $config
+            );
+        });
     }
 
     public function boot(): void
