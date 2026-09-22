@@ -28,8 +28,12 @@ services:
         value: database
       - key: LOG_CHANNEL
         value: stack
+      - key: LOG_STACK
+        value: stderr
       - key: LOG_LEVEL
         value: error
+      - key: SESSION_SECURE_COOKIE
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: SANCTUM_STATEFUL_DOMAINS

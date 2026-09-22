@@ -108,7 +108,8 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
         Route::get('/bookings/check-availability',  [BookingController::class, 'checkAvailability']);
         Route::get('/bookings/price-estimate',      [BookingController::class, 'priceEstimate']);
         Route::get('/bookings',                     [BookingController::class, 'index']);
-        Route::post('/bookings',                    [BookingController::class, 'store']);
+        Route::post('/bookings',                    [BookingController::class, 'store'])
+            ->middleware('throttle:booking-create');
         Route::get('/bookings/{booking}',           [BookingController::class, 'show']);
         Route::put('/bookings/{booking}/cancel',    [BookingController::class, 'cancel']);
     });
@@ -116,7 +117,8 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // ── Customer: Payments ────────────────────────────────────────
     Route::get('/payments',                     [PaymentController::class, 'index']);
     Route::post('/payments',                    [PaymentController::class, 'store']);
-    Route::post('/payments/initialize',         [PaymentController::class, 'initialize']);
+    Route::post('/payments/initialize',         [PaymentController::class, 'initialize'])
+        ->middleware('throttle:payment-initialize');
     Route::get('/payments/verify/{tx_ref}',     [PaymentController::class, 'verify'])->name('payments.verify');
     Route::get('/payments/{payment}/status',     [PaymentController::class, 'paymentStatus']);
     Route::get('/bookings/{booking}/payment-status', [PaymentController::class, 'bookingPaymentStatus']);
@@ -343,39 +345,5 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
 
     Route::get('/reports/revenue', [ReportController::class, 'companyRevenue'])
         ->middleware(['role:admin']);
-
-    // TEMPORARY DEBUG — remove after
-    Route::get('/_debug-chapa', function (\Illuminate\Http\Request $request) {
-        $key = config('services.chapa.secret_key');
-        $baseUrl = config('services.chapa.base_url');
-        $email = $request->query('email', 'debug@test.com');
-
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => 'Bearer ' . $key,
-            'Content-Type' => 'application/json',
-        ])->timeout(30)->post($baseUrl . '/v1/transaction/initialize', [
-            'tx_ref' => 'debug-test-' . time(),
-            'amount' => '100.00',
-            'currency' => 'ETB',
-            'email' => $email,
-            'first_name' => 'Debug',
-            'last_name' => 'Test',
-            'callback_url' => 'https://example.com/callback',
-            'return_url' => 'https://example.com/return',
-            'customization' => [
-                'title' => 'Debug Test',
-                'description' => 'Debug',
-            ],
-        ]);
-
-        return response()->json([
-            'mode' => config('services.chapa.mode'),
-            'key_length' => strlen($key),
-            'key_prefix' => substr($key, 0, 15),
-            'email_sent' => $email,
-            'http_status' => $response->status(),
-            'chapa_response' => $response->json(),
-        ]);
-    })->middleware('role:admin');
 
 });
