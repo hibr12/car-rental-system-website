@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('ApexRentalsApp smoke test', (WidgetTester tester) async {
+  testWidgets('AbayCarRentalsApp smoke test', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
 
-    await tester.pumpWidget(const ApexRentalsApp());
-    expect(find.byType(ApexRentalsApp), findsOneWidget);
+    await tester.pumpWidget(const AbayCarRentalsApp());
+    expect(find.byType(AbayCarRentalsApp), findsOneWidget);
 
     // Let the splash screen's minimum-display timer fire and the router
     // settle on its destination (onboarding for a fresh install).
