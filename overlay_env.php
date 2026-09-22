@@ -51,8 +51,11 @@ foreach ($vars as $var) {
         continue; // Don't override with empty — keep .env.example default
     }
 
-    // Escape value for safe .env insertion (wrap in double quotes if needed)
+    // Quote values containing spaces to make .env parser happy
     $escapedValue = $value;
+    if (preg_match('/\s/', $value) && !str_starts_with($value, '"')) {
+        $escapedValue = '"' . $value . '"';
+    }
 
     $pattern = '/^' . preg_quote($var, '/') . '=.*$/m';
 
