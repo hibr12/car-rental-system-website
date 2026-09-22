@@ -69,7 +69,7 @@ class DriverLicenseTest extends TestCase
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -118,7 +118,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -135,7 +135,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -152,7 +152,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYears(5)->toDateString(),
@@ -169,7 +169,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -186,7 +186,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-12345678',
+                'document_number'   => 'ETH-12345678',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -278,7 +278,7 @@ class DriverLicenseTest extends TestCase
     {
         $license = DriverLicense::create([
             'user_id'           => $this->customer->id,
-            'license_number'    => 'ETH-EXPIRE',
+            'document_number'    => 'ETH-EXPIRE',
             'full_name'         => $this->customer->name,
             'license_category'  => DriverLicense::CATEGORY_AUTOMOBILE,
             'issue_date'        => now()->subYears(5)->toDateString(),
@@ -295,7 +295,7 @@ class DriverLicenseTest extends TestCase
     {
         DriverLicense::create([
             'user_id'           => $this->customer->id,
-            'license_number'    => 'ETH-EXPIRE',
+            'document_number'    => 'ETH-EXPIRE',
             'full_name'         => $this->customer->name,
             'license_category'  => DriverLicense::CATEGORY_AUTOMOBILE,
             'issue_date'        => now()->subYears(5)->toDateString(),
@@ -323,7 +323,7 @@ class DriverLicenseTest extends TestCase
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-NEW-999',
+                'document_number'   => 'ETH-NEW-999',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -346,7 +346,7 @@ class DriverLicenseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/customer/license', [
-                'license_number'   => 'ETH-REPLACEMENT',
+                'document_number'   => 'ETH-REPLACEMENT',
                 'full_name'        => $this->customer->name,
                 'license_category' => 'automobile',
                 'issue_date'       => now()->subYear()->toDateString(),
@@ -416,7 +416,7 @@ class DriverLicenseTest extends TestCase
         // Customer has motorcycle license, vehicle requires automobile.
         DriverLicense::create([
             'user_id'           => $this->customer->id,
-            'license_number'    => 'MOTO-001',
+            'document_number'    => 'MOTO-001',
             'full_name'         => $this->customer->name,
             'license_category'  => DriverLicense::CATEGORY_MOTORCYCLE,
             'issue_date'        => now()->subYear()->toDateString(),
@@ -435,7 +435,7 @@ class DriverLicenseTest extends TestCase
     {
         DriverLicense::create([
             'user_id'           => $this->customer->id,
-            'license_number'    => 'COM-001',
+            'document_number'    => 'COM-001',
             'full_name'         => $this->customer->name,
             'license_category'  => DriverLicense::CATEGORY_COMMERCIAL,
             'issue_date'        => now()->subYear()->toDateString(),
@@ -641,7 +641,7 @@ class DriverLicenseTest extends TestCase
         Notification::fake();
 
         $this->licenseService->submit([
-            'license_number'   => 'ETH-99887766',
+            'document_number'   => 'ETH-99887766',
             'full_name'        => $this->customer->name,
             'license_category' => 'automobile',
             'issue_date'       => now()->subYear()->toDateString(),
@@ -672,7 +672,7 @@ class DriverLicenseTest extends TestCase
     {
         return DriverLicense::create([
             'user_id'           => $customer->id,
-            'license_number'    => 'TEST-' . rand(10000, 99999),
+            'document_number'    => 'TEST-' . rand(10000, 99999),
             'full_name'         => $customer->name,
             'license_category'  => DriverLicense::CATEGORY_AUTOMOBILE,
             'issue_date'        => now()->subYear()->toDateString(),
@@ -690,7 +690,7 @@ class DriverLicenseTest extends TestCase
 
         return DriverLicense::create([
             'user_id'              => $customer->id,
-            'license_number'       => 'DOCS-' . rand(10000, 99999),
+            'document_number'       => 'DOCS-' . rand(10000, 99999),
             'full_name'            => $customer->name,
             'license_category'     => DriverLicense::CATEGORY_AUTOMOBILE,
             'issue_date'           => now()->subYear()->toDateString(),

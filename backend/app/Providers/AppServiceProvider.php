@@ -75,6 +75,25 @@ class AppServiceProvider extends ServiceProvider
                 ], 429));
         });
 
+        // Generous ceilings — meant to stop abuse/retry storms, not normal use.
+        RateLimiter::for('booking-create', function (Request $request) {
+            return Limit::perMinute(20)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many booking attempts. Please wait a minute and try again.',
+                ], 429));
+        });
+
+        RateLimiter::for('payment-initialize', function (Request $request) {
+            return Limit::perMinute(15)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many payment attempts. Please wait a minute and try again.',
+                ], 429));
+        });
+
         // Validate Chapa configuration at boot so misconfigured environments
         // fail loudly instead of silently using wrong credentials.
         // In 'live' mode, missing or test-looking keys throw immediately.

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Booking;
-use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\ContactMessage;
@@ -194,7 +193,24 @@ class DatabaseSeeder extends Seeder
         );
 
         if (User::where('role', User::ROLE_CUSTOMER)->count() < 5) {
-            User::factory()->count(5)->customer()->create();
+            $customerNames = [
+                ['name' => 'Abebe Kebede', 'email' => 'abebe@example.com', 'phone' => '+251 91 111 2233'],
+                ['name' => 'Fatima Hassan', 'email' => 'fatima@example.com', 'phone' => '+251 92 222 3344'],
+                ['name' => 'Daniel Tadesse', 'email' => 'daniel@example.com', 'phone' => '+251 93 333 4455'],
+                ['name' => 'Sara Mengistu', 'email' => 'sara@example.com', 'phone' => '+251 94 444 5566'],
+                ['name' => 'Yonas Girma', 'email' => 'yonas@example.com', 'phone' => '+251 95 555 6677'],
+            ];
+            foreach ($customerNames as $customer) {
+                User::updateOrCreate(
+                    ['email' => $customer['email']],
+                    [
+                        'name' => $customer['name'],
+                        'password' => 'password',
+                        'phone' => $customer['phone'],
+                        'role' => User::ROLE_CUSTOMER,
+                    ]
+                );
+            }
         }
     }
 
@@ -257,8 +273,6 @@ class DatabaseSeeder extends Seeder
 
         foreach ($vehicles as $vehicleData) {
             $category = $categories[$vehicleData['category_slug']] ?? $categories->first();
-            $branchLocation = $vehicleData['location'] ?? 'Main Branch';
-            $branchId = $branchMap[$branchLocation] ?? $mainBranch?->id;
             unset($vehicleData['category_slug']);
 
             $location = $vehicleData['location'];
@@ -481,9 +495,13 @@ class DatabaseSeeder extends Seeder
                 'vehicle_id' => $booking->vehicle_id,
                 'booking_id' => $booking->id,
                 'branch_id' => $booking->branch_id,
-                'rating' => $rating,
+                'overall_rating' => $rating,
+                'vehicle_rating' => $rating,
+                'cleanliness_rating' => $rating,
+                'staff_rating' => $rating,
+                'value_rating' => $rating,
                 'comment' => $comments[array_rand($comments)],
-                'status' => 'approved',
+                'status' => 'published',
             ]);
         }
     }
