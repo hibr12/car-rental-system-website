@@ -68,11 +68,7 @@ class ChapaService
                 'response' => $errorData,
             ]);
 
-            $message = is_string($errorData['message'] ?? null)
-                ? $errorData['message']
-                : 'Payment initialization failed. Please try again later.';
-
-            throw new \RuntimeException($message);
+            throw new \RuntimeException($this->extractGatewayMessage($errorData, $response->status()));
         }
 
         $data = $response->json();
@@ -93,6 +89,34 @@ class ChapaService
             'checkout_url' => $data['data']['checkout_url'],
             'tx_ref' => $payload['tx_ref'],
         ];
+    }
+
+    /**
+     * Build a human-readable message from a Chapa error payload.
+     * Chapa returns validation errors as an array under `message`
+     * (e.g. {"message":{"email":["validation.email"]}}), which must be
+     * flattened instead of discarded.
+     */
+    private function extractGatewayMessage(array $errorData, int $status): string
+    {
+        $message = $errorData['message'] ?? null;
+
+        if (is_string($message) && trim($message) !== '') {
+            return $message;
+        }
+
+        if (is_array($message)) {
+            $parts = [];
+            foreach ($message as $field => $errors) {
+                $errors = is_array($errors) ? $errors : [$errors];
+                $parts[] = $field . ': ' . implode(', ', array_map('strval', $errors));
+            }
+            if ($parts) {
+                return 'Chapa rejected the request (' . $status . ') — ' . implode(' | ', $parts);
+            }
+        }
+
+        return 'Payment initialization failed (HTTP ' . $status . '). Please try again later.';
     }
 
     /**

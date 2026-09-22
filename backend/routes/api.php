@@ -345,9 +345,10 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
         ->middleware(['role:admin']);
 
     // TEMPORARY DEBUG — remove after
-    Route::get('/_debug-chapa', function () {
+    Route::get('/_debug-chapa', function (\Illuminate\Http\Request $request) {
         $key = config('services.chapa.secret_key');
         $baseUrl = config('services.chapa.base_url');
+        $email = $request->query('email', 'debug@test.com');
 
         $response = \Illuminate\Support\Facades\Http::withHeaders([
             'Authorization' => 'Bearer ' . $key,
@@ -356,7 +357,7 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
             'tx_ref' => 'debug-test-' . time(),
             'amount' => '100.00',
             'currency' => 'ETB',
-            'email' => 'debug@test.com',
+            'email' => $email,
             'first_name' => 'Debug',
             'last_name' => 'Test',
             'callback_url' => 'https://example.com/callback',
@@ -371,6 +372,7 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
             'mode' => config('services.chapa.mode'),
             'key_length' => strlen($key),
             'key_prefix' => substr($key, 0, 15),
+            'email_sent' => $email,
             'http_status' => $response->status(),
             'chapa_response' => $response->json(),
         ]);
