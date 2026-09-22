@@ -347,11 +347,32 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // TEMPORARY DEBUG — remove after
     Route::get('/_debug-chapa', function () {
         $key = config('services.chapa.secret_key');
+        $baseUrl = config('services.chapa.base_url');
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $key,
+            'Content-Type' => 'application/json',
+        ])->timeout(30)->post($baseUrl . '/v1/transaction/initialize', [
+            'tx_ref' => 'debug-test-' . time(),
+            'amount' => '100.00',
+            'currency' => 'ETB',
+            'email' => 'debug@test.com',
+            'first_name' => 'Debug',
+            'last_name' => 'Test',
+            'callback_url' => 'https://example.com/callback',
+            'return_url' => 'https://example.com/return',
+            'customization' => [
+                'title' => 'Debug Test',
+                'description' => 'Debug',
+            ],
+        ]);
+
         return response()->json([
             'mode' => config('services.chapa.mode'),
             'key_length' => strlen($key),
-            'key_full' => $key,
-            'base_url' => config('services.chapa.base_url'),
+            'key_prefix' => substr($key, 0, 15),
+            'http_status' => $response->status(),
+            'chapa_response' => $response->json(),
         ]);
     })->middleware('role:admin');
 
