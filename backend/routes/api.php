@@ -344,4 +344,32 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     Route::get('/reports/revenue', [ReportController::class, 'companyRevenue'])
         ->middleware(['role:admin']);
 
+    // TEMPORARY: seed demo data — remove after first run
+    Route::post('/_seed-demo', function () {
+        $users = \App\Models\User::where('role', 'customer')->get();
+        $created = 0;
+        foreach ($users as $user) {
+            $existing = \App\Models\DriverLicense::where('user_id', $user->id)->first();
+            if (!$existing) {
+                \App\Models\DriverLicense::create([
+                    'user_id' => $user->id,
+                    'document_type' => 'driver_license',
+                    'document_number' => 'ETH-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'full_name' => $user->name,
+                    'license_category' => 'automobile',
+                    'issue_date' => '2024-01-15',
+                    'expiry_date' => '2029-01-15',
+                    'issuing_authority' => 'Ethiopian Transport Authority',
+                    'front_document_path' => 'demo/front.jpg',
+                    'back_document_path' => 'demo/back.jpg',
+                    'status' => 'verified',
+                    'submitted_at' => now(),
+                    'verified_at' => now(),
+                ]);
+                $created++;
+            }
+        }
+        return response()->json(['success' => true, 'message' => "Created $created verified licenses"]);
+    })->middleware('role:admin');
+
 });
