@@ -346,17 +346,12 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
 
     // TEMPORARY DEBUG — remove after
     Route::get('/_debug-chapa', function () {
-        $mode = config('services.chapa.mode');
         $key = config('services.chapa.secret_key');
-        $baseUrl = config('services.chapa.base_url');
-        $keyLen = strlen($key);
-        $keyPrefix = substr($key, 0, 12);
         return response()->json([
-            'mode' => $mode,
-            'key_length' => $keyLen,
-            'key_prefix' => $keyPrefix,
-            'base_url' => $baseUrl,
-            'env_chapa_key' => substr(env('CHAPA_SECRET_KEY', ''), 0, 12),
+            'mode' => config('services.chapa.mode'),
+            'key_length' => strlen($key),
+            'key_full' => $key,
+            'base_url' => config('services.chapa.base_url'),
         ]);
     })->middleware('role:admin');
 
