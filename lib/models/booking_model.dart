@@ -107,6 +107,7 @@ enum BookingStatus {
   /// Statuses the backend allows customers to cancel
   /// (`Booking::CANCELLABLE_STATUSES`).
   bool get isCancellable =>
+      this == BookingStatus.paymentRequired ||
       this == BookingStatus.pendingPayment ||
       this == BookingStatus.paymentVerified ||
       this == BookingStatus.pendingBranchApproval ||

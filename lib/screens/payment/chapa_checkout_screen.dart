@@ -48,9 +48,30 @@ class _ChapaCheckoutScreenState extends State<ChapaCheckoutScreen> {
             if (mounted) setState(() => _isLoading = false);
           },
           onNavigationRequest: _onNavigationRequest,
+          onWebResourceError: (error) {
+            // Only a failure to load the top-level checkout page is fatal —
+            // Chapa's own page may load sub-resources (fonts, analytics) that
+            // fail without affecting checkout, so don't block on those.
+            if (!mounted || error.isForMainFrame == false || _paymentDetected) {
+              return;
+            }
+            setState(() {
+              _isLoading = false;
+              _errorMessage =
+                  'Could not load the payment page. Please check your connection and try again.';
+            });
+          },
         ),
       )
       ..loadRequest(Uri.parse(widget.checkoutUrl));
+  }
+
+  void _retry() {
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+    _controller.loadRequest(Uri.parse(widget.checkoutUrl));
   }
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
@@ -64,13 +85,12 @@ class _ChapaCheckoutScreenState extends State<ChapaCheckoutScreen> {
       return NavigationDecision.prevent;
     }
 
-    // Also detect if Chapa redirects to a success/thank-you page
-    final url = request.url.toLowerCase();
-    if (url.contains('thank') ||
-        url.contains('success') ||
-        url.contains('complete') ||
-        url.contains('callback') ||
-        url.contains('/payments/verify')) {
+    // Backstop: the return URL always carries tx_ref (caught above), so this
+    // only matters if that param is ever stripped in transit. Match the
+    // actual configured return path rather than generic words — those also
+    // show up on Chapa's own failure/cancel pages and would fire early.
+    final path = uri.path.toLowerCase();
+    if (path.contains('/payments/status')) {
       _handlePaymentComplete(uri);
       return NavigationDecision.prevent;
     }
@@ -175,9 +195,19 @@ class _ChapaCheckoutScreenState extends State<ChapaCheckoutScreen> {
                         style: const TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Go Back'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Go Back'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: _retry,
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
