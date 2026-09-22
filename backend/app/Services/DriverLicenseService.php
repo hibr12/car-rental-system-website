@@ -457,7 +457,16 @@ class DriverLicenseService
 
     private function licenseDisk(): string
     {
-        return config('services.cloudinary.enabled') ? 'cloudinary' : 'local';
+        if (!config('services.cloudinary.enabled')) {
+            // Local disk on Render is wiped on every redeploy — license photos
+            // stored here won't survive. Not changing behavior, just making
+            // sure this doesn't fail silently if Cloudinary was meant to be on.
+            Log::warning('Cloudinary disabled — storing license document on ephemeral local disk.');
+
+            return 'local';
+        }
+
+        return 'cloudinary';
     }
 
     /**
