@@ -15,7 +15,7 @@ trait HasVerifiedLicense
     {
         return DriverLicense::create([
             'user_id'             => $customer->id,
-            'license_number'      => 'TEST-' . rand(10000, 99999),
+            'document_number'     => 'TEST-' . rand(10000, 99999),
             'full_name'           => $customer->name,
             'license_category'    => DriverLicense::CATEGORY_AUTOMOBILE,
             'issue_date'          => now()->subYear()->toDateString(),
