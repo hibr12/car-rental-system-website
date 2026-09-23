@@ -23,8 +23,8 @@ class UserResource extends JsonResource
                 'code' => $this->branch->code,
             ]),
             'email_verified_at' => $this->email_verified_at?->toISOString(),
-            'created_at'        => $this->created_at->toISOString(),
-            'updated_at'        => $this->updated_at->toISOString(),
+            'created_at'        => $this->created_at?->toISOString(),
+            'updated_at'        => $this->updated_at?->toISOString(),
         ];
     }
 }

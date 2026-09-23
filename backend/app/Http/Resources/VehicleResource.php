@@ -64,8 +64,8 @@ class VehicleResource extends JsonResource
             'category' => new CategoryResource($this->whenLoaded('category')),
             'images' => VehicleImageResource::collection($this->whenLoaded('images')),
             'primary_image' => new VehicleImageResource($this->whenLoaded('primaryImage')),
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

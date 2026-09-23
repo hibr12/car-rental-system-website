@@ -64,8 +64,8 @@ class ReviewResource extends JsonResource
                 'id' => $this->adminResponder->id,
                 'name' => $this->adminResponder->name,
             ] : null),
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }
