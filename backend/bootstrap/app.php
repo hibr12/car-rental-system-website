@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'optional.auth' => \App\Http\Middleware\OptionalSanctumAuth::class,
         ]);
 
+        // Render terminates TLS at its edge and forwards plain HTTP with
+        // X-Forwarded-* headers — trust it so scheme/secure detection works.
+        $middleware->trustProxies(at: '*');
+
         $middleware->statefulApi();
 
         $middleware->redirectGuestsTo(function ($request) {

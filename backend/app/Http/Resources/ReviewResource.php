@@ -15,7 +15,7 @@ class ReviewResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'user' => $this->when($isAdmin || $isOwner, fn () => new UserResource($this->whenLoaded('user'))),
+            'user' => new UserResource($this->whenLoaded('user')),
             'customer' => $this->when($isAdmin, fn () => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

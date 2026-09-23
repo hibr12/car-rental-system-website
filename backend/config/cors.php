@@ -22,9 +22,11 @@ return [
         env('FRONTEND_URL_2', 'http://localhost:3000'),
     ],
 
-    'allowed_origins_patterns' => [
+    // Unset → no pattern. A null/empty entry makes preg_match() warn, which
+    // Laravel turns into a 500 for every request from a non-listed origin.
+    'allowed_origins_patterns' => array_values(array_filter([
         env('FRONTEND_URL_PATTERN'),
-    ],
+    ])),
 
     'allowed_headers' => ['*'],
 

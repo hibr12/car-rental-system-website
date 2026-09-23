@@ -43,6 +43,19 @@ class DriverLicenseService
 
         $documentType = $data['document_type'] ?? DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
 
+        // Prevent duplicate submissions — if user already has a pending review license, return it
+        $existingPending = DriverLicense::where('user_id', $customer->id)
+            ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
+            ->first();
+
+        if ($existingPending) {
+            Log::info('[DriverLicense] Duplicate submission blocked — returning existing pending license', [
+                'license_id' => $existingPending->id,
+                'customer_id' => $customer->id,
+            ]);
+            return $existingPending;
+        }
+
         return DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType) {
             // Mark any existing active license as replaced.
             $previous = $this->getActiveLicense($customer);
@@ -72,10 +85,6 @@ class DriverLicenseService
                 'submitted_at'      => now(),
                 'replaced_by'       => null,
             ]);
-
-            if ($previous) {
-                $previous->update(['replaced_by' => $license->id]);
-            }
 
             if ($previous) {
                 $previous->update(['replaced_by' => $license->id]);
@@ -448,7 +457,16 @@ class DriverLicenseService
 
     private function licenseDisk(): string
     {
-        return config('services.cloudinary.enabled') ? 'cloudinary' : 'local';
+        if (!config('services.cloudinary.enabled')) {
+            // Local disk on Render is wiped on every redeploy — license photos
+            // stored here won't survive. Not changing behavior, just making
+            // sure this doesn't fail silently if Cloudinary was meant to be on.
+            Log::warning('Cloudinary disabled — storing license document on ephemeral local disk.');
+
+            return 'local';
+        }
+
+        return 'cloudinary';
     }
 
     /**

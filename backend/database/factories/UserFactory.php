@@ -70,11 +70,4 @@ class UserFactory extends Factory
             'role' => User::ROLE_FLEET_MANAGER,
         ]);
     }
-
-    public function branchManager(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'branch_manager',
-        ]);
-    }
 }

@@ -11,9 +11,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Drop the existing check constraint first
-        DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check');
-        
+        $driver = DB::connection()->getDriverName();
+
+        // Drop the existing check constraint first (Postgres only — sqlite has no such constraint).
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check');
+        }
+
         Schema::table('bookings', function (Blueprint $table) {
             if (!Schema::hasColumn('bookings', 'admin_approval_required')) {
                 $table->boolean('admin_approval_required')->default(false)->after('admin_approval_status');
@@ -87,9 +91,11 @@ return new class extends Migration
         });
 
         $this->normalizeLegacyBookings();
-        
-        // Add new check constraint with updated allowed values
-        DB::statement("ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled', 'rejected', 'pending_payment', 'payment_verified', 'pending_branch_approval', 'pending_admin_approval', 'branch_review', 'ready_for_pickup', 'return_pending', 'expired'))");
+
+        // Add new check constraint with updated allowed values (Postgres only).
+        if ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled', 'rejected', 'pending_payment', 'payment_verified', 'pending_branch_approval', 'pending_admin_approval', 'branch_review', 'ready_for_pickup', 'return_pending', 'expired'))");
+        }
     }
 
     private function normalizeLegacyBookings(): void
@@ -236,8 +242,10 @@ return new class extends Migration
             }
         });
         
-        // Restore original check constraint
-        DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check');
-        DB::statement("ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled', 'rejected'))");
+        // Restore original check constraint (Postgres only).
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check');
+            DB::statement("ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled', 'rejected'))");
+        }
     }
 };

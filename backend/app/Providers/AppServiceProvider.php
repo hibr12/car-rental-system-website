@@ -40,11 +40,14 @@ class AppServiceProvider extends ServiceProvider
             $connector = new NeonPostgresConnector();
             $pdo = $connector->connect($config);
             
+            // Report as 'pgsql' — it IS Postgres. Code that branches on
+            // getDriverName() (advisory lock, report SQL, pgsql-only
+            // migrations) would otherwise fall through to MySQL syntax.
             return new PostgresConnection(
                 $pdo,
                 $database,
                 $prefix,
-                $config
+                array_merge($config, ['driver' => 'pgsql'])
             );
         });
     }
@@ -85,6 +88,25 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => response()->json([
                     'success' => false,
                     'message' => 'Too many requests. Please try again later.',
+                ], 429));
+        });
+
+        // Generous ceilings — meant to stop abuse/retry storms, not normal use.
+        RateLimiter::for('booking-create', function (Request $request) {
+            return Limit::perMinute(20)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many booking attempts. Please wait a minute and try again.',
+                ], 429));
+        });
+
+        RateLimiter::for('payment-initialize', function (Request $request) {
+            return Limit::perMinute(15)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(fn () => response()->json([
+                    'success' => false,
+                    'message' => 'Too many payment attempts. Please wait a minute and try again.',
                 ], 429));
         });
 
