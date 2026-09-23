@@ -23,16 +23,15 @@ COPY . .
 # Complete composer (run scripts, generate autoloader)
 RUN composer dump-autoload --optimize
 
-# Laravel optimizations
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Copy and setup entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Storage permissions
+# Storage permissions (base)
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-# Use PORT env var from Render
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
+# Use entrypoint for production commands
+ENTRYPOINT ["docker-entrypoint.sh"]
