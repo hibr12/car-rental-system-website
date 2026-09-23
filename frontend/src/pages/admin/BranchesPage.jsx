@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Building2, Plus, Edit2, ToggleLeft, ToggleRight,
-  MapPin, Phone, Mail, Users, Loader2, X, Check, ArrowRightLeft,
-  Car, Wrench, DollarSign, TrendingUp
-} from 'lucide-react';
+import { Building2, Plus, Edit2, ToggleLeft, ToggleRight, MapPin, Phone, Mail, Users, Loader2, X, Check, ArrowRightLeft } from 'lucide-react';
 import adminApi from '../../api/adminApi';
 import { formatCurrency } from '../../utils/formatters';
 import {

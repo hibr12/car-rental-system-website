@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ShieldCheck, ShieldX, Clock, AlertTriangle, Eye, CheckCircle2,
-  Search, Filter, ChevronDown, Loader2, X, FileText,
-} from 'lucide-react';
+import { ShieldCheck, ShieldX, Clock, AlertTriangle, Eye, Search, Loader2, X, FileText } from 'lucide-react';
 import { licenseApi } from '../../api/licenseApi';
 import { useToast } from '../../components/common/Toast';
 import LicenseDocumentButton from '../../components/shared/LicenseDocumentButton';

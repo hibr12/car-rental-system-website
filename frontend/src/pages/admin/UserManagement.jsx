@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Shield, UserCheck, Wrench, User as UserIcon, Edit } from 'lucide-react';
+import { Users, Edit } from 'lucide-react';
 import adminApi from '../../api/adminApi';
-import { formatDate, formatDateTime, getRoleBadgeStyle, formatStatus } from '../../utils/formatters';
+import { formatDateTime, getRoleBadgeStyle, formatStatus } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Car, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { Car, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { getPortalHome } from '../../utils/roles';
 import useAuthStore from '../../store/authStore';
 import { useToast } from '../../components/common/Toast';

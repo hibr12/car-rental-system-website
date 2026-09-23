@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Wrench, Calendar, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { Plus, Wrench, Edit, Trash2 } from 'lucide-react';
 import maintenanceApi from '../../api/maintenanceApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';

@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  CreditCard,
-  Wallet,
-  ArrowLeft,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  ShieldCheck,
-  Banknote,
-  Globe,
-  ExternalLink,
-} from 'lucide-react';
+import { CreditCard, ArrowLeft, Loader2, CheckCircle2, AlertCircle, ShieldCheck, Banknote, Globe, ExternalLink } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import paymentApi from '../../api/paymentApi';
 import useAuthStore from '../../store/authStore';

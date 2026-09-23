@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, AlertCircle, CheckCircle, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import bookingApi from '../../api/bookingApi';
 import { formatCurrency } from '../../utils/formatters';

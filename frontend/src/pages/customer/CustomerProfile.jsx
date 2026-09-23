@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, Save, ShieldCheck } from 'lucide-react';
+import { User, Mail, Phone, Save } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { useToast } from '../../components/common/Toast';
 

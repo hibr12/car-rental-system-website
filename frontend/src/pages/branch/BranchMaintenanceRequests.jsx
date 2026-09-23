@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, Plus, Loader2 } from 'lucide-react';
+import { Wrench, Plus } from 'lucide-react';
 import branchApi from '../../api/branchApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
 import {

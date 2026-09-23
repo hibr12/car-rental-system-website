@@ -1,43 +1,45 @@
 import React, { useEffect, useRef, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from './components/common/Toast';
 import { onUnauthorized } from './api/client';
+import useRouteTitle from './utils/usePageTitle';
 
+import PageLoader from './components/common/PageLoader';
 import PortalGate from './app/guards/PortalGate';
 import ProtectedRoute from './app/guards/ProtectedRoute';
 
 import CustomerLayout from './layouts/CustomerLayout';
-import AdminLayout from './layouts/AdminLayout';
-import ManagerLayout from './layouts/ManagerLayout';
-import BranchLayout from './layouts/BranchLayout';
-import FleetLayout from './layouts/FleetLayout';
-import StaffLayout from './layouts/StaffLayout';
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const ManagerLayout = lazy(() => import('./layouts/ManagerLayout'));
+const BranchLayout = lazy(() => import('./layouts/BranchLayout'));
+const FleetLayout = lazy(() => import('./layouts/FleetLayout'));
+const StaffLayout = lazy(() => import('./layouts/StaffLayout'));
 
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
 
 import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
 import VehicleDetailPage from './pages/public/VehicleDetailPage';
 import ContactPage from './pages/public/ContactPage';
-import LegalPage from './pages/public/legal/LegalPage';
+const LegalPage = lazy(() => import('./pages/public/legal/LegalPage'));
 
-import CustomerDashboard from './pages/customer/CustomerDashboard';
-import CustomerBookings from './pages/customer/CustomerBookings';
-import BookingDetailPage from './pages/customer/BookingDetailPage';
-import CustomerProfile from './pages/customer/CustomerProfile';
-import CustomerReviews from './pages/customer/CustomerReviews';
-import BookingReviewPage from './pages/customer/BookingReviewPage';
-import CustomerPayments from './pages/customer/CustomerPayments';
-import NotificationsPage from './pages/customer/NotificationsPage';
-import { DriverLicensePage } from './pages/customer/DriverLicensePage';
-import { LicenseReviewPage } from './pages/admin/LicenseReviewPage';
+const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
+const CustomerBookings = lazy(() => import('./pages/customer/CustomerBookings'));
+const BookingDetailPage = lazy(() => import('./pages/customer/BookingDetailPage'));
+const CustomerProfile = lazy(() => import('./pages/customer/CustomerProfile'));
+const CustomerReviews = lazy(() => import('./pages/customer/CustomerReviews'));
+const BookingReviewPage = lazy(() => import('./pages/customer/BookingReviewPage'));
+const CustomerPayments = lazy(() => import('./pages/customer/CustomerPayments'));
+const NotificationsPage = lazy(() => import('./pages/customer/NotificationsPage'));
+const DriverLicensePage = lazy(() => import('./pages/customer/DriverLicensePage'));
+const LicenseReviewPage = lazy(() => import('./pages/admin/LicenseReviewPage'));
 
-import CheckoutPage from './pages/payment/CheckoutPage';
-import PaymentStatusPage from './pages/payment/PaymentStatusPage';
-import BookingConfirmationPage from './pages/payment/BookingConfirmationPage';
+const CheckoutPage = lazy(() => import('./pages/payment/CheckoutPage'));
+const PaymentStatusPage = lazy(() => import('./pages/payment/PaymentStatusPage'));
+const BookingConfirmationPage = lazy(() => import('./pages/payment/BookingConfirmationPage'));
 
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const VehicleManagement = lazy(() => import('./pages/admin/VehicleManagement'));
@@ -59,24 +61,24 @@ const VehicleTransfersPage = lazy(() => import('./pages/admin/VehicleTransfersPa
 const StaffManagementPage = lazy(() => import('./pages/admin/StaffManagementPage'));
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
 
-import BranchDashboard from './pages/branch/BranchDashboard';
-import BranchRentalsPage from './pages/branch/BranchRentalsPage';
-import BranchMaintenanceRequests from './pages/branch/BranchMaintenanceRequests';
-import BranchCustomers from './pages/branch/BranchCustomers';
+const BranchDashboard = lazy(() => import('./pages/branch/BranchDashboard'));
+const BranchRentalsPage = lazy(() => import('./pages/branch/BranchRentalsPage'));
+const BranchMaintenanceRequests = lazy(() => import('./pages/branch/BranchMaintenanceRequests'));
+const BranchCustomers = lazy(() => import('./pages/branch/BranchCustomers'));
 
-import FleetDashboard from './pages/fleet/FleetDashboard';
-import FleetVehicles from './pages/fleet/FleetVehicles';
-import FleetMaintenance from './pages/fleet/FleetMaintenance';
-import FleetReports from './pages/fleet/FleetReports';
-import FleetInspections from './pages/fleet/FleetInspections';
-import FleetDocuments from './pages/fleet/FleetDocuments';
-import FleetDamage from './pages/fleet/FleetDamage';
+const FleetDashboard = lazy(() => import('./pages/fleet/FleetDashboard'));
+const FleetVehicles = lazy(() => import('./pages/fleet/FleetVehicles'));
+const FleetMaintenance = lazy(() => import('./pages/fleet/FleetMaintenance'));
+const FleetReports = lazy(() => import('./pages/fleet/FleetReports'));
+const FleetInspections = lazy(() => import('./pages/fleet/FleetInspections'));
+const FleetDocuments = lazy(() => import('./pages/fleet/FleetDocuments'));
+const FleetDamage = lazy(() => import('./pages/fleet/FleetDamage'));
 
-import StaffDashboard from './pages/staff/StaffDashboard';
-import StaffBookings from './pages/staff/StaffBookings';
+const StaffDashboard = lazy(() => import('./pages/staff/StaffDashboard'));
+const StaffBookings = lazy(() => import('./pages/staff/StaffBookings'));
 
 import PortalNotFound from './pages/shared/PortalNotFound';
-import ManagementLoginPage from './pages/auth/ManagementLoginPage';
+const ManagementLoginPage = lazy(() => import('./pages/auth/ManagementLoginPage'));
 import LegacyBranchRedirect from './app/redirects/LegacyBranchRedirect';
 
 import useAuthStore from './store/authStore';
@@ -113,6 +115,11 @@ function SessionWatcher() {
   return null;
 }
 
+function RouteTitle() {
+  useRouteTitle();
+  return null;
+}
+
 function App() {
   const { initAuth } = useAuthStore();
 
@@ -123,7 +130,8 @@ function App() {
   return (
     <BrowserRouter>
       <SessionWatcher />
-      <Suspense fallback={<div className="p-8 text-sm text-theme-muted">Loading...</div>}>
+      <RouteTitle />
+      <Suspense fallback={<PageLoader fullScreen />}>
       <Routes>
 
         {/* ═══ CUSTOMER / PUBLIC ═══ */}

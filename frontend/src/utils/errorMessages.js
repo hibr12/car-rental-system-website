@@ -80,8 +80,6 @@ export const FIELD_LABELS = {
   admin_response: 'Admin response',
   maintenance_type: 'Maintenance type',
   cost: 'Cost',
-  start_date: 'Start date',
-  end_date: 'End date',
   additional_charges: 'Additional charges',
   discount: 'Discount',
 };

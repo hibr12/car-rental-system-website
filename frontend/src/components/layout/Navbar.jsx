@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import {
-  Car, Menu, X, User, LogOut, LayoutDashboard, Shield, Wrench,
-  UserCheck, ChevronDown, Sun, Moon, Search, Settings
-} from 'lucide-react';
+import { Car, Menu, X, LogOut, LayoutDashboard, Shield, Wrench, UserCheck, ChevronDown, Sun, Moon, Search, Settings } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
 import NotificationBell from '../common/NotificationBell';

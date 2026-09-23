@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Car, AlertCircle, Filter } from 'lucide-react';
+import { Car, AlertCircle } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import branchApi from '../../api/branchesApi';

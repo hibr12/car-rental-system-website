@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import PageLoader from '../components/common/PageLoader';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 
@@ -13,7 +14,9 @@ export const CustomerLayout = () => {
       {/* Spacer for fixed navbar — hero handles its own pt-24 */}
       {!isHome && <div className="h-20 shrink-0" />}
       <main className="flex-1">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
     </div>

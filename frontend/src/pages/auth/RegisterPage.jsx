@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, AlertCircle, Globe } from 'lucide-react';
+import { Car, User, Mail, Lock, Eye, EyeOff, UserPlus, Globe } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { useToast } from '../../components/common/Toast';
-import { ApiError } from '../../api/client';
 
 // Country codes with dialing codes
 const COUNTRY_CODES = [

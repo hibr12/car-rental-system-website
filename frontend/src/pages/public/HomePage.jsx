@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  ShieldCheck, CheckCircle2, ChevronRight, Loader2,
-  Car, Calendar, Star, ArrowRight, Search, Zap, CreditCard,
-  MapPin, Phone, Mail, Award, Heart, User, FileText,
-  Key, Shield, Compass, Users, Fuel, Settings2
-} from 'lucide-react';
+import { CheckCircle2, Car, Calendar, Star, ArrowRight, Search, MapPin, Phone, Mail, FileText, Key, Shield, Compass, Users } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import branchApi from '../../api/branchesApi';

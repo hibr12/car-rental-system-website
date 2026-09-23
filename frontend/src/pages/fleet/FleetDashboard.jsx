@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Car, Wrench, Plus, AlertTriangle, CheckCircle2, ArrowRightLeft,
-  Loader2, TrendingUp,
-} from 'lucide-react';
+import { Car, Wrench, Plus, AlertTriangle, CheckCircle2, ArrowRightLeft, TrendingUp } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import maintenanceApi from '../../api/maintenanceApi';
 import fleetApi from '../../api/fleetApi';

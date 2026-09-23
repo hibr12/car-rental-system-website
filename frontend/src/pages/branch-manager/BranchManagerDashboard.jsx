@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  CalendarCheck,
-  Car,
-  DollarSign,
-  Users,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  TrendingUp,
-} from "lucide-react";
+import { CalendarCheck, Car, DollarSign, Clock, CheckCircle, TrendingUp } from "lucide-react";
 import branchApi from "../../api/branchApi";
 import { formatCurrency, formatDate, formatStatus } from "../../utils/formatters";
 import { StatCardSkeleton } from "../../components/common/Skeleton";

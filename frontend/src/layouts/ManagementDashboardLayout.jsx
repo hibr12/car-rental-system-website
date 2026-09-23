@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+import PageLoader from '../components/common/PageLoader';
 import ManagementSidebar from '../components/shared/ManagementSidebar';
 import ManagementTopbar from '../components/shared/ManagementTopbar';
 import useThemeStore from '../store/themeStore';
@@ -34,7 +35,9 @@ const ManagementDashboardLayout = ({ portal = 'admin' }) => {
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-white">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto bg-white text-[#0F172A]">
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import {
-  Car,
-  Fuel,
-  Gauge,
-  Users,
-  Calendar,
-  Palette,
-  ShieldCheck,
-  Star,
-  CheckCircle2,
-  ChevronLeft,
-  AlertCircle,
-  MessageSquare
-} from 'lucide-react';
+import { Fuel, Gauge, Users, Calendar, Palette, ShieldCheck, ChevronLeft, AlertCircle, MessageSquare } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import reviewApi from '../../api/reviewApi';
 import VehicleGallery from '../../components/vehicles/VehicleGallery';
 import RentalCalculator from '../../components/vehicles/RentalCalculator';
 import StarRating from '../../components/common/StarRating';
-import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDate } from '../../utils/formatters';
+import { formatStatus, getStatusBadgeStyle, formatDate } from '../../utils/formatters';
 
 export const VehicleDetailPage = () => {
   const { id } = useParams();

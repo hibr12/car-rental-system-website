@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarCheck, AlertCircle, XCircle, CheckCircle2, Eye, Filter, CreditCard } from 'lucide-react';
+import { CalendarCheck, XCircle, Filter, CreditCard } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';

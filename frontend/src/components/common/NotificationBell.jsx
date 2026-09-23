@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash2, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { Bell, Check, X, AlertCircle, RefreshCw } from 'lucide-react';
 import notificationApi from '../../api/notificationApi';
 import { ApiError } from '../../api/client';
 import { formatDate } from '../../utils/formatters';

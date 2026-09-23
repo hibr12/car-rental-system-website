@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import AuthLoadingScreen from '../../components/common/AuthLoadingScreen';
 import UnauthorizedPage from '../../pages/shared/UnauthorizedPage';
-import { getPortalHome, roleMatchesPortal, isCustomerRole } from '../../utils/roles';
+import { roleMatchesPortal, isCustomerRole } from '../../utils/roles';
 
 /**
  * Guards a management portal (/admin, /manager, /staff, /fleet).

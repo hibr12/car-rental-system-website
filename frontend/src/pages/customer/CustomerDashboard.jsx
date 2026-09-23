@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, ArrowRight, CheckCircle2, Clock, CreditCard, AlertTriangle, Loader2, ShieldCheck, ShieldX, Star } from 'lucide-react';
+import { Car, ArrowRight, CheckCircle2, Clock, CreditCard, AlertTriangle, ShieldCheck, ShieldX, Star } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import reviewApi from '../../api/reviewApi';
 import { licenseApi } from '../../api/licenseApi';

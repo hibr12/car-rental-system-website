@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Archive, Search, Loader2, ArrowLeft } from 'lucide-react';
+import { Archive, Loader2, ArrowLeft } from 'lucide-react';
 import archiveApi from '../../api/archiveApi';
 import { formatCurrency, formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';

@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  CheckCircle2,
-  ArrowRight,
-  Home,
-  Calendar,
-  MapPin,
-  Car,
-  CreditCard,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { CheckCircle2, ArrowRight, Home, Calendar, MapPin, Car, CreditCard, AlertCircle } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatDateTime, getStatusBadgeStyle, formatStatus } from '../../utils/formatters';
 

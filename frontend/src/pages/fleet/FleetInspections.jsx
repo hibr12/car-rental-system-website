@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Loader2, Search, CheckCircle2 } from 'lucide-react';
 import inspectionApi from '../../api/inspectionApi';
-import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';

@@ -1,11 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Car, LayoutDashboard, Users, CarFront, FolderTree, CalendarCheck,
-  CreditCard, Star, Wrench, MessageSquare, BarChart3, LogOut, X, Ship,
-  ClipboardList, Building2, ArrowRightLeft, UserCog, TrendingUp, Truck,
-  UserCircle, LogIn, LogOutIcon, Eye, Archive, ShieldCheck, AlertTriangle, Bell,
-} from 'lucide-react';
+import { Car, LayoutDashboard, Users, CarFront, FolderTree, CalendarCheck, CreditCard, Star, Wrench, MessageSquare, BarChart3, LogOut, X, ClipboardList, Building2, ArrowRightLeft, UserCog, TrendingUp, LogIn, Archive, ShieldCheck, AlertTriangle, Bell } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const adminNavItems = [

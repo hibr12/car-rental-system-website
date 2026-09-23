@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Car, ArrowRightLeft, History, Loader2, X, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Car, ArrowRightLeft, History, Loader2, X } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import adminApi from '../../api/adminApi';
 import transferApi from '../../api/transferApi';
-import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDateTime, formatDate } from '../../utils/formatters';
+import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDateTime } from '../../utils/formatters';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';

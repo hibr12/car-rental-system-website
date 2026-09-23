@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { legalDocuments } from './legalContent';
-import usePageTitle from '../../../utils/usePageTitle';
 
 const OTHER_LINKS = [
   { doc: 'privacy', to: '/privacy', label: 'Privacy Policy' },
@@ -11,7 +10,6 @@ const OTHER_LINKS = [
 
 const LegalPage = ({ doc }) => {
   const content = legalDocuments[doc];
-  usePageTitle(content.title);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">

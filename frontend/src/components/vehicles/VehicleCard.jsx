@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Fuel, Gauge, Users, Star, ArrowRight, MapPin } from 'lucide-react';
+import { Fuel, Gauge, Users, ArrowRight, MapPin } from 'lucide-react';
 import { formatCurrency, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 
 export const VehicleCard = ({ vehicle }) => {

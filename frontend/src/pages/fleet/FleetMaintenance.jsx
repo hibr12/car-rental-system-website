@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import maintenanceApi from '../../api/maintenanceApi';
 import vehicleApi from '../../api/vehicleApi';
-import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';

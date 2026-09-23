@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Lock, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '../../components/common/Toast';
 import authApi from '../../api/authApi';
-import { ApiError } from '../../api/client';
 
 export const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');

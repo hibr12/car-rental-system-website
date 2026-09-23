@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Receipt } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import paymentApi from '../../api/paymentApi';
-import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
+import { formatCurrency, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
 

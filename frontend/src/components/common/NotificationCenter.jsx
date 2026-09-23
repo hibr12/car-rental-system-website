@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Bell, Check, CheckCheck, Trash2, X, AlertCircle, RefreshCw } from "lucide-react";
+import { Bell, CheckCheck, Trash2, X, AlertCircle, RefreshCw } from "lucide-react";
 import useNotificationStore from "../../store/notificationStore";
 import { formatDate } from "../../utils/formatters";
 

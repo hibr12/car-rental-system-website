@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2, MessageSquare, Clock } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import contactApi from '../../api/contactApi';
 import { useToast } from '../../components/common/Toast';
 import { contactInfo } from '../../config/contactInfo';
