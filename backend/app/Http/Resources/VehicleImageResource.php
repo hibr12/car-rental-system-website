@@ -14,7 +14,7 @@ class VehicleImageResource extends JsonResource
             'vehicle_id' => $this->vehicle_id,
             'image_url' => $this->image_url,
             'is_primary' => $this->is_primary,
-            'created_at' => $this->created_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

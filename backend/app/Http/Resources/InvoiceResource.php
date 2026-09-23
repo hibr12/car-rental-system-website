@@ -26,8 +26,8 @@ class InvoiceResource extends JsonResource
             'notes' => $this->notes,
             'user' => new UserResource($this->whenLoaded('user')),
             'payment' => new PaymentResource($this->whenLoaded('payment')),
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

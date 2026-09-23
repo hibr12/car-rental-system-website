@@ -23,8 +23,8 @@ class InspectionResource extends JsonResource
             'condition_rating' => $this->condition_rating,
             'inspected_at' => $this->inspected_at->toISOString(),
             'inspector' => new UserResource($this->whenLoaded('inspector')),
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

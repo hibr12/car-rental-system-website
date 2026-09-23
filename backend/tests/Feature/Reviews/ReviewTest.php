@@ -345,6 +345,25 @@ class ReviewTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_public_branch_reviews_list_published_reviews_without_contact_details(): void
+    {
+        Review::factory()->published()->create([
+            'vehicle_id' => $this->vehicle->id,
+            'booking_id' => $this->completedBooking->id,
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->customer->id,
+            'overall_rating' => 5,
+        ]);
+
+        $this->getJson('/api/branches/' . $this->branch->id . '/reviews')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user.name', $this->customer->name)
+            ->assertJsonPath('data.0.vehicle.brand', $this->vehicle->brand)
+            ->assertJsonMissingPath('data.0.user.email')
+            ->assertJsonMissingPath('data.0.user.phone');
+    }
+
     public function test_verified_rental_flag_on_completed_booking_review(): void
     {
         $review = Review::factory()->published()->create([
