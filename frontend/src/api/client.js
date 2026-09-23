@@ -1,8 +1,11 @@
 import axios from 'axios';
 
-const isDev = import.meta.env.DEV;
-const API_URL = isDev ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
-const BASE_URL = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
+// Always same-origin: the Vite dev proxy (vite.config.js) and the Vercel
+// rewrites (vercel.json) forward /api and /sanctum to the backend. Sanctum's
+// cookie auth needs the SPA and API on the same site — calling the Render
+// domain directly would make the session/XSRF cookies third-party (419s).
+const API_URL = '/api';
+const BASE_URL = '';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -10,7 +13,8 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 15000,
+  // Render's free tier can take ~60s to wake from idle.
+  timeout: 60000,
   withCredentials: true,
 });
 
