@@ -1,5 +1,7 @@
-import React, { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useRef, Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useToast } from './components/common/Toast';
+import { onUnauthorized } from './api/client';
 
 import PortalGate from './app/guards/PortalGate';
 import ProtectedRoute from './app/guards/ProtectedRoute';
@@ -20,6 +22,7 @@ import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
 import VehicleDetailPage from './pages/public/VehicleDetailPage';
 import ContactPage from './pages/public/ContactPage';
+import LegalPage from './pages/public/legal/LegalPage';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import CustomerBookings from './pages/customer/CustomerBookings';
@@ -78,18 +81,48 @@ import LegacyBranchRedirect from './app/redirects/LegacyBranchRedirect';
 
 import useAuthStore from './store/authStore';
 
+const PORTALS = ['admin', 'manager', 'branch', 'fleet', 'staff'];
+
+/**
+ * When any request comes back 401 the server-side session is gone: sign out
+ * once, tell the user once, and send them to the sign-in page for the portal
+ * they were in — instead of every page on screen toasting its own error while
+ * the UI still looks signed in.
+ */
+function SessionWatcher() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const pathRef = useRef(location.pathname);
+  pathRef.current = location.pathname;
+
+  useEffect(() => {
+    onUnauthorized(() => {
+      const { isAuthenticated, resetAuth } = useAuthStore.getState();
+      if (!isAuthenticated) return;
+
+      resetAuth();
+      const path = pathRef.current;
+      const portal = PORTALS.find((p) => path === `/${p}` || path.startsWith(`/${p}/`));
+      toast.error('Your session has expired. Please sign in again.');
+      navigate(portal ? `/${portal}/login` : '/login', { replace: true, state: { from: path } });
+    });
+    return () => onUnauthorized(null);
+  }, [navigate, toast]);
+
+  return null;
+}
+
 function App() {
   const { initAuth } = useAuthStore();
 
   useEffect(() => {
     initAuth();
-    const handleUnauthorized = () => useAuthStore.getState().resetAuth();
-    window.addEventListener('unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('unauthorized', handleUnauthorized);
   }, [initAuth]);
 
   return (
     <BrowserRouter>
+      <SessionWatcher />
       <Suspense fallback={<div className="p-8 text-sm text-theme-muted">Loading...</div>}>
       <Routes>
 
@@ -103,6 +136,9 @@ function App() {
           <Route path="/register"         element={<RegisterPage />} />
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
+          <Route path="/privacy"          element={<LegalPage doc="privacy" />} />
+          <Route path="/terms"            element={<LegalPage doc="terms" />} />
+          <Route path="/rental-agreement" element={<LegalPage doc="rentalAgreement" />} />
         </Route>
 
         <Route path="/checkout" element={<ProtectedRoute><CustomerLayout /></ProtectedRoute>}>
@@ -248,7 +284,9 @@ function App() {
         </Route>
 
         {/* Customer 404 only — management unknown routes handled inside each portal */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route element={<CustomerLayout />}>
+          <Route path="*" element={<PortalNotFound />} />
+        </Route>
       </Routes>
       </Suspense>
     </BrowserRouter>

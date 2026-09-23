@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import authApi from '../api/authApi';
 
+// A 200 from /auth/login only proves the credentials; the app runs on a
+// session cookie. Confirm the browser actually holds one before showing the
+// user as signed in — otherwise every following request 401s.
+const confirmSession = async () => {
+  try {
+    const response = await authApi.me();
+    return response.data?.user || response.data;
+  } catch {
+    throw new Error("We couldn't start your session. Please try again, and contact support if this keeps happening.");
+  }
+};
+
 export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
   isAuthenticated: !!localStorage.getItem('auth_user'),
@@ -48,11 +60,8 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.login(credentials);
-      const { user } = response.data || {};
-      
-      if (user) {
-        localStorage.setItem('auth_user', JSON.stringify(user));
-      }
+      const user = await confirmSession();
+      localStorage.setItem('auth_user', JSON.stringify(user));
       
       set({
         user,
@@ -73,11 +82,8 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.register(registerData);
-      const { user } = response.data || {};
-      
-      if (user) {
-        localStorage.setItem('auth_user', JSON.stringify(user));
-      }
+      const user = await confirmSession();
+      localStorage.setItem('auth_user', JSON.stringify(user));
       
       set({
         user,

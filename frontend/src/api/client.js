@@ -20,6 +20,17 @@ const apiClient = axios.create({
 
 let csrfPromise = null;
 
+// Registered once by the app (SessionWatcher) to clear auth state and send
+// the user to the right sign-in page when the server says the session is gone.
+let unauthorizedHandler = null;
+export const onUnauthorized = (handler) => {
+  unauthorizedHandler = handler;
+};
+
+// These endpoints report 401 themselves and must not trigger a global sign-out:
+// login (wrong credentials), me (initAuth checks it), logout (already leaving).
+const SELF_HANDLED_401 = ['/auth/login', '/auth/me', '/auth/logout', '/auth/register'];
+
 // CSRF cookie is at /sanctum/csrf-cookie
 const getCsrfCookie = () => {
   if (!csrfPromise) {
@@ -59,14 +70,34 @@ export class ApiError extends Error {
 // Response interceptor to extract data from axios response
 apiClient.interceptors.response.use(
   (response) => response.data,
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
     const responseData = error.response?.data;
+    const config = error.config || {};
+
+    // 419 = the XSRF token expired (e.g. the tab sat open past the session
+    // lifetime). Fetch a fresh one and replay the request once.
+    if (status === 419 && !config._csrfRetried) {
+      config._csrfRetried = true;
+      await getCsrfCookie();
+      return apiClient(config);
+    }
+
+    if (status === 401 && unauthorizedHandler
+        && !SELF_HANDLED_401.some((path) => config.url?.includes(path))) {
+      unauthorizedHandler();
+    }
     let message = 'Something went wrong. Please try again later.';
     let errors = {};
     let friendlyErrors = [];
 
-    if (status === 429) {
+    if (!error.response) {
+      message = error.code === 'ECONNABORTED'
+        ? 'The server is taking too long to respond. Please try again in a moment.'
+        : 'Unable to reach the server. Please check your internet connection.';
+    } else if (status === 419) {
+      message = 'Your session has expired. Please refresh the page and try again.';
+    } else if (status === 429) {
       message = 'Too many requests. Please wait a minute before trying again.';
     } else if (status === 422) {
       // Validation errors - extract all errors

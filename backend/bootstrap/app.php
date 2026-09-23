@@ -107,6 +107,24 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 400);
         });
 
+        // Framework HTTP errors carry their own status (419 expired CSRF token,
+        // 413 upload too large, 503 maintenance…). Without this, the catch-all
+        // below reported all of them as 500, so clients couldn't react.
+        $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            $status = $e->getStatusCode();
+            $messages = [
+                413 => 'The uploaded file is too large.',
+                419 => 'Your session has expired. Please refresh the page and try again.',
+                503 => 'The service is temporarily unavailable. Please try again shortly.',
+            ];
+
+            return response()->json([
+                'success' => false,
+                'message' => $messages[$status]
+                    ?? ($status < 500 ? 'The request could not be completed.' : 'Something went wrong on our end. Please try again later.'),
+            ], $status, $e->getHeaders());
+        });
+
         // Catch-all for unhandled exceptions
         $exceptions->renderable(function (\Throwable $e) {
             // Log the actual error for debugging

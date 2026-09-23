@@ -26,9 +26,6 @@ export const licenseApi = {
   // Legacy/alias endpoints (for backward compatibility)
   get: () => apiClient.get('/customer/license'),
   upload: (data) => apiClient.post('/customer/license', data),
-  update: (data) => apiClient.put('/customer/license', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
 };
 
 export default licenseApi;

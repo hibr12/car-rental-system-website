@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,7 +13,11 @@ export const ToastProvider = ({ children }) => {
 
   const showToast = useCallback((message, type = 'info', duration = 4000) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => {
+      // Several requests failing for the same reason shouldn't stack copies.
+      if (prev.some((t) => t.message === message && t.type === type)) return prev;
+      return [...prev, { id, message, type }];
+    });
 
     if (duration > 0) {
       setTimeout(() => {
@@ -22,13 +26,19 @@ export const ToastProvider = ({ children }) => {
     }
   }, []);
 
-  const success = (msg, dur) => showToast(msg, 'success', dur);
-  const error = (msg, dur) => showToast(msg, 'error', dur);
-  const warning = (msg, dur) => showToast(msg, 'warning', dur);
-  const info = (msg, dur) => showToast(msg, 'info', dur);
+  // Must be referentially stable: pages list `toast` in useCallback/useEffect
+  // deps, so a new object per render re-ran their fetch on every toast —
+  // a failing request looped forever (stuck "Loading…" + stacked toasts).
+  const value = useMemo(() => ({
+    showToast,
+    success: (msg, dur) => showToast(msg, 'success', dur),
+    error: (msg, dur) => showToast(msg, 'error', dur),
+    warning: (msg, dur) => showToast(msg, 'warning', dur),
+    info: (msg, dur) => showToast(msg, 'info', dur),
+  }), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none px-4 sm:px-0">
         <AnimatePresence>
