@@ -15,7 +15,15 @@ class ReviewResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'user' => new UserResource($this->whenLoaded('user')),
+            // Public listings load only user:id,name — the full UserResource
+            // crashed on the missing created_at (500 for every vehicle/branch
+            // with reviews) and would expose reviewers' email/phone publicly.
+            // Staff get contact details via 'customer' below.
+            'user' => $this->whenLoaded('user', fn () => [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+                'profile_photo' => $this->user->getAttribute('profile_photo'),
+            ]),
             'customer' => $this->when($isAdmin, fn () => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
