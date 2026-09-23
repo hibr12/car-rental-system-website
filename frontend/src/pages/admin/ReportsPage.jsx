@@ -31,8 +31,8 @@ export default function ReportsPage() {
       adminApi.getRevenueReport({ from, to }),
       adminApi.getFleetReport(),
     ]).then(([r1, r2]) => {
-      setRevenue(r1.data?.data || null);
-      setFleet(r2.data?.data || null);
+      setRevenue(r1.data || null);
+      setFleet(r2.data || null);
     }).finally(() => setLoading(false));
   };
 

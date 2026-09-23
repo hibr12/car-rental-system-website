@@ -4,6 +4,7 @@ import contactApi from '../../api/contactApi';
 import { formatDate, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -13,6 +14,7 @@ import {
 
 export const MessagesPage = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [messages, setMessages] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export const MessagesPage = () => {
   };
 
   const handleDeleteMessage = async (id) => {
-    if (!window.confirm('Delete this message?')) return;
+    if (!(await confirm({ title: 'Delete this message?', message: "This can't be undone.", danger: true, confirmLabel: 'Delete' }))) return;
     try {
       await contactApi.delete(id);
       toast.success('Message deleted.');

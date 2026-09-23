@@ -13,6 +13,7 @@ import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import Modal from '../../components/common/Modal';
 import {
   ManagementPageHeader,
@@ -32,6 +33,7 @@ export const StaffBookings = () => {
   const [selected, setSelected] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const toast = useToast();
+  const confirm = useConfirm();
 
   const fetchBookings = useCallback(() => {
     setLoading(true);
@@ -55,7 +57,7 @@ export const StaffBookings = () => {
   }, [fetchBookings]);
 
   const handleConfirm = async (bookingId) => {
-    if (!window.confirm('Approve this booking for your branch?')) return;
+    if (!(await confirm({ title: 'Approve this booking for your branch?', confirmLabel: 'Approve' }))) return;
     try {
       const res = await bookingApi.confirm(bookingId);
       toast.success(res.message || 'Booking approved.');
@@ -94,7 +96,7 @@ export const StaffBookings = () => {
   };
 
   const handlePickup = async (booking) => {
-    if (!window.confirm(`Confirm vehicle handover for ${booking.booking_reference}?`)) return;
+    if (!(await confirm({ title: `Confirm vehicle handover for ${booking.booking_reference}?`, confirmLabel: 'Confirm handover' }))) return;
     try {
       await bookingApi.pickup(booking.id, {
         identity_verification_status: 'verified',
@@ -110,7 +112,7 @@ export const StaffBookings = () => {
   };
 
   const handleReturn = async (booking) => {
-    if (!window.confirm(`Complete return for ${booking.booking_reference}?`)) return;
+    if (!(await confirm({ title: `Complete return for ${booking.booking_reference}?`, confirmLabel: 'Complete return' }))) return;
     try {
       await bookingApi.returnVehicle(booking.id, {
         return_mileage: booking.pickup_mileage || booking.vehicle?.mileage || 0,

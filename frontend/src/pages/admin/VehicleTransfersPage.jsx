@@ -7,6 +7,7 @@ import transferApi from '../../api/transferApi';
 import adminApi from '../../api/adminApi';
 import vehicleApi from '../../api/vehicleApi';
 import useAuthStore from '../../store/authStore';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { formatDateTime, formatDate } from '../../utils/formatters';
 import {
   ManagementPageHeader,
@@ -33,6 +34,7 @@ const INPUT_CLS = 'w-full px-3 py-2 text-sm border border-[#CBD5E1] rounded-lg b
 const LABEL_CLS = 'block text-xs font-semibold text-[#334155] mb-1';
 
 export default function VehicleTransfersPage() {
+  const confirm = useConfirm();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isFleetManager = user?.role === 'fleet_manager';
@@ -152,7 +154,7 @@ export default function VehicleTransfersPage() {
     setHistoryLoading(true);
     try {
       const r = await transferApi.getHistory(id);
-      setHistory(r.data?.data || []);
+      setHistory(r.data || []);
     } catch {}
     finally {
       setHistoryLoading(false);
@@ -297,7 +299,7 @@ export default function VehicleTransfersPage() {
                         {isAdmin && ['pending', 'requested', 'approved', 'in_transit'].includes(t.status) && (
                           <button
                             onClick={() => handleAction(async () => {
-                              if (!window.confirm('Execute full transfer now? The vehicle will be moved to the destination branch immediately.')) return;
+                              if (!(await confirm({ title: 'Transfer this vehicle now?', message: 'It will be moved to the destination branch immediately.', confirmLabel: 'Transfer now' }))) return;
                               await transferApi.executeNow(t.id);
                             })}
                             title="Transfer Now (Admin)"
@@ -310,7 +312,7 @@ export default function VehicleTransfersPage() {
                           <>
                             <button
                               onClick={() => handleAction(async () => {
-                                if (!window.confirm('Approve Vehicle Transfer?')) return;
+                                if (!(await confirm({ title: 'Approve this transfer?', confirmLabel: 'Approve' }))) return;
                                 await transferApi.approve(t.id);
                               })}
                               title="Approve" className="p-1.5 rounded-lg text-[#16A34A] hover:bg-green-50 transition-colors">
@@ -318,9 +320,8 @@ export default function VehicleTransfersPage() {
                             </button>
                             <button
                               onClick={() => handleAction(async () => {
-                                const reason = window.prompt('Rejection reason (required):');
+                                const reason = await confirm({ title: 'Reject this transfer?', input: { label: 'Reason', required: true }, danger: true, confirmLabel: 'Reject' });
                                 if (!reason) return;
-                                if (!window.confirm('Reject Vehicle Transfer?')) return;
                                 await transferApi.reject(t.id, reason);
                               })}
                               title="Reject" className="p-1.5 rounded-lg text-[#DC2626] hover:bg-red-50 transition-colors">
@@ -331,8 +332,8 @@ export default function VehicleTransfersPage() {
                         {(t.status === 'pending' || t.status === 'requested') && (isBranchManager || isAdmin) && String(t.from_branch_id) === String(branchId) && (
                             <button
                               onClick={() => handleAction(async () => {
-                                const reason = window.prompt('Cancellation reason (optional):') || '';
-                                if (!window.confirm('Cancel this transfer?')) return;
+                                const reason = await confirm({ title: 'Cancel this transfer?', input: { label: 'Reason' }, danger: true, confirmLabel: 'Cancel transfer', cancelLabel: 'Keep transfer' });
+                                if (reason === null) return;
                                 await transferApi.cancel(t.id, reason);
                               })}
                               title="Cancel" className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F8FAFC] transition-colors">
@@ -359,7 +360,7 @@ export default function VehicleTransfersPage() {
                         )}
                         {t.status === 'received_pending_inspection' && (isFleetManager || isAdmin) && (
                           <button onClick={() => handleAction(async () => {
-                            if (!window.confirm('Complete transfer after damage review?')) return;
+                            if (!(await confirm({ title: 'Complete this transfer?', message: 'Only complete it once the damage review is done.', confirmLabel: 'Complete' }))) return;
                             await transferApi.complete(t.id);
                           })}
                             title="Complete Transfer" className="p-1.5 rounded-lg text-[#16A34A] hover:bg-green-50 transition-colors">

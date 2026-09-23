@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, FolderTree } from 'lucide-react';
 import categoryApi from '../../api/categoryApi';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -12,6 +13,7 @@ import {
 
 export const CategoryManagement = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -72,7 +74,7 @@ export const CategoryManagement = () => {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    if (!(await confirm({ title: 'Delete this category?', message: "This can't be undone.", danger: true, confirmLabel: 'Delete' }))) return;
     try {
       await categoryApi.delete(id);
       toast.success('Category deleted successfully.');

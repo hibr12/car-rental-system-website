@@ -104,6 +104,7 @@ export const Footer = () => {
           </div>
 
           {/* 4. Connect */}
+          {contactInfo.linkedin && (
           <div>
             <h4 className="text-sm font-bold uppercase tracking-wider text-[#0F172A] mb-5">
               Connect With Us
@@ -123,6 +124,7 @@ export const Footer = () => {
               Follow us on LinkedIn for updates
             </p>
           </div>
+          )}
         </div>
 
         {/* Footer Bottom Bar */}

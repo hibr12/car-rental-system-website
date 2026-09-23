@@ -9,9 +9,10 @@ import {
 import vehicleApi from '../../api/vehicleApi';
 import categoryApi from '../../api/categoryApi';
 import branchApi from '../../api/branchesApi';
+import reviewApi from '../../api/reviewApi';
 import VehicleCard from '../../components/vehicles/VehicleCard';
 import { VehicleCardSkeleton } from '../../components/common/Skeleton';
-import { contactInfo, heroContent, testimonials } from '../../config/contactInfo';
+import { contactInfo, heroContent } from '../../config/contactInfo';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1750715832285-ca20adc444b6?auto=format&fit=crop&w=1920&q=85';
 const WHY_IMAGE = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
@@ -29,8 +30,24 @@ export const HomePage = () => {
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
+    // Real published reviews only. There's no site-wide endpoint, so gather
+    // them per branch; any branch that fails is skipped, and with none at all
+    // the section is hidden rather than filled with placeholder quotes.
+    const loadReviews = async (branchList) => {
+      const results = await Promise.allSettled(
+        branchList.map((b) => reviewApi.getByBranch(b.id, { per_page: 10 })),
+      );
+      const all = results
+        .filter((r) => r.status === 'fulfilled')
+        .flatMap((r) => r.value.data || [])
+        .filter((r) => r.comment?.trim() && Number(r.overall_rating ?? r.rating) >= 4)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setReviews(all.slice(0, 4));
+    };
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -42,8 +59,9 @@ export const HomePage = () => {
         setFeaturedVehicles(vehRes.data || []);
         setCategories(catRes.data || []);
         setBranches(branchRes.data || []);
-      } catch (err) {
-        console.error('Failed to load homepage data:', err);
+        loadReviews(branchRes.data || []);
+      } catch {
+        // Sections below render their own empty states.
       } finally {
         setLoading(false);
       }
@@ -68,17 +86,19 @@ export const HomePage = () => {
       {/* ============================================= */}
       {/* HERO SECTION                                  */}
       {/* ============================================= */}
-      <section className="relative min-h-screen flex flex-col justify-between overflow-hidden">
+      {/* Dark base colour: the white headline stays readable while the photo
+          loads on slow connections (it was white-on-white until then). */}
+      <section className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-slate-900">
         {/* Background image via inline style for maximum reliability */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${HERO_IMAGE})` }}
         />
-        {/* Subtle top gradient overlay — keeps nav text crisp over bright sky */}
+        {/* Full-height scrim — nav at the top, headline/subtitle in the middle */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.50) 0%, transparent 40%)',
+            background: 'linear-gradient(to bottom, rgba(15,23,42,0.60) 0%, rgba(15,23,42,0.40) 45%, rgba(15,23,42,0.55) 100%)',
           }}
         />
 
@@ -289,7 +309,7 @@ export const HomePage = () => {
                 {
                   step: '03',
                   title: 'Confirm Booking',
-                  desc: 'Review pricing breakdown, submit your booking, and receive instant confirmation.',
+                  desc: 'Review the price breakdown and submit your booking — the branch confirms it, then you pay online or at pickup.',
                   icon: FileText,
                 },
                 {
@@ -405,12 +425,13 @@ export const HomePage = () => {
       {/* ============================================= */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            {/* LEFT: What Our Drivers Say */}
+          <div className={`grid grid-cols-1 gap-12 items-start ${reviews.length ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'}`}>
+            {/* LEFT: real customer reviews — hidden until there are some */}
+            {reviews.length > 0 && (
             <div className="space-y-8">
               <div className="text-center lg:text-left">
                 <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-amber-500">
-                  Verified Reviews
+                  Customer Reviews
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mt-1">
                   What Our Drivers Say
@@ -418,17 +439,22 @@ export const HomePage = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((rev, idx) => (
+                {reviews.map((rev) => {
+                  const name = rev.user?.name || rev.customer_name || 'Customer';
+                  const initials = name.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+                  const rating = Math.round(Number(rev.overall_rating ?? rev.rating) || 0);
+                  const vehicle = rev.vehicle ? `${rev.vehicle.brand} ${rev.vehicle.model}` : null;
+                  return (
                   <div
-                    key={idx}
+                    key={rev.id}
                     className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
                   >
                     {/* Stars */}
-                    <div className="flex gap-1 mb-4">
+                    <div className="flex gap-1 mb-4" aria-label={`${rating} out of 5 stars`}>
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className="w-4 h-4 fill-amber-400 text-amber-400"
+                          className={`w-4 h-4 ${i < rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
                         />
                       ))}
                     </div>
@@ -441,17 +467,19 @@ export const HomePage = () => {
                     {/* User */}
                     <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                       <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                        {rev.avatar}
+                        {initials}
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900">{rev.name}</h4>
-                        <p className="text-xs text-gray-400">{rev.location}</p>
+                        <h4 className="text-sm font-bold text-gray-900">{name}</h4>
+                        {vehicle && <p className="text-xs text-gray-400">Rented a {vehicle}</p>}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
+            )}
 
             {/* RIGHT: Contact Us */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 h-full">
@@ -513,6 +541,7 @@ export const HomePage = () => {
                   </div>
 
                   {/* LinkedIn */}
+                  {contactInfo.linkedin && (
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-[#0A66C2] flex items-center justify-center shrink-0">
                       <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
@@ -529,6 +558,7 @@ export const HomePage = () => {
                       </a>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">

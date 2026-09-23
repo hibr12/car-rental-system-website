@@ -17,6 +17,7 @@ import { isAdminRole } from '../../utils/roles';
 import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import Modal from '../../components/common/Modal';
 
 const SUMMARY_CARDS = [
@@ -36,6 +37,7 @@ const hasAction = (p, action) => (p.allowed_actions || []).includes(action);
 
 export const PaymentsPage = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const { user } = useAuthStore();
   const isAdmin = isAdminRole(user?.role);
   const [payments, setPayments] = useState([]);
@@ -128,7 +130,12 @@ export const PaymentsPage = () => {
   };
 
   const handleArchive = async (payment) => {
-    const reason = window.prompt('Archive reason (optional):', 'Removed from active operations list');
+    const reason = await confirm({
+      title: 'Archive this payment?',
+      message: 'It leaves the active list; the record is kept in the database.',
+      input: { label: 'Reason', defaultValue: 'Removed from active operations list' },
+      confirmLabel: 'Archive',
+    });
     if (reason === null) return;
     try {
       setArchivingId(payment.id);

@@ -17,6 +17,7 @@ import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadg
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -42,6 +43,7 @@ const hasAction = (booking, action) => (booking.allowed_actions || []).includes(
 
 export const AdminBookings = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const { user } = useAuthStore();
   const isAdmin = isAdminRole(user?.role);
   const isBranchMgr = isBranchManagerRole(user?.role);
@@ -107,7 +109,7 @@ export const AdminBookings = () => {
   }, [fetchAdminBookings]);
 
   const handleConfirm = async (id) => {
-    if (!window.confirm('Approve this booking?')) return;
+    if (!(await confirm({ title: 'Approve this booking?', confirmLabel: 'Approve' }))) return;
     try {
       const res = await bookingApi.confirm(id);
       toast.success(res.message || (isBranchMgr ? 'Branch approval recorded.' : 'Booking approved.'));
@@ -118,7 +120,7 @@ export const AdminBookings = () => {
   };
 
   const handlePreparePickup = async (id) => {
-    if (!window.confirm('Mark this booking as ready for pickup?')) return;
+    if (!(await confirm({ title: 'Mark as ready for pickup?', confirmLabel: 'Mark ready' }))) return;
     try {
       await bookingApi.preparePickup(id);
       toast.success('Booking is ready for pickup.');

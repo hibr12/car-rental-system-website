@@ -23,7 +23,7 @@ export default function BranchRentalsPage() {
 
   const load = () => {
     setLoading(true);
-    branchApi.getRentals({ status: filter }).then(r => setRentals(r.data?.data || [])).finally(() => setLoading(false));
+    branchApi.getRentals({ status: filter }).then(r => setRentals(r.data || [])).finally(() => setLoading(false));
   };
 
   useEffect(load, [filter]);

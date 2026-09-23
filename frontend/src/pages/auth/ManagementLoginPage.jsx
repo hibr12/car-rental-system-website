@@ -130,7 +130,7 @@ export const ManagementLoginPage = ({ portal = 'admin' }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@carrental.com"
+                  placeholder="name@abaycarrentals.com"
                   required
                   className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-10 pr-4 py-3 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] transition-colors"
                 />
@@ -168,19 +168,6 @@ export const ManagementLoginPage = ({ portal = 'admin' }) => {
             </button>
           </form>
 
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-[10px] text-[#64748B] space-y-1">
-            <p className="font-semibold text-[#475569] uppercase tracking-wider">Seeded test accounts (password: password)</p>
-            {portal === 'fleet' ? (
-              <p>Fleet manager: fleet@carrental.com</p>
-            ) : portal === 'manager' || portal === 'branch' ? (
-              <p>Branch manager: cmc.manager@abaycarrentals.com · bole.manager@abaycarrentals.com</p>
-            ) : (
-              <>
-                <p>Admin: admin@carrental.com · Staff: staff@carrental.com</p>
-                <p>Branch manager: cmc.manager@abaycarrentals.com</p>
-              </>
-            )}
-          </div>
         </div>
 
         <div className="text-center">

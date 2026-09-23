@@ -95,7 +95,7 @@ export const LoginPage = () => {
               <input
                 type="email"
                 required
-                placeholder="customer@carrental.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={handleInputChange('email')}
                 className={`w-full bg-theme-input border rounded-xl pl-10 pr-4 py-3 text-sm text-theme-primary placeholder-theme-muted focus:outline-none focus:border-blue-500 transition-colors ${
@@ -145,17 +145,6 @@ export const LoginPage = () => {
             <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>
           </button>
         </form>
-
-        {/* Demo Credentials Info Box */}
-        <div className="bg-theme-input p-4 rounded-2xl border border-theme text-[11px] space-y-1.5 text-theme-muted transition-colors duration-200">
-          <p className="font-semibold text-theme-secondary uppercase tracking-wider text-[10px]">Sample Backend Roles for Testing:</p>
-          <div className="grid grid-cols-2 gap-1 text-[10px] font-mono">
-            <div>Customer: customer@carrental.com</div>
-            <div>Admin: admin@carrental.com</div>
-            <div>Fleet Manager: fleet@carrental.com</div>
-            <div>Staff: staff@carrental.com</div>
-          </div>
-        </div>
 
         <div className="text-center text-xs text-theme-muted pt-2">
           Don't have an account?{' '}

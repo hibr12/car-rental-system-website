@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadg
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -15,6 +16,7 @@ import {
 
 export const MaintenancePage = () => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
@@ -117,7 +119,7 @@ export const MaintenancePage = () => {
   };
 
   const handleDeleteRecord = async (id) => {
-    if (!window.confirm('Delete this maintenance record?')) return;
+    if (!(await confirm({ title: 'Delete this maintenance record?', message: "This can't be undone.", danger: true, confirmLabel: 'Delete' }))) return;
     try {
       await maintenanceApi.delete(id);
       toast.success('Record deleted.');

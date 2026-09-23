@@ -6,6 +6,7 @@ import { formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '.
 import { TableRowSkeleton } from '../../components/common/Skeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -37,6 +38,7 @@ export default function FleetDocuments() {
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
 
   const load = () => {
     setLoading(true);
@@ -80,7 +82,7 @@ export default function FleetDocuments() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this document record?')) return;
+    if (!(await confirm({ title: 'Delete this document record?', message: "This can't be undone.", danger: true, confirmLabel: 'Delete' }))) return;
     try {
       await documentApi.delete(id);
       toast.success('Document deleted.');

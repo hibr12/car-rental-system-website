@@ -9,6 +9,7 @@ import { formatCurrency, formatStatus, getStatusBadgeStyle, formatDateTime, form
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   ManagementPageHeader,
   ManagementCard,
@@ -29,6 +30,7 @@ export const VehicleManagement = () => {
   const location = useLocation();
   const transfersBase = location.pathname.startsWith('/manager') ? '/manager/transfers' : '/admin/transfers';
   const toast = useToast();
+  const confirm = useConfirm();
   const [vehicles, setVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
@@ -167,7 +169,7 @@ export const VehicleManagement = () => {
   };
 
   const handleDeleteVehicle = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle from the fleet?')) return;
+    if (!(await confirm({ title: 'Delete this vehicle?', message: 'It will be removed from the fleet.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
       await vehicleApi.delete(id);
       toast.success('Vehicle removed successfully.');

@@ -17,6 +17,7 @@ import {
 import bookingApi from '../../api/bookingApi';
 import { formatCurrency, formatDate, formatDateTime, formatStatus, getStatusBadgeStyle } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 
 const customerStatusMessage = (booking) => {
   const status = booking.booking_status || booking.status;
@@ -69,6 +70,7 @@ export const BookingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,7 +94,7 @@ export const BookingDetailPage = () => {
 
   const handleCancelBooking = async () => {
     if (!booking) return;
-    if (!window.confirm(`Are you sure you want to cancel booking ${booking.booking_reference}?`)) return;
+    if (!(await confirm({ title: `Cancel booking ${booking.booking_reference}?`, message: "A cancellation can't be undone.", danger: true, confirmLabel: 'Cancel booking', cancelLabel: 'Keep booking' }))) return;
     try {
       setCancelling(true);
       await bookingApi.cancel(booking.id);

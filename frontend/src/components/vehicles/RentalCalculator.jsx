@@ -143,7 +143,7 @@ export const RentalCalculator = ({ vehicle }) => {
           </p>
         </div>
         <span className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          Instant Reservation
+          Online Booking
         </span>
       </div>
 

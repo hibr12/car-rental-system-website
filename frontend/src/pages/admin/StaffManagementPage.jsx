@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, Loader2, X, Check } from 'lucide-react';
 import apiClient, { ApiError } from '../../api/client';
+import { useToast } from '../../components/common/Toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import adminApi from '../../api/adminApi';
 import { formatDateTime } from '../../utils/formatters';
 import {
@@ -30,6 +32,8 @@ const LABEL_CLS = 'block text-xs font-semibold text-[#334155] mb-1';
 const EMPTY_FORM = { name: '', email: '', password: '', phone: '', role: 'staff', branch_id: '' };
 
 export default function StaffManagementPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [staff, setStaff]         = useState([]);
   const [branches, setBranches]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -41,12 +45,12 @@ export default function StaffManagementPage() {
 
   const load = () => {
     setLoading(true);
-    apiClient.get('/staff').then(r => setStaff(r.data?.data || [])).finally(() => setLoading(false));
+    apiClient.get('/staff').then(r => setStaff(r.data || [])).finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
-    adminApi.getBranches({ status: 'active' }).then(r => setBranches(r.data?.data || []));
+    adminApi.getBranches({ status: 'active' }).then(r => setBranches(r.data || []));
   }, []);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setError(''); setShowModal(true); };
@@ -57,14 +61,13 @@ export default function StaffManagementPage() {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Remove this staff member?')) return;
-    try { await apiClient.delete(`/staff/${id}`); load(); } 
-    catch (err) {
-      if (err instanceof ApiError) {
-        alert(err.message);
-      } else {
-        alert('Failed to remove staff member.');
-      }
+    if (!(await confirm({ title: 'Remove this staff member?', danger: true, confirmLabel: 'Remove' }))) return;
+    try {
+      await apiClient.delete(`/staff/${id}`);
+      toast.success('Staff member removed.');
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to remove staff member.');
     }
   };
 

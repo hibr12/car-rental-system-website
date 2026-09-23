@@ -92,6 +92,7 @@ export const ContactPage = () => {
             <p className="text-xs text-theme-muted">{contactInfo.fullAddress}</p>
           </div>
 
+          {contactInfo.linkedin && (
           <div className="bg-theme-card border border-theme p-6 rounded-3xl space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-[#0A66C2]/10 text-[#0A66C2] flex items-center justify-center border border-[#0A66C2]/20">
               <LinkedinIcon className="w-6 h-6" />
@@ -109,6 +110,7 @@ export const ContactPage = () => {
               {contactInfo.linkedinLabel}
             </a>
           </div>
+          )}
         </div>
 
         {/* Contact Form */}
