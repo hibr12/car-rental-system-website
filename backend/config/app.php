@@ -67,6 +67,8 @@ return [
 
     'timezone' => 'UTC',
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

@@ -22,7 +22,9 @@ return [
         env('FRONTEND_URL_2', 'http://localhost:3000'),
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        env('FRONTEND_URL_PATTERN'),
+    ],
 
     'allowed_headers' => ['*'],
 
