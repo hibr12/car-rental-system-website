@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://car-rental-backend-oioo.onrender.com/api/:path*" },
-    { "source": "/sanctum/:path*", "destination": "https://car-rental-backend-oioo.onrender.com/sanctum/:path*" },
+    { "source": "/api/:path*", "destination": "https://car-rental-system-website.onrender.com/api/:path*" },
+    { "source": "/sanctum/:path*", "destination": "https://car-rental-system-website.onrender.com/sanctum/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

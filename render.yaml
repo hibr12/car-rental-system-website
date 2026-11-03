@@ -1,8 +1,9 @@
 services:
   - type: web
-    name: apex-car-rentals
+    name: car-rental-system-website
     runtime: docker
     plan: free
+    rootDir: backend
     dockerfilePath: ./Dockerfile
     healthCheckPath: /up
     envVars:
@@ -17,6 +18,10 @@ services:
       - key: INITIAL_ADMIN_EMAIL
         sync: false
       - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SANCTUM_STATEFUL_DOMAINS
         sync: false
       - key: DB_CONNECTION
         value: pgsql

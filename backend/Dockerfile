@@ -1,37 +1,60 @@
-# backend/Dockerfile
-FROM php:8.3-fpm
+# syntax=docker/dockerfile:1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git curl libpng-dev libonig-dev libxml2-dev zip unzip \
-    libpq-dev \
-    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd \
+FROM php:8.3-cli-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        libonig-dev \
+        libpng-dev \
+        libpq-dev \
+        libxml2-dev \
+        unzip \
+    && docker-php-ext-install -j"$(nproc)" \
+        bcmath \
+        exif \
+        gd \
+        mbstring \
+        pcntl \
+        pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer files first for cache
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
+RUN --mount=type=cache,target=/root/.composer/cache \
+    --mount=type=secret,id=proxy_ca,required=false \
+    composer_preference=dist; \
+    if [ -f /run/secrets/proxy_ca ]; then \
+        export COMPOSER_CAFILE=/run/secrets/proxy_ca; \
+        export GIT_SSL_CAINFO=/run/secrets/proxy_ca; \
+        composer_preference=source; \
+    fi; \
+    composer install \
+        --no-dev \
+        --no-interaction \
+        --no-progress \
+        --no-scripts \
+        --no-autoloader \
+        --prefer-install="$composer_preference"; \
+    find vendor -type d -name .git -prune -exec rm -rf {} +
 
-# Copy application
-COPY . .
+COPY . ./
+RUN composer dump-autoload --no-dev --optimize \
+    && mkdir -p \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/testing \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
-# Complete composer (run scripts, generate autoloader)
-RUN composer dump-autoload --optimize
-
-# Copy and setup entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Storage permissions (base)
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
-
 EXPOSE 10000
 
-# Use entrypoint for production commands
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
