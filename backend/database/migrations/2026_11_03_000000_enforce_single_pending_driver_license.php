@@ -7,9 +7,14 @@ return new class extends Migration
 {
     private const INDEX_NAME = 'driver_licenses_one_pending_per_user_unique';
 
+    // PostgreSQL cannot build an index concurrently inside a transaction.
+    public $withinTransaction = false;
+
     public function up(): void
     {
-        if (! in_array(DB::getDriverName(), ['pgsql', 'sqlite'], true)) {
+        $driver = DB::getDriverName();
+
+        if (! in_array($driver, ['pgsql', 'sqlite'], true)) {
             return;
         }
 
@@ -46,18 +51,38 @@ return new class extends Migration
                 ]);
         }
 
+        $concurrently = $driver === 'pgsql' ? ' CONCURRENTLY' : '';
+
+        // A cancelled concurrent build leaves an invalid index behind. Remove
+        // only that invalid artifact so a deployment retry can rebuild it.
+        if ($driver === 'pgsql') {
+            $invalidIndex = DB::selectOne(
+                'SELECT 1 AS invalid FROM pg_index WHERE indexrelid = to_regclass(?) AND NOT indisvalid',
+                [self::INDEX_NAME],
+            );
+
+            if ($invalidIndex) {
+                DB::statement(sprintf('DROP INDEX CONCURRENTLY IF EXISTS %s', self::INDEX_NAME));
+            }
+        }
+
         DB::statement(sprintf(
-            "CREATE UNIQUE INDEX %s ON driver_licenses (user_id) WHERE status = 'pending_review' AND deleted_at IS NULL",
+            "CREATE UNIQUE INDEX%s IF NOT EXISTS %s ON driver_licenses (user_id) WHERE status = 'pending_review' AND deleted_at IS NULL",
+            $concurrently,
             self::INDEX_NAME,
         ));
     }
 
     public function down(): void
     {
-        if (! in_array(DB::getDriverName(), ['pgsql', 'sqlite'], true)) {
+        $driver = DB::getDriverName();
+
+        if (! in_array($driver, ['pgsql', 'sqlite'], true)) {
             return;
         }
 
-        DB::statement(sprintf('DROP INDEX IF EXISTS %s', self::INDEX_NAME));
+        $concurrently = $driver === 'pgsql' ? ' CONCURRENTLY' : '';
+
+        DB::statement(sprintf('DROP INDEX%s IF EXISTS %s', $concurrently, self::INDEX_NAME));
     }
 };
