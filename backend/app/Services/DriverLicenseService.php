@@ -50,6 +50,8 @@ class DriverLicenseService
         $documentType = $data['document_type'] ?? DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
         $storedDocuments = [];
         $stage = 'find_pending_submission';
+        $previous = null;
+        $previousStatus = null;
 
         try {
             $existingPending = $this->findPendingSubmission($customer);
@@ -58,97 +60,57 @@ class DriverLicenseService
                 return $this->markAsExistingSubmission($existingPending, $customer);
             }
 
-            $stage = 'begin_transaction';
+            $stage = 'find_active_submission';
+            $previous = DriverLicense::where('user_id', $customer->id)
+                ->whereNotIn('status', [
+                    DriverLicense::STATUS_PENDING_REVIEW,
+                    DriverLicense::STATUS_REPLACED,
+                ])
+                ->latest()
+                ->first();
+            $previousStatus = $previous?->status;
 
-            $license = DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType, &$storedDocuments, &$stage) {
-                // Check again inside the transaction. The partial unique index is
-                // the final guard when two requests still reach this point together.
-                $stage = 'find_pending_submission';
-                $existingPending = $this->findPendingSubmission($customer);
+            $frontPath = null;
+            if ($frontFile) {
+                $stage = 'store_front_document';
+                $frontDisk = $this->licenseDisk();
+                $frontPath = $this->storeDocument($frontFile, $customer->id, 'front', $frontDisk);
+                $storedDocuments[] = ['disk' => $frontDisk, 'path' => $frontPath, 'side' => 'front'];
+            }
 
-                if ($existingPending) {
-                    return $this->markAsExistingSubmission($existingPending, $customer);
-                }
+            $backPath = null;
+            if ($backFile) {
+                $stage = 'store_back_document';
+                $backDisk = $this->licenseDisk();
+                $backPath = $this->storeDocument($backFile, $customer->id, 'back', $backDisk);
+                $storedDocuments[] = ['disk' => $backDisk, 'path' => $backPath, 'side' => 'back'];
+            }
 
-                // Mark any existing active license as replaced.
-                $stage = 'find_active_submission';
-                $previous = DriverLicense::where('user_id', $customer->id)
-                    ->whereNotIn('status', [
-                        DriverLicense::STATUS_PENDING_REVIEW,
-                        DriverLicense::STATUS_REPLACED,
-                    ])
-                    ->latest()
-                    ->first();
-                if ($previous) {
-                    $stage = 'replace_previous_submission';
-                    $previous->update(['status' => DriverLicense::STATUS_REPLACED]);
-                }
-
-                $frontPath = null;
-                if ($frontFile) {
-                    $stage = 'store_front_document';
-                    $frontDisk = $this->licenseDisk();
-                    $frontPath = $this->storeDocument($frontFile, $customer->id, 'front', $frontDisk);
-                    $storedDocuments[] = ['disk' => $frontDisk, 'path' => $frontPath, 'side' => 'front'];
-                }
-
-                $backPath = null;
-                if ($backFile) {
-                    $stage = 'store_back_document';
-                    $backDisk = $this->licenseDisk();
-                    $backPath = $this->storeDocument($backFile, $customer->id, 'back', $backDisk);
-                    $storedDocuments[] = ['disk' => $backDisk, 'path' => $backPath, 'side' => 'back'];
-                }
-
-                $stage = 'create_license';
-                $license = DriverLicense::create([
-                    'user_id'             => $customer->id,
-                    'document_type'       => $documentType,
-                    'document_number'     => $data['document_number'] ?? $data['license_number'] ?? null,
-                    'full_name'           => $data['full_name'],
-                    'date_of_birth'       => $data['date_of_birth'] ?? null,
-                    'license_category'    => $data['license_category'] ?? null,
-                    'issue_date'          => $data['issue_date'] ?? null,
-                    'expiry_date'         => $data['expiry_date'] ?? null,
-                    'issuing_authority'   => $data['issuing_authority'] ?? null,
-                    'issuing_country'     => $data['issuing_country'] ?? null,
-                    'university_name'     => $data['university_name'] ?? null,
-                    'department'          => $data['department'] ?? null,
-                    'front_document_path' => $frontPath,
-                    'back_document_path'  => $backPath,
-                    'status'              => DriverLicense::STATUS_PENDING_REVIEW,
-                    'submitted_at'        => now(),
-                    'replaced_by'         => null,
-                ]);
-
-                if ($previous) {
-                    $stage = 'link_previous_submission';
-                    $previous->update(['replaced_by' => $license->id]);
-                }
-
-                $stage = 'write_audit_log';
-                $this->auditLogService->log(
-                    $customer,
-                    $previous ? 'license_resubmitted' : 'license_submitted',
-                    'driver_license',
-                    $license->id,
-                    $previous ? ['status' => $previous->status] : null,
-                    ['status' => DriverLicense::STATUS_PENDING_REVIEW, 'license_id' => $license->id],
-                    $previous ? 'Customer resubmitted driver\'s license.' : 'Customer submitted driver\'s license.',
-                );
-
-                Log::info('[DriverLicense] Submitted', [
-                    'license_id' => $license->id,
-                    'customer_id' => $customer->id,
-                    'replaced_id' => $previous?->id,
-                ]);
-
-                $stage = 'refresh_license';
-                $fresh = $license->fresh();
-                $fresh->setAttribute('submission_was_created', true);
-
-                return $fresh;
-            });
+            // Insert the pending submission before changing any previous record.
+            // The partial unique index is the concurrency guard: a parallel
+            // request loses this insert, removes its uploads, and returns the
+            // pending row created by the winner.
+            $stage = 'create_license';
+            $license = DriverLicense::create([
+                'user_id'             => $customer->id,
+                'document_type'       => $documentType,
+                'document_number'     => $data['document_number'] ?? $data['license_number'] ?? null,
+                'full_name'           => $data['full_name'],
+                'date_of_birth'       => $data['date_of_birth'] ?? null,
+                'license_category'    => $data['license_category'] ?? null,
+                'issue_date'          => $data['issue_date'] ?? null,
+                'expiry_date'         => $data['expiry_date'] ?? null,
+                'issuing_authority'   => $data['issuing_authority'] ?? null,
+                'issuing_country'     => $data['issuing_country'] ?? null,
+                'university_name'     => $data['university_name'] ?? null,
+                'department'          => $data['department'] ?? null,
+                'front_document_path' => $frontPath,
+                'back_document_path'  => $backPath,
+                'status'              => DriverLicense::STATUS_PENDING_REVIEW,
+                'submitted_at'        => now(),
+                'replaced_by'         => null,
+            ]);
+            $license->setAttribute('submission_was_created', true);
         } catch (Throwable $e) {
             $this->cleanupStoredDocuments($storedDocuments, $customer->id, $e);
 
@@ -170,9 +132,69 @@ class DriverLicenseService
             throw $e;
         }
 
-        if ((bool) $license->getAttribute('submission_was_created')) {
-            $this->sendSubmissionNotifications($license, $customer);
+        if ($previous && $previousStatus !== null) {
+            try {
+                $previousQuery = DriverLicense::query()
+                    ->whereKey($previous->id)
+                    ->where('user_id', $customer->id)
+                    ->where('status', $previousStatus);
+
+                if ($previous->replaced_by === null) {
+                    $previousQuery->whereNull('replaced_by');
+                } else {
+                    $previousQuery->where('replaced_by', $previous->replaced_by);
+                }
+
+                $updated = $previousQuery->update([
+                    'status' => DriverLicense::STATUS_REPLACED,
+                    'replaced_by' => $license->id,
+                    'updated_at' => now(),
+                ]);
+
+                if ($updated !== 1) {
+                    Log::warning('[DriverLicense] Previous submission changed before it could be replaced', [
+                        'customer_id' => $customer->id,
+                        'license_id' => $license->id,
+                        'previous_id' => $previous->id,
+                    ]);
+                }
+            } catch (Throwable $e) {
+                Log::error('[DriverLicense] Failed to mark previous submission as replaced', [
+                    'customer_id' => $customer->id,
+                    'license_id' => $license->id,
+                    'previous_id' => $previous->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
+
+        try {
+            $this->auditLogService->log(
+                $customer,
+                $previous ? 'license_resubmitted' : 'license_submitted',
+                'driver_license',
+                $license->id,
+                $previousStatus ? ['status' => $previousStatus] : null,
+                ['status' => DriverLicense::STATUS_PENDING_REVIEW, 'license_id' => $license->id],
+                $previous ? 'Customer resubmitted driver\'s license.' : 'Customer submitted driver\'s license.',
+            );
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Submission committed but audit logging failed', [
+                'customer_id' => $customer->id,
+                'license_id' => $license->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        Log::info('[DriverLicense] Submitted', [
+            'license_id' => $license->id,
+            'customer_id' => $customer->id,
+            'replaced_id' => $previous?->id,
+        ]);
+
+        $this->sendSubmissionNotifications($license, $customer);
 
         return $license;
     }

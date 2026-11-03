@@ -62,7 +62,7 @@ class DriverLicenseSubmissionFailureTest extends TestCase
         $this->assertSame([], Storage::disk('local')->allFiles('licenses/'.$this->customer->id));
     }
 
-    public function test_audit_failure_rolls_back_database_changes_and_cleans_both_uploads(): void
+    public function test_audit_failure_does_not_fail_committed_submission_or_delete_uploads(): void
     {
         $previous = DriverLicense::create([
             'user_id' => $this->customer->id,
@@ -76,35 +76,37 @@ class DriverLicenseSubmissionFailureTest extends TestCase
             'submitted_at' => now()->subDay(),
         ]);
 
+        $baselineTransactionLevel = DB::transactionLevel();
+        $auditTransactionLevel = null;
         $audit = Mockery::mock(AuditLogService::class);
         $audit->shouldReceive('log')
             ->once()
-            ->andThrow(new RuntimeException('Synthetic audit write failure.'));
+            ->andReturnUsing(function () use (&$auditTransactionLevel): void {
+                $auditTransactionLevel = DB::transactionLevel();
+
+                throw new RuntimeException('Synthetic audit write failure.');
+            });
 
         $service = new DriverLicenseService(
             $audit,
             app(NotificationRecipientService::class),
         );
 
-        try {
-            $service->submit(
-                $this->validLicenseData(),
-                $this->customer,
-                UploadedFile::fake()->create('front.jpg', 100, 'image/jpeg'),
-                UploadedFile::fake()->create('back.jpg', 100, 'image/jpeg'),
-            );
-
-            $this->fail('The audit failure should have been rethrown.');
-        } catch (RuntimeException $e) {
-            $this->assertSame('Synthetic audit write failure.', $e->getMessage());
-        }
+        $license = $service->submit(
+            $this->validLicenseData(),
+            $this->customer,
+            UploadedFile::fake()->create('front.jpg', 100, 'image/jpeg'),
+            UploadedFile::fake()->create('back.jpg', 100, 'image/jpeg'),
+        );
 
         $previous->refresh();
 
-        $this->assertSame(DriverLicense::STATUS_REJECTED, $previous->status);
-        $this->assertNull($previous->replaced_by);
-        $this->assertDatabaseCount('driver_licenses', 1);
-        $this->assertSame([], Storage::disk('local')->allFiles('licenses/'.$this->customer->id));
+        $this->assertSame($baselineTransactionLevel, $auditTransactionLevel);
+        $this->assertSame(DriverLicense::STATUS_REPLACED, $previous->status);
+        $this->assertSame($license->id, $previous->replaced_by);
+        $this->assertDatabaseCount('driver_licenses', 2);
+        Storage::disk('local')->assertExists($license->front_document_path);
+        Storage::disk('local')->assertExists($license->back_document_path);
     }
 
     public function test_failed_document_replacement_keeps_existing_files_and_cleans_staged_uploads(): void
