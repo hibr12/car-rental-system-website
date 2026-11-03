@@ -18,6 +18,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 
+# The license form accepts two files up to 5 MiB each. PHP's stock 2 MiB
+# upload limit rejected valid files before Laravel could validate them, and
+# development error display could turn that failure into an HTTP 200 response.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && { \
+        echo 'upload_max_filesize=6M'; \
+        echo 'post_max_size=16M'; \
+        echo 'max_file_uploads=10'; \
+        echo 'display_errors=Off'; \
+        echo 'display_startup_errors=Off'; \
+        echo 'log_errors=On'; \
+        echo 'max_execution_time=120'; \
+        echo 'max_input_time=120'; \
+    } > "$PHP_INI_DIR/conf.d/zz-app-upload.ini"
+
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html

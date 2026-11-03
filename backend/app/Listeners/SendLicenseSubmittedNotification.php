@@ -23,7 +23,7 @@ class SendLicenseSubmittedNotification implements ShouldQueue
             foreach ($recipients as $recipient) {
                 $recipient->notify(new LicenseSubmittedNotification($license));
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Failed to send license submitted notification', [
                 'license_id' => $event->license->id,
                 'error' => $e->getMessage(),

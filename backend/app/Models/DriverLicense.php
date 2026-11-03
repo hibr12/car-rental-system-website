@@ -215,7 +215,7 @@ class DriverLicense extends Model
      */
     public function maskedLicenseNumber(): string
     {
-        $number = $this->license_number ?? '';
+        $number = $this->getDocumentNumber();
         $len = mb_strlen($number);
         if ($len <= 4) {
             return str_repeat('•', $len);
@@ -271,7 +271,9 @@ class DriverLicense extends Model
      */
     public function getDocumentNumber(): string
     {
-        return $this->document_number ?? $this->license_number ?? '';
+        return (string) ($this->attributes['document_number']
+            ?? $this->attributes['license_number']
+            ?? '');
     }
 
     /**
@@ -279,7 +281,7 @@ class DriverLicense extends Model
      */
     public function maskedDocumentNumber(): string
     {
-        $number = $this->document_number ?? $this->license_number ?? '';
+        $number = $this->getDocumentNumber();
         $len = mb_strlen($number);
         if ($len <= 4) {
             return str_repeat('•', $len);
@@ -304,9 +306,24 @@ class DriverLicense extends Model
     /**
      * Get the document number display (masked or full depending on context).
      */
-    public function getDocumentNumberAttribute(): string
+    public function getDocumentNumberAttribute(?string $value = null): string
     {
-        return $this->document_number ?? $this->license_number ?? '';
+        return (string) ($value
+            ?? $this->attributes['document_number']
+            ?? $this->attributes['license_number']
+            ?? '');
+    }
+
+    /**
+     * Backward-compatible alias for clients that still call this a license
+     * number. The database column was renamed to document_number.
+     */
+    public function getLicenseNumberAttribute(?string $value = null): string
+    {
+        return (string) ($this->attributes['document_number']
+            ?? $value
+            ?? $this->attributes['license_number']
+            ?? '');
     }
 
     /**

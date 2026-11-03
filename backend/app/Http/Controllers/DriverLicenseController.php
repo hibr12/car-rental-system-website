@@ -50,7 +50,16 @@ class DriverLicenseController extends Controller
     {
         Gate::authorize('create', DriverLicense::class);
 
-        $documentType = $request->input('document_type', DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE);
+        // Older clients only submitted driver's-license fields. Keep that
+        // request shape working while the newer UI can choose other document
+        // types explicitly.
+        if (!$request->filled('document_type')) {
+            $request->merge([
+                'document_type' => DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE,
+            ]);
+        }
+
+        $documentType = $request->input('document_type');
 
         // Base rules that always apply
         $rules = [
@@ -115,14 +124,19 @@ class DriverLicenseController extends Controller
                 $request->file('back_document'),
             );
 
-            // Fire LicenseSubmitted event
-            event(new \App\Events\LicenseSubmitted($license));
+            $wasCreated = (bool) $license->getAttribute('submission_was_created');
+
+            if ($wasCreated) {
+                event(new \App\Events\LicenseSubmitted($license));
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Identity document submitted for verification.',
+                'message' => $wasCreated
+                    ? 'Identity document submitted for verification.'
+                    : 'Your identity document is already awaiting verification.',
                 'data'    => new DriverLicenseResource($license),
-            ], 201);
+            ], $wasCreated ? 201 : 200);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }

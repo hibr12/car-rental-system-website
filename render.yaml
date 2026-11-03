@@ -51,6 +51,8 @@ services:
         value: log
       - key: CHAPA_MODE
         value: test
+      - key: CHAPA_RETURN_URL
+        value: https://frontend-snowy-ten-96.vercel.app/payments/status
 
 databases:
   - name: car-rental-db

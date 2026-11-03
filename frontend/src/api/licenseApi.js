@@ -14,14 +14,35 @@ export const licenseApi = {
   reject: (id, reason) => apiClient.post(`/admin/licenses/${id}/reject`, { reason }),
 
   // Document viewing
-  openDocument: (licenseId, side) => apiClient.get(`/licenses/${licenseId}/document/${side}`, {
-    responseType: 'blob',
-  }).then((blob) => {
-    const url = window.URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    // Revoke the object URL after a delay to allow the browser to load the document
-    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
-  }),
+  openDocument: (licenseId, side) => {
+    // Open synchronously from the click handler so browser popup protection does
+    // not block the document after the authenticated download finishes.
+    const previewWindow = window.open('', '_blank');
+    if (previewWindow) previewWindow.opener = null;
+
+    return apiClient.get(`/licenses/${licenseId}/document/${side}`, {
+      responseType: 'blob',
+    }).then((blob) => {
+      const url = window.URL.createObjectURL(blob);
+
+      if (previewWindow) {
+        previewWindow.location.replace(url);
+      } else {
+        const download = document.createElement('a');
+        download.href = url;
+        download.download = `${side}-license-document`;
+        document.body.appendChild(download);
+        download.click();
+        download.remove();
+      }
+
+      // Keep the URL alive long enough for large PDFs to finish loading.
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    }).catch((error) => {
+      previewWindow?.close();
+      throw error;
+    });
+  },
 
   // Legacy/alias endpoints (for backward compatibility)
   get: () => apiClient.get('/customer/license'),

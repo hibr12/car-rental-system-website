@@ -12,18 +12,23 @@ class DriverLicenseResource extends JsonResource
         /** @var \App\Models\DriverLicense $this */
         $user = $request->user();
 
-        // Determine if the requester is the owner or staff/admin.
-        $isOwner = $user && (int) $user->id === (int) $this->user_id;
+        // Staff can see the full number; customer responses stay masked.
         $isStaff = $user && ($user->isAdmin() || $user->isBranchManager() || $user->isStaff());
+        $documentNumber = $this->getDocumentNumber();
+        $maskedDocumentNumber = $this->maskedDocumentNumber();
+        $displayDocumentNumber = $isStaff ? $documentNumber : $maskedDocumentNumber;
 
         return [
             'id'                => $this->id,
+            'document_type'     => $this->document_type,
             'status'            => $this->effectiveStatus(),
             'stored_status'     => $this->status,
 
-            // License number: full for admin/staff, masked for customer in lists.
-            'license_number'    => ($isStaff) ? $this->license_number : $this->maskedLicenseNumber(),
-            'license_number_masked' => $this->maskedLicenseNumber(),
+            // Keep license_number aliases for existing frontend/API clients.
+            'document_number'        => $displayDocumentNumber,
+            'document_number_masked' => $maskedDocumentNumber,
+            'license_number'         => $displayDocumentNumber,
+            'license_number_masked'  => $maskedDocumentNumber,
 
             'full_name'         => $this->full_name,
             'date_of_birth'     => $this->date_of_birth?->toDateString(),
@@ -32,6 +37,8 @@ class DriverLicenseResource extends JsonResource
             'expiry_date'       => $this->expiry_date?->toDateString(),
             'issuing_authority' => $this->issuing_authority,
             'issuing_country'   => $this->issuing_country,
+            'university_name'   => $this->university_name,
+            'department'        => $this->department,
 
             // Never expose raw storage paths — only indicate whether docs exist.
             'has_front_document' => !empty($this->front_document_path),
@@ -39,10 +46,10 @@ class DriverLicenseResource extends JsonResource
 
             // Secure document URLs (served via authenticated backend endpoint).
             'front_document_url' => $this->front_document_path
-                ? url("/api/licenses/{$this->id}/document/front")
+                ? "/api/licenses/{$this->id}/document/front"
                 : null,
             'back_document_url'  => $this->back_document_path
-                ? url("/api/licenses/{$this->id}/document/back")
+                ? "/api/licenses/{$this->id}/document/back"
                 : null,
 
             'rejection_reason'  => $this->rejection_reason,

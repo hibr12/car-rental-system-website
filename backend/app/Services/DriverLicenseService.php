@@ -43,20 +43,28 @@ class DriverLicenseService
 
         $documentType = $data['document_type'] ?? DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
 
-        // Prevent duplicate submissions — if user already has a pending review license, return it
-        $existingPending = DriverLicense::where('user_id', $customer->id)
-            ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
-            ->first();
-
-        if ($existingPending) {
-            Log::info('[DriverLicense] Duplicate submission blocked — returning existing pending license', [
-                'license_id' => $existingPending->id,
-                'customer_id' => $customer->id,
-            ]);
-            return $existingPending;
-        }
-
         return DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType) {
+            // Serialize submissions for this customer. Without this user-row
+            // lock, parallel retries can both pass the pending lookup, upload
+            // duplicate files, and create two active review records.
+            User::whereKey($customer->id)->lockForUpdate()->firstOrFail();
+
+            $existingPending = DriverLicense::where('user_id', $customer->id)
+                ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingPending) {
+                Log::info('[DriverLicense] Duplicate submission blocked — returning existing pending license', [
+                    'license_id' => $existingPending->id,
+                    'customer_id' => $customer->id,
+                ]);
+
+                $existingPending->setAttribute('submission_was_created', false);
+
+                return $existingPending;
+            }
+
             // Mark any existing active license as replaced.
             $previous = $this->getActiveLicense($customer);
             if ($previous) {
@@ -126,7 +134,10 @@ class DriverLicenseService
                 'replaced_id' => $previous?->id,
             ]);
 
-            return $license->fresh();
+            $fresh = $license->fresh();
+            $fresh->setAttribute('submission_was_created', true);
+
+            return $fresh;
         });
     }
 

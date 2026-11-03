@@ -48,20 +48,24 @@ const LICENSE_CATEGORIES = [
 
 // ─── File drop zone ───────────────────────────────────────────────────────────
 
-function FileDropZone({ label, accept, maxMb = 5, value, onChange, error, helperText }) {
+function FileDropZone({ label, accept, maxMb = 5, value, onChange, onError, error, helperText }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
-  const previewUrl = value ? URL.createObjectURL(value) : null;
 
   const handleFile = (file) => {
     if (!file) return;
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
+      onChange(null);
+      onError?.('Please choose a JPEG, PNG, WEBP, or PDF file.');
       return;
     }
     if (file.size > maxMb * 1024 * 1024) {
+      onChange(null);
+      onError?.(`The selected file is larger than ${maxMb} MB.`);
       return;
     }
+    onError?.(null);
     onChange(file);
   };
 
@@ -83,7 +87,10 @@ function FileDropZone({ label, accept, maxMb = 5, value, onChange, error, helper
           type="file"
           accept={accept}
           className="hidden"
-          onChange={(e) => handleFile(e.target.files[0])}
+          onChange={(e) => {
+            handleFile(e.target.files[0]);
+            e.target.value = '';
+          }}
         />
 
         {value ? (
@@ -274,6 +281,10 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
     setErrors((er) => ({ ...er, [`${side}_document`]: null }));
   };
 
+  const handleDocError = (side) => (message) => {
+    setErrors((current) => ({ ...current, [`${side}_document`]: message }));
+  };
+
   const validate = () => {
     const errs = {};
     if (!form.document_number?.trim()) errs.document_number = 'Document number is required.';
@@ -332,9 +343,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
         }
         setErrors(newErrors);
       }
-      if (Object.keys(errors).length === 0) {
-        toast.error(err.message || 'Submission failed. Please check the form.');
-      }
+      toast.error(err.message || 'Submission failed. Please check the form.');
     } finally {
       setSubmitting(false);
     }
@@ -456,6 +465,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           maxMb={5}
           value={frontDoc}
           onChange={handleDocChange('front')}
+          onError={handleDocError('front')}
           error={errors.front_document}
           helperText="Upload a photo/scan of the FRONT side of your license/ID"
         />
@@ -465,6 +475,7 @@ function LicenseForm({ onSuccess, onCancel, isResubmit = false }) {
           maxMb={5}
           value={backDoc}
           onChange={handleDocChange('back')}
+          onError={handleDocError('back')}
           error={errors.back_document}
           helperText="Upload a photo/scan of the BACK side of your license/ID"
         />

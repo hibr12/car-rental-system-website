@@ -54,6 +54,9 @@ class PaymentChapaLiveTest extends TestCase
             'user_id' => $this->customer->id,
             'vehicle_id' => $vehicle->id,
             'branch_id' => $this->branch->id,
+            'subtotal' => 200,
+            'additional_charges' => 0,
+            'discount' => 0,
             'total_price' => 200,
             'status' => Booking::STATUS_PAYMENT_REQUIRED,
             'payment_status' => Booking::PAYMENT_STATUS_PENDING,
@@ -83,7 +86,10 @@ class PaymentChapaLiveTest extends TestCase
         $this->assertEquals(Payment::STATUS_PROCESSING, $payment->status);
         $this->assertEquals(Payment::VERIFICATION_GATEWAY_PENDING, $payment->verification_status);
         $this->booking->refresh();
-        $this->assertEquals(Booking::STATUS_PAYMENT_PROCESSING, $this->booking->normalizeStatus());
+        // A checkout intent does not move the booking forward until money is
+        // verified; the customer can still retry or choose another method.
+        $this->assertEquals(Booking::STATUS_PAYMENT_REQUIRED, $this->booking->normalizeStatus());
+        $this->assertEquals(Booking::PAYMENT_STATUS_PENDING, $this->booking->payment_status);
     }
 
     public function test_live_success_matching_amount_is_verified_via_service_and_api(): void

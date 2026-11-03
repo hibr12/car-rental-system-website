@@ -146,6 +146,24 @@ class DriverLicenseTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_blank_document_type_uses_driver_license_validation(): void
+    {
+        $token = $this->customer->createToken('t')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/customer/license', [
+                'document_type'    => '',
+                'document_number'  => 'ETH-12345678',
+                'full_name'        => $this->customer->name,
+                'license_category' => 'automobile',
+                'issue_date'       => now()->subYear()->toDateString(),
+                'expiry_date'      => now()->addYears(4)->toDateString(),
+                'front_document'   => UploadedFile::fake()->create('front.jpg', 100, 'image/jpeg'),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('back_document');
+    }
+
     public function test_expired_expiry_date_is_rejected(): void
     {
         $token = $this->customer->createToken('t')->plainTextToken;
@@ -307,7 +325,7 @@ class DriverLicenseTest extends TestCase
         $result = $this->licenseService->checkEligibility($this->customer, $this->vehicle);
 
         $this->assertFalse($result['eligible']);
-        $this->assertEquals('LICENSE_EXPIRED', $result['code']);
+        $this->assertEquals('DOCUMENT_EXPIRED', $result['code']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -339,7 +357,7 @@ class DriverLicenseTest extends TestCase
         $this->assertEquals(DriverLicense::STATUS_REPLACED, $original->status);
     }
 
-    public function test_old_license_is_retained_on_replacement(): void
+    public function test_duplicate_pending_submission_reuses_existing_license(): void
     {
         $original = $this->createPendingLicense($this->customer);
         $token = $this->customer->createToken('t')->plainTextToken;
@@ -354,19 +372,15 @@ class DriverLicenseTest extends TestCase
                 'front_document'   => UploadedFile::fake()->create('front.jpg', 100, 'image/jpeg'),
                 'back_document'    => UploadedFile::fake()->create('back.jpg', 100, 'image/jpeg'),
             ])
-            ->assertStatus(201);
+            ->assertStatus(200)
+            ->assertJsonPath('data.id', $original->id);
 
-        // Old record must still be in the DB (soft-deleted or replaced status).
+        // A repeated submit while review is pending is idempotent.
         $this->assertDatabaseHas('driver_licenses', [
             'id'     => $original->id,
-            'status' => DriverLicense::STATUS_REPLACED,
+            'status' => DriverLicense::STATUS_PENDING_REVIEW,
         ]);
-
-        // New pending record also exists.
-        $this->assertDatabaseHas('driver_licenses', [
-            'user_id' => $this->customer->id,
-            'status'  => DriverLicense::STATUS_PENDING_REVIEW,
-        ]);
+        $this->assertDatabaseCount('driver_licenses', 1);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -397,7 +411,7 @@ class DriverLicenseTest extends TestCase
         $result = $this->licenseService->checkEligibility($this->customer, $this->vehicle);
 
         $this->assertFalse($result['eligible']);
-        $this->assertEquals('LICENSE_PENDING', $result['code']);
+        $this->assertEquals('DOCUMENT_PENDING', $result['code']);
     }
 
     public function test_rejected_license_blocks_booking(): void
@@ -408,7 +422,7 @@ class DriverLicenseTest extends TestCase
         $result = $this->licenseService->checkEligibility($this->customer, $this->vehicle);
 
         $this->assertFalse($result['eligible']);
-        $this->assertEquals('LICENSE_REJECTED', $result['code']);
+        $this->assertEquals('DOCUMENT_REJECTED', $result['code']);
     }
 
     public function test_incompatible_license_category_blocks_booking(): void
@@ -606,6 +620,25 @@ class DriverLicenseTest extends TestCase
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->get("/api/licenses/{$license->id}/document/front")
             ->assertOk();
+    }
+
+    public function test_license_resource_uses_document_number_and_same_origin_document_urls(): void
+    {
+        $license = $this->createLicenseWithDocs($this->customer);
+        $token = $this->admin->createToken('t')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson("/api/admin/licenses/{$license->id}")
+            ->assertOk()
+            ->assertJsonPath('data.document_number', $license->getDocumentNumber())
+            ->assertJsonPath('data.license_number', $license->getDocumentNumber())
+            ->assertJsonPath('data.front_document_url', "/api/licenses/{$license->id}/document/front")
+            ->assertJsonPath('data.back_document_url', "/api/licenses/{$license->id}/document/back");
+
+        $this->assertSame(
+            $response->json('data.document_number_masked'),
+            $response->json('data.license_number_masked')
+        );
     }
 
     public function test_license_number_is_masked_in_list_response(): void
