@@ -9,11 +9,14 @@ class NeonPostgresConnector extends PostgresConnector
 {
     public function getOptions(array $config)
     {
-        $options = $config['options'] ?? [];
-        if (is_string($options)) {
-            $options = [$options => true];
+        // DB_OPTIONS is a libpq connection option (for example Neon's
+        // endpoint=...), not a numeric PDO attribute. Keep it in the DSN and
+        // pass only actual PDO attributes to PDO::__construct().
+        if (is_string($config['options'] ?? null)) {
+            $config['options'] = [];
         }
-        return array_diff_key($this->options, $options) + $options;
+
+        return parent::getOptions($config);
     }
 
     protected function getDsn(array $config)
