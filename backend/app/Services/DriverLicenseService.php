@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\LicenseDocumentStorageException;
 use App\Models\DriverLicense;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -10,16 +11,21 @@ use App\Notifications\LicenseApproved;
 use App\Notifications\LicenseRejected;
 use App\Notifications\LicenseSubmitted;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 class DriverLicenseService
 {
     // Configurable via config/booking.php — days before expiry to warn customer.
     private const EXPIRY_WARNING_DAYS = [30, 14, 7];
+
+    private const PENDING_SUBMISSION_UNIQUE_INDEX = 'driver_licenses_one_pending_per_user_unique';
 
     public function __construct(
         private AuditLogService $auditLogService,
@@ -42,103 +48,133 @@ class DriverLicenseService
         }
 
         $documentType = $data['document_type'] ?? DriverLicense::DOCUMENT_TYPE_DRIVER_LICENSE;
+        $storedDocuments = [];
+        $stage = 'find_pending_submission';
 
-        return DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType) {
-            // Serialize submissions for this customer. Without this user-row
-            // lock, parallel retries can both pass the pending lookup, upload
-            // duplicate files, and create two active review records.
-            User::whereKey($customer->id)->lockForUpdate()->firstOrFail();
-
-            $existingPending = DriverLicense::where('user_id', $customer->id)
-                ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
-                ->lockForUpdate()
-                ->first();
+        try {
+            $existingPending = $this->findPendingSubmission($customer);
 
             if ($existingPending) {
-                Log::info('[DriverLicense] Duplicate submission blocked — returning existing pending license', [
-                    'license_id' => $existingPending->id,
-                    'customer_id' => $customer->id,
-                ]);
-
-                $existingPending->setAttribute('submission_was_created', false);
-
-                return $existingPending;
+                return $this->markAsExistingSubmission($existingPending, $customer);
             }
 
-            // Mark any existing active license as replaced.
-            $previous = $this->getActiveLicense($customer);
-            if ($previous) {
-                $previous->update(['status' => DriverLicense::STATUS_REPLACED]);
-            }
+            $stage = 'begin_transaction';
 
-            $frontPath = $frontFile ? $this->storeDocument($frontFile, $customer->id, 'front') : null;
-            $backPath  = $backFile  ? $this->storeDocument($backFile,  $customer->id, 'back')  : null;
+            $license = DB::transaction(function () use ($data, $customer, $frontFile, $backFile, $documentType, &$storedDocuments, &$stage) {
+                // Check again inside the transaction. The partial unique index is
+                // the final guard when two requests still reach this point together.
+                $stage = 'find_pending_submission';
+                $existingPending = $this->findPendingSubmission($customer);
 
-            $license = DriverLicense::create([
-                'user_id'           => $customer->id,
-                'document_type'     => $documentType,
-                'document_number'   => $data['document_number'] ?? $data['license_number'] ?? null,
-                'full_name'         => $data['full_name'],
-                'date_of_birth'     => $data['date_of_birth'] ?? null,
-                'license_category'  => $data['license_category'] ?? null,
-                'issue_date'        => $data['issue_date'] ?? null,
-                'expiry_date'       => $data['expiry_date'] ?? null,
-                'issuing_authority' => $data['issuing_authority'] ?? null,
-                'issuing_country'   => $data['issuing_country'] ?? null,
-                'university_name'   => $data['university_name'] ?? null,
-                'department'        => $data['department'] ?? null,
-                'front_document_path' => $frontPath,
-                'back_document_path'  => $backPath,
-                'status'            => DriverLicense::STATUS_PENDING_REVIEW,
-                'submitted_at'      => now(),
-                'replaced_by'       => null,
-            ]);
-
-            if ($previous) {
-                $previous->update(['replaced_by' => $license->id]);
-            }
-
-            $this->auditLogService->log(
-                $customer,
-                $previous ? 'license_resubmitted' : 'license_submitted',
-                'driver_license',
-                $license->id,
-                $previous ? ['status' => $previous->status] : null,
-                ['status' => DriverLicense::STATUS_PENDING_REVIEW, 'license_id' => $license->id],
-                $previous ? 'Customer resubmitted driver\'s license.' : 'Customer submitted driver\'s license.',
-            );
-
-            try {
-                $customer->notify(new LicenseSubmitted($license));
-            } catch (\Throwable $e) {
-                Log::warning('[DriverLicense] Failed to send customer notification', [
-                    'license_id' => $license->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            try {
-                foreach ($this->notificationRecipients->adminsAndBranchManagers() as $recipient) {
-                    $recipient->notify(new AdminLicenseSubmitted($license->loadMissing('user')));
+                if ($existingPending) {
+                    return $this->markAsExistingSubmission($existingPending, $customer);
                 }
-            } catch (\Throwable $e) {
-                Log::warning('[DriverLicense] Failed to send admin notifications', [
-                    'license_id' => $license->id,
-                    'error' => $e->getMessage(),
+
+                // Mark any existing active license as replaced.
+                $stage = 'find_active_submission';
+                $previous = DriverLicense::where('user_id', $customer->id)
+                    ->whereNotIn('status', [
+                        DriverLicense::STATUS_PENDING_REVIEW,
+                        DriverLicense::STATUS_REPLACED,
+                    ])
+                    ->latest()
+                    ->first();
+                if ($previous) {
+                    $stage = 'replace_previous_submission';
+                    $previous->update(['status' => DriverLicense::STATUS_REPLACED]);
+                }
+
+                $frontPath = null;
+                if ($frontFile) {
+                    $stage = 'store_front_document';
+                    $frontDisk = $this->licenseDisk();
+                    $frontPath = $this->storeDocument($frontFile, $customer->id, 'front', $frontDisk);
+                    $storedDocuments[] = ['disk' => $frontDisk, 'path' => $frontPath, 'side' => 'front'];
+                }
+
+                $backPath = null;
+                if ($backFile) {
+                    $stage = 'store_back_document';
+                    $backDisk = $this->licenseDisk();
+                    $backPath = $this->storeDocument($backFile, $customer->id, 'back', $backDisk);
+                    $storedDocuments[] = ['disk' => $backDisk, 'path' => $backPath, 'side' => 'back'];
+                }
+
+                $stage = 'create_license';
+                $license = DriverLicense::create([
+                    'user_id'             => $customer->id,
+                    'document_type'       => $documentType,
+                    'document_number'     => $data['document_number'] ?? $data['license_number'] ?? null,
+                    'full_name'           => $data['full_name'],
+                    'date_of_birth'       => $data['date_of_birth'] ?? null,
+                    'license_category'    => $data['license_category'] ?? null,
+                    'issue_date'          => $data['issue_date'] ?? null,
+                    'expiry_date'         => $data['expiry_date'] ?? null,
+                    'issuing_authority'   => $data['issuing_authority'] ?? null,
+                    'issuing_country'     => $data['issuing_country'] ?? null,
+                    'university_name'     => $data['university_name'] ?? null,
+                    'department'          => $data['department'] ?? null,
+                    'front_document_path' => $frontPath,
+                    'back_document_path'  => $backPath,
+                    'status'              => DriverLicense::STATUS_PENDING_REVIEW,
+                    'submitted_at'        => now(),
+                    'replaced_by'         => null,
                 ]);
+
+                if ($previous) {
+                    $stage = 'link_previous_submission';
+                    $previous->update(['replaced_by' => $license->id]);
+                }
+
+                $stage = 'write_audit_log';
+                $this->auditLogService->log(
+                    $customer,
+                    $previous ? 'license_resubmitted' : 'license_submitted',
+                    'driver_license',
+                    $license->id,
+                    $previous ? ['status' => $previous->status] : null,
+                    ['status' => DriverLicense::STATUS_PENDING_REVIEW, 'license_id' => $license->id],
+                    $previous ? 'Customer resubmitted driver\'s license.' : 'Customer submitted driver\'s license.',
+                );
+
+                Log::info('[DriverLicense] Submitted', [
+                    'license_id' => $license->id,
+                    'customer_id' => $customer->id,
+                    'replaced_id' => $previous?->id,
+                ]);
+
+                $stage = 'refresh_license';
+                $fresh = $license->fresh();
+                $fresh->setAttribute('submission_was_created', true);
+
+                return $fresh;
+            });
+        } catch (Throwable $e) {
+            $this->cleanupStoredDocuments($storedDocuments, $customer->id, $e);
+
+            if ($this->isPendingSubmissionConflict($e)) {
+                $existingPending = $this->findPendingSubmission($customer);
+
+                if ($existingPending) {
+                    return $this->markAsExistingSubmission($existingPending, $customer);
+                }
             }
 
-            Log::info('[DriverLicense] Submitted', [
-                'license_id' => $license->id,
+            Log::error('[DriverLicense] Submission failed', [
                 'customer_id' => $customer->id,
-                'replaced_id' => $previous?->id,
+                'stage' => $stage,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
 
-            $fresh = $license->fresh();
-            $fresh->setAttribute('submission_was_created', true);
+            throw $e;
+        }
 
-            return $fresh;
-        });
+        if ((bool) $license->getAttribute('submission_was_created')) {
+            $this->sendSubmissionNotifications($license, $customer);
+        }
+
+        return $license;
     }
 
     /**
@@ -147,28 +183,80 @@ class DriverLicenseService
     public function updateDocuments(DriverLicense $license, User $customer, ?UploadedFile $frontFile = null, ?UploadedFile $backFile = null): DriverLicense
     {
         $this->assertOwnership($license, $customer);
+        $this->assertDocumentsCanBeUpdated($license);
 
-        if (!in_array($license->status, [DriverLicense::STATUS_PENDING_REVIEW, DriverLicense::STATUS_REJECTED], true)) {
-            throw new \InvalidArgumentException('Documents can only be updated on a pending or rejected license.');
+        if (! $frontFile && ! $backFile) {
+            return $license->fresh();
         }
 
         $updates = [];
+        $storedDocuments = [];
+        $stage = 'store_replacement_documents';
 
-        if ($frontFile) {
-            $this->deleteDocument($license->front_document_path);
-            $updates['front_document_path'] = $this->storeDocument($frontFile, $customer->id, 'front');
+        try {
+            if ($frontFile) {
+                $stage = 'store_front_replacement';
+                $frontDisk = $this->licenseDisk();
+                $frontPath = $this->storeDocument($frontFile, $customer->id, 'front', $frontDisk);
+                $updates['front_document_path'] = $frontPath;
+                $storedDocuments[] = ['disk' => $frontDisk, 'path' => $frontPath, 'side' => 'front'];
+            }
+
+            if ($backFile) {
+                $stage = 'store_back_replacement';
+                $backDisk = $this->licenseDisk();
+                $backPath = $this->storeDocument($backFile, $customer->id, 'back', $backDisk);
+                $updates['back_document_path'] = $backPath;
+                $storedDocuments[] = ['disk' => $backDisk, 'path' => $backPath, 'side' => 'back'];
+            }
+
+            $stage = 'update_document_paths';
+            $currentLicense = DriverLicense::query()->findOrFail($license->id);
+            $this->assertOwnership($currentLicense, $customer);
+            $this->assertDocumentsCanBeUpdated($currentLicense);
+
+            $replacedDocuments = [];
+            if (array_key_exists('front_document_path', $updates) && $currentLicense->front_document_path) {
+                $replacedDocuments['front'] = $currentLicense->front_document_path;
+            }
+            if (array_key_exists('back_document_path', $updates) && $currentLicense->back_document_path) {
+                $replacedDocuments['back'] = $currentLicense->back_document_path;
+            }
+
+            // Compare the paths and status we just read so a concurrent review or
+            // replacement cannot be overwritten after the new files were uploaded.
+            $updated = DriverLicense::query()
+                ->whereKey($currentLicense->id)
+                ->where('user_id', $customer->id)
+                ->whereIn('status', [DriverLicense::STATUS_PENDING_REVIEW, DriverLicense::STATUS_REJECTED])
+                ->where('front_document_path', $currentLicense->front_document_path)
+                ->where('back_document_path', $currentLicense->back_document_path)
+                ->update(array_merge($updates, ['updated_at' => now()]));
+
+            if ($updated !== 1) {
+                throw new \InvalidArgumentException('Your document status changed. Refresh the page and try again.');
+            }
+
+            $updatedLicense = $currentLicense->fresh();
+        } catch (Throwable $e) {
+            $this->cleanupStoredDocuments($storedDocuments, $customer->id, $e);
+
+            Log::error('[DriverLicense] Document replacement failed', [
+                'customer_id' => $customer->id,
+                'license_id' => $license->id,
+                'stage' => $stage,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
 
-        if ($backFile) {
-            $this->deleteDocument($license->back_document_path);
-            $updates['back_document_path'] = $this->storeDocument($backFile, $customer->id, 'back');
+        foreach ($replacedDocuments as $side => $path) {
+            $this->deleteReplacedDocument($path, $customer->id, $license->id, $side);
         }
 
-        if ($updates) {
-            $license->update($updates);
-        }
-
-        return $license->fresh();
+        return $updatedLicense;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -466,6 +554,40 @@ class DriverLicenseService
     // Private helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    private function findPendingSubmission(User $customer): ?DriverLicense
+    {
+        return DriverLicense::query()
+            ->where('user_id', $customer->id)
+            ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
+            ->whereNull('deleted_at')
+            ->first();
+    }
+
+    private function markAsExistingSubmission(DriverLicense $license, User $customer): DriverLicense
+    {
+        Log::info('[DriverLicense] Duplicate submission blocked — returning existing pending license', [
+            'license_id' => $license->id,
+            'customer_id' => $customer->id,
+        ]);
+
+        $license->setAttribute('submission_was_created', false);
+
+        return $license;
+    }
+
+    private function isPendingSubmissionConflict(Throwable $exception): bool
+    {
+        if (! $exception instanceof UniqueConstraintViolationException) {
+            return false;
+        }
+
+        $message = $exception->getMessage();
+
+        return str_contains($message, self::PENDING_SUBMISSION_UNIQUE_INDEX)
+            || (str_contains($message, 'driver_licenses.user_id')
+                && str_contains($message, 'UNIQUE constraint failed'));
+    }
+
     private function licenseDisk(): string
     {
         if (!config('services.cloudinary.enabled')) {
@@ -496,30 +618,126 @@ class DriverLicenseService
         return null;
     }
 
-    private function storeDocument(UploadedFile $file, int $customerId, string $side): string
+    private function storeDocument(UploadedFile $file, int $customerId, string $side, ?string $disk = null): string
     {
-        $disk = $this->licenseDisk();
-        $folder = config('services.cloudinary.license_folder', 'apex-rentals/licenses');
-        $ext  = $file->getClientOriginalExtension();
-        $safe = ($disk === 'cloudinary')
-            ? $folder . '/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext
-            : 'licenses/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext;
+        $disk ??= $this->licenseDisk();
 
-        $path = $file->storeAs(dirname($safe), basename($safe), $disk);
+        try {
+            $folder = config('services.cloudinary.license_folder', 'apex-rentals/licenses');
+            $ext  = $file->getClientOriginalExtension();
+            $safe = ($disk === 'cloudinary')
+                ? $folder . '/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext
+                : 'licenses/' . $customerId . '/' . $side . '_' . Str::random(32) . '.' . $ext;
 
-        return $path;
+            $path = $file->storeAs(dirname($safe), basename($safe), $disk);
+
+            if (!is_string($path) || $path === '') {
+                throw new RuntimeException('The filesystem write did not return a stored path.');
+            }
+
+            return $path;
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Failed to store document', [
+                'customer_id' => $customerId,
+                'side' => $side,
+                'disk' => $disk,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new LicenseDocumentStorageException($e);
+        }
     }
 
-    private function deleteDocument(?string $path): void
+    /**
+     * @param array<int, array{disk: string, path: string, side: string}> $documents
+     */
+    private function cleanupStoredDocuments(array $documents, int $customerId, Throwable $cause): void
+    {
+        foreach (array_reverse($documents) as $document) {
+            try {
+                $deleted = Storage::disk($document['disk'])->delete($document['path']);
+
+                if (!$deleted) {
+                    Log::warning('[DriverLicense] Failed to clean up stored document', [
+                        'customer_id' => $customerId,
+                        'side' => $document['side'],
+                        'disk' => $document['disk'],
+                        'failure_class' => $cause::class,
+                    ]);
+                }
+            } catch (Throwable $cleanupError) {
+                Log::warning('[DriverLicense] Stored document cleanup threw an exception', [
+                    'customer_id' => $customerId,
+                    'side' => $document['side'],
+                    'disk' => $document['disk'],
+                    'failure_class' => $cause::class,
+                    'cleanup_exception_class' => $cleanupError::class,
+                    'cleanup_error' => $cleanupError->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    private function sendSubmissionNotifications(DriverLicense $license, User $customer): void
+    {
+        try {
+            $customer->notify(new LicenseSubmitted($license));
+        } catch (Throwable $e) {
+            Log::warning('[DriverLicense] Failed to send customer notification', [
+                'license_id' => $license->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $notificationLicense = clone $license;
+            $notificationLicense->loadMissing('user');
+
+            foreach ($this->notificationRecipients->adminsAndBranchManagers() as $recipient) {
+                $recipient->notify(new AdminLicenseSubmitted($notificationLicense));
+            }
+        } catch (Throwable $e) {
+            Log::warning('[DriverLicense] Failed to send admin notifications', [
+                'license_id' => $license->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function deleteDocument(?string $path): bool
     {
         if (!$path) {
-            return;
+            return true;
         }
 
         $disk = $this->resolveDocumentDisk($path);
 
         if ($disk) {
-            Storage::disk($disk)->delete($path);
+            return Storage::disk($disk)->delete($path);
+        }
+
+        return true;
+    }
+
+    private function deleteReplacedDocument(string $path, int $customerId, int $licenseId, string $side): void
+    {
+        try {
+            if (!$this->deleteDocument($path)) {
+                Log::warning('[DriverLicense] Failed to delete replaced document', [
+                    'customer_id' => $customerId,
+                    'license_id' => $licenseId,
+                    'side' => $side,
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('[DriverLicense] Replaced document cleanup threw an exception', [
+                'customer_id' => $customerId,
+                'license_id' => $licenseId,
+                'side' => $side,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -527,6 +745,13 @@ class DriverLicenseService
     {
         if ((int) $license->user_id !== (int) $customer->id) {
             throw new \InvalidArgumentException('You are not authorized to access this license.');
+        }
+    }
+
+    private function assertDocumentsCanBeUpdated(DriverLicense $license): void
+    {
+        if (!in_array($license->status, [DriverLicense::STATUS_PENDING_REVIEW, DriverLicense::STATUS_REJECTED], true)) {
+            throw new \InvalidArgumentException('Documents can only be updated on a pending or rejected license.');
         }
     }
 

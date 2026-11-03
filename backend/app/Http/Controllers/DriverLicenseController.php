@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LicenseDocumentStorageException;
 use App\Http\Resources\DriverLicenseResource;
 use App\Models\DriverLicense;
 use App\Services\DriverLicenseService;
@@ -127,7 +128,16 @@ class DriverLicenseController extends Controller
             $wasCreated = (bool) $license->getAttribute('submission_was_created');
 
             if ($wasCreated) {
-                event(new \App\Events\LicenseSubmitted($license));
+                try {
+                    event(new \App\Events\LicenseSubmitted($license));
+                } catch (\Throwable $e) {
+                    Log::error('[DriverLicense] Post-commit submission event failed', [
+                        'license_id' => $license->id,
+                        'customer_id' => $request->user()->id,
+                        'exception_class' => $e::class,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return response()->json([
@@ -137,6 +147,8 @@ class DriverLicenseController extends Controller
                     : 'Your identity document is already awaiting verification.',
                 'data'    => new DriverLicenseResource($license),
             ], $wasCreated ? 201 : 200);
+        } catch (LicenseDocumentStorageException) {
+            return $this->documentStorageUnavailableResponse();
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -174,6 +186,8 @@ class DriverLicenseController extends Controller
                 'message' => 'Documents updated.',
                 'data'    => new DriverLicenseResource($license),
             ]);
+        } catch (LicenseDocumentStorageException) {
+            return $this->documentStorageUnavailableResponse();
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -316,5 +330,14 @@ class DriverLicenseController extends Controller
             'success' => true,
             'data'    => $result,
         ]);
+    }
+
+    private function documentStorageUnavailableResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'We could not store your documents. Please try again.',
+            'error_code' => LicenseDocumentStorageException::ERROR_CODE,
+        ], 503);
     }
 }

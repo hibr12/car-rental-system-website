@@ -13,6 +13,7 @@ use App\Notifications\LicenseApproved;
 use App\Notifications\LicenseSubmitted;
 use App\Services\DriverLicenseService;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -381,6 +382,16 @@ class DriverLicenseTest extends TestCase
             'status' => DriverLicense::STATUS_PENDING_REVIEW,
         ]);
         $this->assertDatabaseCount('driver_licenses', 1);
+        $this->assertSame([], Storage::disk('local')->allFiles('licenses/' . $this->customer->id));
+    }
+
+    public function test_database_rejects_two_live_pending_submissions_for_one_customer(): void
+    {
+        $this->createPendingLicense($this->customer);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        $this->createPendingLicense($this->customer);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
