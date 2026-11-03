@@ -33,7 +33,8 @@ php artisan route:clear --no-interaction
 php artisan view:clear --no-interaction
 
 migration_attempt=1
-until php artisan migrate --force --no-interaction; do
+until php artisan app:reconcile-legacy-migrations --no-interaction \
+    && php artisan migrate --force --no-interaction; do
     if [ "$migration_attempt" -ge 30 ]; then
         echo "Database migration failed after ${migration_attempt} attempts." >&2
         exit 1

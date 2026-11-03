@@ -5,12 +5,41 @@ use App\Models\User;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Console\Command\Command;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Artisan::command('app:reconcile-legacy-migrations', function () {
+    if (!Schema::hasTable('migrations')) {
+        $this->info('Migration table does not exist yet; no legacy records to reconcile.');
+
+        return Command::SUCCESS;
+    }
+
+    $legacyName = '2026_08_11_082853_create_companies_table';
+    $currentName = '2026_08_08_000000_create_companies_table';
+
+    if (DB::table('migrations')->where('migration', $currentName)->exists()) {
+        $this->info('Current companies migration record already exists.');
+
+        return Command::SUCCESS;
+    }
+
+    $updated = DB::table('migrations')
+        ->where('migration', $legacyName)
+        ->update(['migration' => $currentName]);
+
+    $this->info($updated
+        ? 'Reconciled the legacy companies migration record.'
+        : 'No legacy companies migration record required reconciliation.');
+
+    return Command::SUCCESS;
+})->purpose('Reconcile migration filenames used by earlier production deployments');
 
 Artisan::command('app:ensure-initial-admin', function () {
     $email = trim((string) getenv('INITIAL_ADMIN_EMAIL'));
