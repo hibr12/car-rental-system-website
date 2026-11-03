@@ -3,8 +3,8 @@ import apiClient from './client';
 export const licenseApi = {
   // Customer endpoints
   getMyLicense: () => apiClient.get('/customer/license'),
-  submit: (data) => apiClient.post('/customer/license', data),
-  updateDocuments: (data) => apiClient.post('/customer/license/documents', data),
+  submit: (data) => apiClient.post('/customer/license', data, { timeout: 120000 }),
+  updateDocuments: (data) => apiClient.post('/customer/license/documents', data, { timeout: 120000 }),
   eligibility: (vehicleId) => apiClient.get('/customer/license/eligibility', { params: { vehicle_id: vehicleId } }),
 
   // Admin/Staff endpoints
