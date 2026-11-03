@@ -1,25 +1,64 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-cp .env.example .env
+# Render can generate a persistent opaque secret, but Laravel needs a 32-byte
+# encryption key. Derive the same valid key on every restart without storing it
+# in the image or rewriting a .env file.
+if [ -z "${APP_KEY:-}" ]; then
+    if [ -z "${APP_KEY_SEED:-}" ]; then
+        echo "APP_KEY or APP_KEY_SEED must be configured." >&2
+        exit 1
+    fi
 
-# Parse DB_URL/DATABASE_URL into individual Laravel DB vars using PHP
-php parse_db_url.php
-
-# Overlay ALL env vars from Render using PHP (replaces fragile sed)
-php overlay_env.php
-
-# Only mint a new key when one isn't already set — generating a fresh key on
-# every boot would invalidate all existing sessions/cookies on every restart.
-if ! grep -q '^APP_KEY=.\+' .env; then
-    php artisan key:generate --force
+    APP_KEY="base64:$(php -r 'echo base64_encode(hash("sha256", getenv("APP_KEY_SEED"), true));')"
+    export APP_KEY
 fi
 
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
+# Render supplies the final hostname at runtime. Defaults remain overrideable
+# for custom domains.
+if [ -n "${RENDER_EXTERNAL_HOSTNAME:-}" ]; then
+    export APP_URL="${APP_URL:-https://${RENDER_EXTERNAL_HOSTNAME}}"
+    export FRONTEND_URL="${FRONTEND_URL:-${APP_URL}}"
+    export SANCTUM_STATEFUL_DOMAINS="${SANCTUM_STATEFUL_DOMAINS:-${RENDER_EXTERNAL_HOSTNAME}}"
+fi
 
-# Periodic cleanup (stale payment/booking reconciliation) — no Render cron add-on.
-php artisan schedule:work &
+mkdir -p \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/testing \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache
 
-php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+php artisan config:clear --no-interaction
+php artisan route:clear --no-interaction
+php artisan view:clear --no-interaction
+
+# A new database can take a short time to accept connections. Retry migrations
+# so the service can start cleanly from a single Blueprint deployment.
+migration_attempt=1
+until php artisan migrate --force --no-interaction; do
+    if [ "$migration_attempt" -ge 30 ]; then
+        echo "Database migration failed after ${migration_attempt} attempts." >&2
+        exit 1
+    fi
+
+    echo "Database is not ready; retrying migration (${migration_attempt}/30)..." >&2
+    migration_attempt=$((migration_attempt + 1))
+    sleep 2
+done
+
+php artisan app:ensure-initial-admin --no-interaction
+php artisan storage:link --force --no-interaction
+php artisan config:cache --no-interaction
+php artisan route:cache --no-interaction
+php artisan view:cache --no-interaction
+
+# Periodic reconciliation runs alongside the web process. Queued notifications
+# use the sync driver in the free Blueprint, so no paid worker is required.
+php artisan schedule:work --no-interaction &
+
+exec php artisan serve \
+    --no-reload \
+    --host=0.0.0.0 \
+    --port="${PORT:-10000}"

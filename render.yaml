@@ -1,16 +1,22 @@
 services:
   - type: web
-    name: car-rental-backend
+    name: apex-car-rentals
     runtime: docker
-    dockerfilePath: Dockerfile
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
     envVars:
       - key: APP_ENV
         value: production
+      - key: APP_NAME
+        value: Apex Car Rentals
       - key: APP_DEBUG
         value: "false"
-      - key: APP_URL
+      - key: APP_KEY_SEED
+        generateValue: true
+      - key: INITIAL_ADMIN_EMAIL
         sync: false
-      - key: APP_KEY
+      - key: INITIAL_ADMIN_PASSWORD
         sync: false
       - key: DB_CONNECTION
         value: pgsql
@@ -22,38 +28,24 @@ services:
         value: require
       - key: SESSION_DRIVER
         value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: SESSION_SAME_SITE
+        value: lax
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
-        value: database
+        value: sync
       - key: LOG_CHANNEL
-        value: stack
-      - key: LOG_STACK
         value: stderr
       - key: LOG_LEVEL
-        value: error
-      - key: SESSION_SECURE_COOKIE
-        sync: false
-      - key: FRONTEND_URL
-        sync: false
-      - key: SANCTUM_STATEFUL_DOMAINS
-        sync: false
+        value: info
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: MAIL_MAILER
+        value: log
       - key: CHAPA_MODE
-        sync: false
-      - key: CHAPA_SECRET_KEY
-        sync: false
-      - key: CHAPA_CALLBACK_URL
-        sync: false
-      - key: CHAPA_RETURN_URL
-        sync: false
-      - key: CHAPA_WEBHOOK_URL
-        sync: false
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_KEY
-        sync: false
-      - key: CLOUDINARY_SECRET
-        sync: false
+        value: test
 
 databases:
   - name: car-rental-db

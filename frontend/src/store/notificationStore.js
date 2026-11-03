@@ -58,7 +58,7 @@ const useNotificationStore = create((set, get) => ({
           n.id === id ? { ...n, read_at: new Date().toISOString() } : n
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
-      ));
+      }));
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
       if (err instanceof ApiError) {
