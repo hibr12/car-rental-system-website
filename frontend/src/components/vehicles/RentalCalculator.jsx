@@ -6,13 +6,26 @@ import bookingApi from '../../api/bookingApi';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../common/Toast';
 
+const formatLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const addLocalDays = (dateString, days) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatLocalDate(date);
+};
+
 export const RentalCalculator = ({ vehicle }) => {
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const today = formatLocalDate(new Date());
+  const tomorrow = addLocalDays(today, 1);
 
   const [pickupDate, setPickupDate] = useState(today);
   const [returnDate, setReturnDate] = useState(tomorrow);
@@ -71,7 +84,7 @@ export const RentalCalculator = ({ vehicle }) => {
       const bookingData = res.data?.booking || res.data;
       
       setBookingSuccess(bookingData);
-      toast.success('Booking created successfully!');
+      toast.success(res.message || 'Booking created successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to submit booking request.');
     } finally {
@@ -159,7 +172,13 @@ export const RentalCalculator = ({ vehicle }) => {
               type="date"
               min={today}
               value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
+              onChange={(e) => {
+                const nextPickupDate = e.target.value;
+                setPickupDate(nextPickupDate);
+                if (returnDate <= nextPickupDate) {
+                  setReturnDate(addLocalDays(nextPickupDate, 1));
+                }
+              }}
               required
               className="w-full bg-theme-secondary border border-theme rounded-xl px-3 py-2.5 text-sm text-theme-primary focus:outline-none focus:border-blue-500"
             />
@@ -172,7 +191,7 @@ export const RentalCalculator = ({ vehicle }) => {
             </label>
             <input
               type="date"
-              min={pickupDate || today}
+              min={addLocalDays(pickupDate || today, 1)}
               value={returnDate}
               onChange={(e) => setReturnDate(e.target.value)}
               required

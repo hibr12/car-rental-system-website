@@ -9,11 +9,12 @@ use App\Models\Vehicle;
 use App\Models\VehicleTransfer;
 use App\Notifications\BookingBranchApprovedAwaitingPayment;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Services\DriverLicenseService;
+use Throwable;
 
 class BookingService
 {
@@ -46,29 +47,22 @@ class BookingService
         $returnDate = Carbon::parse($data['return_date']);
         $this->validateDates($pickupDate, $returnDate);
 
-        // Prevent duplicate bookings — if user already has a pending/active booking for same vehicle+dates, return it
-        $existingBooking = Booking::where('user_id', $userId)
-            ->where('vehicle_id', $vehicle->id)
-            ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_REJECTED, Booking::STATUS_EXPIRED, Booking::STATUS_COMPLETED])
-            ->where(function ($q) use ($pickupDate, $returnDate) {
-                $q->whereBetween('pickup_date', [$pickupDate, $returnDate])
-                    ->orWhereBetween('return_date', [$pickupDate, $returnDate])
-                    ->orWhere(function ($q2) use ($pickupDate, $returnDate) {
-                        $q2->where('pickup_date', '<=', $pickupDate)
-                            ->where('return_date', '>=', $returnDate);
-                    });
-            })
-            ->first();
+        // An exact retry is idempotent. Other overlaps, including another
+        // interval from the same customer, are availability conflicts.
+        $existingBooking = $this->findExactDuplicate(
+            $userId,
+            $vehicle->id,
+            $pickupDate,
+            $returnDate,
+        );
 
         if ($existingBooking) {
-            Log::info('Duplicate booking blocked — returning existing booking', [
-                'existing_booking_id' => $existingBooking->id,
-                'booking_reference' => $existingBooking->booking_reference,
-                'user_id' => $userId,
-                'vehicle_id' => $vehicle->id,
-            ]);
-            return $existingBooking->load('vehicle', 'user', 'branch');
+            return $this->markAsExistingBooking($existingBooking, $userId, $vehicle->id);
         }
+
+        // Give normal conflicts a clear 422 before attempting the insert. The
+        // PostgreSQL exclusion constraint is the final concurrency guard.
+        $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);
 
         $numberOfDays = $this->calculateNumberOfDays($pickupDate, $returnDate);
         $pricePerDay = $this->getPricePerDay($vehicle);
@@ -76,87 +70,113 @@ class BookingService
         $additionalCharges = $this->resolveAdditionalCharges($data);
         $discount = $this->resolveDiscount($data);
         $totalPrice = $this->calculateTotalPrice($subtotal, $additionalCharges, $discount);
-        $bookingReference = $this->generateUniqueReference();
+        $draft = new Booking([
+            'total_price' => $totalPrice,
+            'number_of_days' => $numberOfDays,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+        ]);
+        $approvals = $this->workflow->resolveInitialApprovals($draft);
 
-        // Use PostgreSQL advisory lock to prevent race conditions on vehicle booking.
-        // Lock is scoped to vehicle_id and released automatically at transaction end.
-        $lockKey = $vehicle->id;
+        $branchAutoApproved = $approvals['branch_approval_status'] !== Booking::APPROVAL_PENDING;
+        $initialStatus = Booking::STATUS_PENDING_BRANCH_APPROVAL;
+        $initialPaymentStatus = Booking::PAYMENT_STATUS_NOT_REQUIRED;
 
-        $booking = DB::transaction(function () use (
-            $bookingReference, $userId, $vehicle, $data,
-            $pickupDate, $returnDate, $numberOfDays,
-            $pricePerDay, $subtotal, $additionalCharges,
-            $discount, $totalPrice, $lockKey
-        ) {
-            // Acquire advisory lock for PostgreSQL (blocks concurrent bookings for same vehicle)
-            if (DB::connection()->getDriverName() === 'pgsql') {
-                DB::statement('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
+        if ($branchAutoApproved) {
+            if ($approvals['admin_approval_required']) {
+                $initialStatus = Booking::STATUS_PENDING_ADMIN_APPROVAL;
+            } else {
+                // Operationally approved — payment is required to confirm the booking.
+                $initialStatus = Booking::STATUS_PAYMENT_REQUIRED;
+                $initialPaymentStatus = Booking::PAYMENT_STATUS_PENDING;
             }
+        }
 
-            // Re-check overlap inside the locked transaction
-            $this->validateNoOverlap($vehicle->id, $pickupDate, $returnDate);
-            $draft = new Booking([
-                'total_price' => $totalPrice,
-                'number_of_days' => $numberOfDays,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-            ]);
-            $approvals = $this->workflow->resolveInitialApprovals($draft);
+        $attributes = [
+            'user_id' => $userId,
+            'vehicle_id' => $vehicle->id,
+            'branch_id' => $vehicle->branch_id,
+            'pickup_location' => $data['pickup_location'],
+            'return_location' => $data['return_location'],
+            'pickup_date' => $pickupDate,
+            'return_date' => $returnDate,
+            'number_of_days' => $numberOfDays,
+            'price_per_day' => $pricePerDay,
+            'subtotal' => $subtotal,
+            'additional_charges' => $additionalCharges,
+            'discount' => $discount,
+            'total_price' => $totalPrice,
+            'status' => $initialStatus,
+            'payment_status' => $initialPaymentStatus,
+            'branch_approval_status' => $approvals['branch_approval_status'],
+            'admin_approval_status' => $approvals['admin_approval_status'],
+            'admin_approval_required' => $approvals['admin_approval_required'],
+            'notes' => $data['notes'] ?? null,
+        ];
 
-            $branchAutoApproved = $approvals['branch_approval_status'] !== Booking::APPROVAL_PENDING;
-            $initialStatus = Booking::STATUS_PENDING_BRANCH_APPROVAL;
-            $initialPaymentStatus = Booking::PAYMENT_STATUS_NOT_REQUIRED;
+        $booking = $this->insertBooking(
+            $attributes,
+            $userId,
+            $vehicle->id,
+            $pickupDate,
+            $returnDate,
+        );
 
-            if ($branchAutoApproved) {
-                if ($approvals['admin_approval_required']) {
-                    $initialStatus = Booking::STATUS_PENDING_ADMIN_APPROVAL;
-                    $initialPaymentStatus = Booking::PAYMENT_STATUS_NOT_REQUIRED;
-                } else {
-                    // Operationally approved — payment is required to confirm the booking.
-                    $initialStatus = Booking::STATUS_PAYMENT_REQUIRED;
-                    $initialPaymentStatus = Booking::PAYMENT_STATUS_PENDING;
+        if (! (bool) $booking->getAttribute('booking_was_created')) {
+            return $booking;
+        }
+
+        // The booking row is authoritative for date availability. Vehicle
+        // status is a display/operations aid and must not turn a committed
+        // booking into a false 500 response if that secondary update fails.
+        if (in_array($initialStatus, [Booking::STATUS_PAYMENT_REQUIRED, Booking::STATUS_PENDING_ADMIN_APPROVAL], true)) {
+            try {
+                $updated = Vehicle::query()
+                    ->whereKey($vehicle->id)
+                    ->whereIn('status', [Vehicle::STATUS_AVAILABLE, Vehicle::STATUS_RESERVED])
+                    ->update(['status' => Vehicle::STATUS_RESERVED]);
+
+                if ($updated !== 1) {
+                    Log::warning('[Booking] Created but vehicle status was not reserved', [
+                        'booking_id' => $booking->id,
+                        'vehicle_id' => $vehicle->id,
+                    ]);
                 }
+            } catch (Throwable $e) {
+                Log::error('[Booking] Created but vehicle reservation update failed', [
+                    'booking_id' => $booking->id,
+                    'vehicle_id' => $vehicle->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
             }
+        }
 
-            $booking = Booking::create([
-                'booking_reference' => $bookingReference,
+        $booking->load('vehicle', 'user', 'branch');
+
+        try {
+            event(new BookingCreated($booking));
+        } catch (Throwable $e) {
+            Log::error('[Booking] Created but BookingCreated dispatch failed', [
+                'booking_id' => $booking->id,
                 'user_id' => $userId,
                 'vehicle_id' => $vehicle->id,
-                'branch_id' => $vehicle->branch_id,
-                'pickup_location' => $data['pickup_location'],
-                'return_location' => $data['return_location'],
-                'pickup_date' => $pickupDate,
-                'return_date' => $returnDate,
-                'number_of_days' => $numberOfDays,
-                'price_per_day' => $pricePerDay,
-                'subtotal' => $subtotal,
-                'additional_charges' => $additionalCharges,
-                'discount' => $discount,
-                'total_price' => $totalPrice,
-                'status' => $initialStatus,
-                'payment_status' => $initialPaymentStatus,
-                'branch_approval_status' => $approvals['branch_approval_status'],
-                'admin_approval_status' => $approvals['admin_approval_status'],
-                'admin_approval_required' => $approvals['admin_approval_required'],
-                'notes' => $data['notes'] ?? null,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
-
-            // Temporarily reserve the vehicle when we have already passed operational approval.
-            if (in_array($initialStatus, [Booking::STATUS_PAYMENT_REQUIRED, Booking::STATUS_PENDING_ADMIN_APPROVAL], true)) {
-                $booking->vehicle->update(['status' => Vehicle::STATUS_RESERVED]);
-            }
-
-            return $booking->load('vehicle', 'user', 'branch');
-        });
-
-        event(new BookingCreated($booking));
+        }
 
         // After automatic operational approval, the customer must immediately know payment is required.
         if ($booking->status === Booking::STATUS_PAYMENT_REQUIRED && $booking->payment_status === Booking::PAYMENT_STATUS_PENDING) {
             try {
                 $booking->user->notify(new BookingBranchApprovedAwaitingPayment($booking));
-            } catch (\Throwable) {
-                // Notifications must not break booking creation.
+            } catch (Throwable $e) {
+                Log::warning('[Booking] Created but payment-required notification failed', [
+                    'booking_id' => $booking->id,
+                    'user_id' => $userId,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -170,6 +190,80 @@ class BookingService
         ]);
 
         return $booking;
+    }
+
+    /**
+     * Insert a booking without opening an explicit application transaction.
+     * PostgreSQL's exclusion constraint atomically rejects concurrent date
+     * overlaps; exact retries return the row created by the winning request.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function insertBooking(
+        array $attributes,
+        int $userId,
+        int $vehicleId,
+        Carbon $pickupDate,
+        Carbon $returnDate,
+    ): Booking {
+        for ($attempt = 1; $attempt <= self::MAX_REFERENCE_RETRIES; $attempt++) {
+            $attributes['booking_reference'] = $this->generateUniqueReference();
+
+            try {
+                $booking = Booking::create($attributes);
+                $booking->setAttribute('booking_was_created', true);
+                $booking->syncOriginalAttribute('booking_was_created');
+
+                return $booking;
+            } catch (QueryException $e) {
+                if ($this->isOverlapConstraintViolation($e)) {
+                    $existing = $this->findExactDuplicate(
+                        $userId,
+                        $vehicleId,
+                        $pickupDate,
+                        $returnDate,
+                    );
+
+                    if ($existing) {
+                        return $this->markAsExistingBooking($existing, $userId, $vehicleId);
+                    }
+
+                    Log::info('[Booking] Concurrent overlapping booking blocked', [
+                        'user_id' => $userId,
+                        'vehicle_id' => $vehicleId,
+                        'pickup_date' => $pickupDate->toDateTimeString(),
+                        'return_date' => $returnDate->toDateTimeString(),
+                    ]);
+
+                    throw new \InvalidArgumentException(
+                        'This vehicle is unavailable for the selected dates.',
+                        previous: $e,
+                    );
+                }
+
+                if ($this->isBookingReferenceCollision($e) && $attempt < self::MAX_REFERENCE_RETRIES) {
+                    Log::warning('[Booking] Reference collision during insert', [
+                        'attempt' => $attempt,
+                        'vehicle_id' => $vehicleId,
+                    ]);
+
+                    continue;
+                }
+
+                Log::error('[Booking] Database insert failed', [
+                    'user_id' => $userId,
+                    'vehicle_id' => $vehicleId,
+                    'stage' => 'insert_booking',
+                    'sql_state' => $e->errorInfo[0] ?? $e->getCode(),
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+
+                throw $e;
+            }
+        }
+
+        throw new \RuntimeException('Failed to create a unique booking reference.');
     }
 
     public function approveByBranch(Booking $booking, User $approver): Booking
@@ -413,6 +507,55 @@ class BookingService
         if ($this->hasOverlap($vehicleId, $pickupDate, $returnDate, $excludeBookingId)) {
             throw new \InvalidArgumentException('This vehicle is unavailable for the selected dates.');
         }
+    }
+
+    private function findExactDuplicate(
+        int $userId,
+        int $vehicleId,
+        Carbon $pickupDate,
+        Carbon $returnDate,
+    ): ?Booking {
+        return Booking::query()
+            ->where('user_id', $userId)
+            ->where('vehicle_id', $vehicleId)
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
+            ->where('pickup_date', $pickupDate)
+            ->where('return_date', $returnDate)
+            ->first();
+    }
+
+    private function markAsExistingBooking(Booking $booking, int $userId, int $vehicleId): Booking
+    {
+        Log::info('[Booking] Exact duplicate blocked; returning existing booking', [
+            'existing_booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'user_id' => $userId,
+            'vehicle_id' => $vehicleId,
+        ]);
+
+        $booking->load('vehicle', 'user', 'branch');
+        $booking->setAttribute('booking_was_created', false);
+        $booking->syncOriginalAttribute('booking_was_created');
+
+        return $booking;
+    }
+
+    private function isOverlapConstraintViolation(QueryException $e): bool
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+
+        return $sqlState === '23P01'
+            && str_contains(strtolower($e->getMessage()), 'bookings_vehicle_dates_no_overlap');
+    }
+
+    private function isBookingReferenceCollision(QueryException $e): bool
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+        $message = strtolower($e->getMessage());
+
+        return in_array($sqlState, ['23000', '23505'], true)
+            && (str_contains($message, 'booking_reference')
+                || str_contains($message, 'bookings_booking_reference_unique'));
     }
 
     private function calculateNumberOfDays(Carbon $pickupDate, Carbon $returnDate): int

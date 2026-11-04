@@ -14,9 +14,13 @@ use App\Services\BookingService;
 use App\Services\BookingWorkflowService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
 
 class BookingController extends Controller
 {
@@ -88,16 +92,42 @@ class BookingController extends Controller
                 $request->user()->id
             );
 
+            $wasCreated = (bool) $booking->getAttribute('booking_was_created');
+
             return response()->json([
                 'success' => true,
-                'message' => 'Booking created successfully',
+                'message' => $wasCreated
+                    ? 'Booking created successfully'
+                    : 'This booking was already submitted. Your existing booking is shown below.',
                 'data' => new BookingResource($booking->load(['payments', 'review'])),
-            ], 201);
+            ], $wasCreated ? 201 : 200);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        } catch (Throwable $e) {
+            $errorId = (string) Str::uuid();
+
+            Log::error('[Booking] Creation request failed', [
+                'error_id' => $errorId,
+                'user_id' => $request->user()?->id,
+                'vehicle_id' => $request->integer('vehicle_id') ?: null,
+                'pickup_date' => $request->input('pickup_date'),
+                'return_date' => $request->input('return_date'),
+                'sql_state' => $e instanceof QueryException
+                    ? ($e->errorInfo[0] ?? $e->getCode())
+                    : null,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Unable to create the booking right now. Please try again. Error reference: {$errorId}.",
+                'error_code' => 'BOOKING_CREATION_FAILED',
+                'error_id' => $errorId,
+            ], 500);
         }
     }
 

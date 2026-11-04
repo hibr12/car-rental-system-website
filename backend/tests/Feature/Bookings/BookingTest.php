@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Bookings;
 
+use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use RuntimeException;
 use Tests\Support\HasVerifiedLicense;
 use Tests\TestCase;
 
@@ -77,6 +81,75 @@ class BookingTest extends TestCase
             'vehicle_id' => $this->vehicle->id,
             'status' => 'payment_required',
             'payment_status' => 'pending',
+        ]);
+    }
+
+    public function test_exact_retry_returns_existing_booking_without_creating_a_duplicate(): void
+    {
+        $payload = [
+            'vehicle_id' => $this->vehicle->id,
+            'pickup_location' => 'Main Office',
+            'return_location' => 'Main Office',
+            'pickup_date' => Carbon::tomorrow()->addDays(2)->format('Y-m-d 10:00:00'),
+            'return_date' => Carbon::tomorrow()->addDays(5)->format('Y-m-d 10:00:00'),
+        ];
+
+        $first = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->postJson('/api/bookings', $payload);
+        $second = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->postJson('/api/bookings', $payload);
+
+        $first->assertCreated();
+        $second->assertOk()
+            ->assertJsonPath('message', 'This booking was already submitted. Your existing booking is shown below.');
+
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
+        $this->assertSame($first->json('data.booking_reference'), $second->json('data.booking_reference'));
+        $this->assertDatabaseCount('bookings', 1);
+    }
+
+    public function test_booking_creation_does_not_open_an_explicit_service_transaction(): void
+    {
+        $baselineLevel = DB::transactionLevel();
+        $eventTransactionLevel = null;
+
+        Event::listen(BookingCreated::class, function () use (&$eventTransactionLevel): void {
+            $eventTransactionLevel = DB::transactionLevel();
+        });
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->postJson('/api/bookings', [
+                'vehicle_id' => $this->vehicle->id,
+                'pickup_location' => 'Main Office',
+                'return_location' => 'Main Office',
+                'pickup_date' => Carbon::tomorrow()->addDays(2)->format('Y-m-d 10:00:00'),
+                'return_date' => Carbon::tomorrow()->addDays(5)->format('Y-m-d 10:00:00'),
+            ]);
+
+        $response->assertCreated();
+        $this->assertSame($baselineLevel, $eventTransactionLevel);
+    }
+
+    public function test_event_failure_does_not_turn_a_committed_booking_into_an_error(): void
+    {
+        Event::listen(BookingCreated::class, static function (): void {
+            throw new RuntimeException('Synthetic booking event failure.');
+        });
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->postJson('/api/bookings', [
+                'vehicle_id' => $this->vehicle->id,
+                'pickup_location' => 'Main Office',
+                'return_location' => 'Main Office',
+                'pickup_date' => Carbon::tomorrow()->addDays(2)->format('Y-m-d 10:00:00'),
+                'return_date' => Carbon::tomorrow()->addDays(5)->format('Y-m-d 10:00:00'),
+            ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('bookings', [
+            'id' => $response->json('data.id'),
+            'user_id' => $this->customer->id,
+            'vehicle_id' => $this->vehicle->id,
         ]);
     }
 
@@ -207,10 +280,14 @@ class BookingTest extends TestCase
 
     public function test_customer_can_view_own_bookings(): void
     {
-        Booking::factory()->count(3)->create([
-            'user_id' => $this->customer->id,
-            'vehicle_id' => $this->vehicle->id,
-        ]);
+        foreach ([2, 7, 12] as $startDay) {
+            Booking::factory()->create([
+                'user_id' => $this->customer->id,
+                'vehicle_id' => $this->vehicle->id,
+                'pickup_date' => Carbon::tomorrow()->addDays($startDay),
+                'return_date' => Carbon::tomorrow()->addDays($startDay + 2),
+            ]);
+        }
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
             ->getJson('/api/bookings');
