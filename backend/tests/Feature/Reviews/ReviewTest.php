@@ -364,6 +364,39 @@ class ReviewTest extends TestCase
             ->assertJsonMissingPath('data.0.user.phone');
     }
 
+    public function test_public_featured_reviews_are_loaded_in_one_filtered_request(): void
+    {
+        Review::factory()->published()->create([
+            'vehicle_id' => $this->vehicle->id,
+            'booking_id' => $this->completedBooking->id,
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->customer->id,
+            'overall_rating' => 5,
+            'comment' => 'A featured customer review.',
+        ]);
+
+        $lowRatedBooking = Booking::factory()->completed()->create([
+            'vehicle_id' => $this->vehicle->id,
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->otherCustomer->id,
+        ]);
+        Review::factory()->published()->create([
+            'vehicle_id' => $this->vehicle->id,
+            'booking_id' => $lowRatedBooking->id,
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->otherCustomer->id,
+            'overall_rating' => 3,
+            'comment' => 'This should not be featured.',
+        ]);
+
+        $this->getJson('/api/reviews/featured')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.comment', 'A featured customer review.')
+            ->assertJsonPath('data.0.vehicle.brand', $this->vehicle->brand)
+            ->assertJsonMissingPath('data.0.user.email');
+    }
+
     public function test_verified_rental_flag_on_completed_booking_review(): void
     {
         $review = Review::factory()->published()->create([

@@ -101,9 +101,9 @@ class VehicleTransferController extends Controller
 
             $query->where(function ($q) use ($start, $end) {
                 if ($start && !$end) {
-                    $q->whereDate('transfer_date', '>=', $start);
+                    $q->where('transfer_date', '>=', $start->toDateString());
                 } elseif (!$start && $end) {
-                    $q->whereDate('transfer_date', '<=', $end);
+                    $q->where('transfer_date', '<=', $end->toDateString());
                 } elseif ($start && $end) {
                     $q->whereBetween('transfer_date', [$start->toDateString(), $end->toDateString()]);
                 }
@@ -111,17 +111,47 @@ class VehicleTransferController extends Controller
         }
 
         $scopedBase = clone $query;
-        $counts = [
-            'pending' => (clone $scopedBase)->whereIn('status', [VehicleTransfer::STATUS_PENDING, 'requested'])->count(),
-            'approved' => (clone $scopedBase)->whereIn('status', [VehicleTransfer::STATUS_APPROVED, VehicleTransfer::STATUS_READY_FOR_RELEASE])->count(),
-            'ready_for_release' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_READY_FOR_RELEASE)->count(),
-            'in_transit' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_IN_TRANSIT)->count(),
-            'received' => (clone $scopedBase)->whereIn('status', [VehicleTransfer::STATUS_RECEIVED, VehicleTransfer::STATUS_RECEIVED_PENDING_INSPECTION])->count(),
-            'completed' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_COMPLETED)->count(),
-            'rejected' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_REJECTED)->count(),
-            'cancelled' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_CANCELLED)->count(),
-            'failed' => (clone $scopedBase)->where('status', VehicleTransfer::STATUS_FAILED)->count(),
-        ];
+        $aggregate = (clone $scopedBase)
+            ->setEagerLoads([])
+            ->selectRaw(
+                'COUNT(*) AS total, '
+                . 'SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) AS pending, '
+                . 'SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) AS approved, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS ready_for_release, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS in_transit, '
+                . 'SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) AS received, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS completed, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS rejected, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS cancelled, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS failed',
+                [
+                    VehicleTransfer::STATUS_PENDING,
+                    'requested',
+                    VehicleTransfer::STATUS_APPROVED,
+                    VehicleTransfer::STATUS_READY_FOR_RELEASE,
+                    VehicleTransfer::STATUS_READY_FOR_RELEASE,
+                    VehicleTransfer::STATUS_IN_TRANSIT,
+                    VehicleTransfer::STATUS_RECEIVED,
+                    VehicleTransfer::STATUS_RECEIVED_PENDING_INSPECTION,
+                    VehicleTransfer::STATUS_COMPLETED,
+                    VehicleTransfer::STATUS_REJECTED,
+                    VehicleTransfer::STATUS_CANCELLED,
+                    VehicleTransfer::STATUS_FAILED,
+                ],
+            )
+            ->first();
+
+        $counts = collect([
+            'pending',
+            'approved',
+            'ready_for_release',
+            'in_transit',
+            'received',
+            'completed',
+            'rejected',
+            'cancelled',
+            'failed',
+        ])->mapWithKeys(fn (string $key) => [$key => (int) ($aggregate?->{$key} ?? 0)])->all();
 
         $perPage = min((int) $request->input('per_page', 15), 50);
         $transfers = $query->orderByDesc('created_at')->paginate($perPage);
@@ -133,7 +163,7 @@ class VehicleTransferController extends Controller
                 'current_page' => $transfers->currentPage(),
                 'last_page' => $transfers->lastPage(),
                 'total' => $transfers->total(),
-                'stats' => array_merge(['total' => (clone $scopedBase)->count()], $counts),
+                'stats' => array_merge(['total' => (int) ($aggregate?->total ?? 0)], $counts),
             ],
         ]);
     }

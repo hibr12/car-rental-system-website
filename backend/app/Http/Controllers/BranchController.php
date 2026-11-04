@@ -14,6 +14,7 @@ use App\Services\BranchManagerProvisioningService;
 use App\Services\BranchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
@@ -27,6 +28,31 @@ class BranchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        // Public/customer screens only need branch directory data. Avoid the
+        // operational counts and financial aggregates used by management.
+        if (!$request->user() || $request->user()->isCustomer()) {
+            $status = $request->filled('status')
+                ? (string) $request->input('status')
+                : 'active';
+
+            $load = fn () => Branch::query()
+                ->select([
+                    'id', 'name', 'code', 'address', 'city', 'phone', 'email',
+                    'latitude', 'longitude', 'opening_time', 'closing_time', 'status',
+                ])
+                ->where('status', $status)
+                ->orderBy('name')
+                ->get();
+
+            // Branch directory fields change rarely and do not contain
+            // availability, booking, payment, or other transactional state.
+            $branches = in_array($status, ['active', 'inactive'], true)
+                ? Cache::remember("branches:directory:{$status}", now()->addMinutes(2), $load)
+                : $load();
+
+            return response()->json(['success' => true, 'data' => $branches]);
+        }
+
         $activeTransferStatuses = [
             VehicleTransfer::STATUS_PENDING,
             VehicleTransfer::STATUS_APPROVED,
@@ -53,7 +79,27 @@ class BranchController extends Controller
                 },
                 'vehicleTransfersFrom as outgoing_transfers_count' => fn ($q) => $q->whereIn('status', $activeTransferStatuses),
                 'vehicleTransfersTo as incoming_transfers_count' => fn ($q) => $q->whereIn('status', $activeTransferStatuses),
+                'maintenances as maintenance_count' => fn ($q) => $q->whereIn('status', ['scheduled', 'in_progress']),
             ]);
+
+        $query->addSelect([
+            'pending_transfers_count' => VehicleTransfer::query()
+                ->selectRaw('COUNT(*)')
+                ->where('status', VehicleTransfer::STATUS_PENDING)
+                ->where(function ($q) {
+                    $q->whereColumn('from_branch_id', 'branches.id')
+                        ->orWhereColumn('to_branch_id', 'branches.id');
+                }),
+            'monthly_revenue' => Payment::query()
+                ->selectRaw('COALESCE(SUM(amount), 0)')
+                ->whereColumn('branch_id', 'branches.id')
+                ->where('status', Payment::STATUS_PAID)
+                ->whereBetween('paid_at', [$monthStart, $monthEnd]),
+            'total_revenue' => Payment::query()
+                ->selectRaw('COALESCE(SUM(amount), 0)')
+                ->whereColumn('branch_id', 'branches.id')
+                ->where('status', Payment::STATUS_PAID),
+        ]);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -61,29 +107,9 @@ class BranchController extends Controller
             $query->where('status', 'active');
         }
 
-        $branches = $query->orderBy('name')->get()->map(function (Branch $branch) use ($monthStart, $monthEnd) {
-            $branch->pending_transfers_count = VehicleTransfer::query()
-                ->where('status', VehicleTransfer::STATUS_PENDING)
-                ->where(function ($q) use ($branch) {
-                    $q->where('from_branch_id', $branch->id)
-                        ->orWhere('to_branch_id', $branch->id);
-                })
-                ->count();
-
-            $branch->maintenance_count = Maintenance::where('branch_id', $branch->id)
-                ->whereIn('status', ['scheduled', 'in_progress'])
-                ->count();
-
-            $branch->monthly_revenue = (float) Payment::where('branch_id', $branch->id)
-                ->where('status', 'paid')
-                ->whereBetween('paid_at', [$monthStart, $monthEnd])
-                ->sum('amount');
-
-            $branch->total_revenue = (float) Payment::where('branch_id', $branch->id)
-                ->where('status', 'paid')
-                ->sum('amount');
-
-            return $branch;
+        $branches = $query->orderBy('name')->get()->each(function (Branch $branch) {
+            $branch->monthly_revenue = (float) ($branch->monthly_revenue ?? 0);
+            $branch->total_revenue = (float) ($branch->total_revenue ?? 0);
         });
 
         return response()->json(['success' => true, 'data' => $branches]);
@@ -183,6 +209,8 @@ class BranchController extends Controller
             ]), $request->user());
         }
 
+        $this->forgetDirectoryCache();
+
         // Fire BranchCreated event
         event(new \App\Events\BranchCreated($branch));
 
@@ -248,6 +276,8 @@ class BranchController extends Controller
             $branch->update($updateData);
         });
 
+        $this->forgetDirectoryCache();
+
         // Fire BranchUpdated event if there are changes
         if (!empty($changes)) {
             event(new \App\Events\BranchUpdated($branch, $changes));
@@ -266,6 +296,7 @@ class BranchController extends Controller
     {
         $oldStatus = $branch->status;
         $branch->update(['status' => 'active']);
+        $this->forgetDirectoryCache();
         
         if ($oldStatus !== 'active') {
             event(new \App\Events\BranchUpdated($branch, ['status' => ['old' => $oldStatus, 'new' => 'active']]));
@@ -278,6 +309,7 @@ class BranchController extends Controller
     {
         $oldStatus = $branch->status;
         $branch->update(['status' => 'inactive']);
+        $this->forgetDirectoryCache();
         
         if ($oldStatus !== 'inactive') {
             event(new \App\Events\BranchUpdated($branch, ['status' => ['old' => $oldStatus, 'new' => 'inactive']]));
@@ -420,27 +452,53 @@ class BranchController extends Controller
     public function dashboard(Branch $branch): JsonResponse
     {
         $today = now()->startOfDay();
+        $tomorrow = $today->copy()->addDay();
         $monthStart = now()->startOfMonth();
-        $monthEnd   = now()->endOfMonth();
+        $nextMonth = $monthStart->copy()->addMonth();
+
+        $vehicleStats = Vehicle::query()
+            ->where('branch_id', $branch->id)
+            ->selectRaw(
+                'COUNT(*) AS total_vehicles,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS available_vehicles,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS rented_vehicles,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS maintenance_vehicles',
+                ['available', 'rented', 'maintenance'],
+            )
+            ->first();
+
+        $bookingStats = Booking::query()
+            ->where('branch_id', $branch->id)
+            ->selectRaw(
+                'SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END) AS todays_bookings,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS active_rentals,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS pending_bookings',
+                [$today, $tomorrow, 'active', 'pending'],
+            )
+            ->first();
+
+        $paymentStats = Payment::query()
+            ->where('branch_id', $branch->id)
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN status = ? AND paid_at >= ? AND paid_at < ? THEN amount ELSE 0 END), 0) AS monthly_revenue,
+                 COALESCE(SUM(CASE WHEN status = ? AND paid_at >= ? AND paid_at < ? THEN amount ELSE 0 END), 0) AS todays_revenue,
+                 COALESCE(SUM(CASE WHEN status = ? THEN amount ELSE 0 END), 0) AS total_revenue',
+                ['paid', $monthStart, $nextMonth, 'paid', $today, $tomorrow, 'paid'],
+            )
+            ->first();
 
         $data = [
             'branch'              => $branch->load('manager'),
-            'available_vehicles'  => Vehicle::where('branch_id', $branch->id)->where('status', 'available')->count(),
-            'rented_vehicles'     => Vehicle::where('branch_id', $branch->id)->where('status', 'rented')->count(),
-            'maintenance_vehicles'=> Vehicle::where('branch_id', $branch->id)->where('status', 'maintenance')->count(),
-            'total_vehicles'      => Vehicle::where('branch_id', $branch->id)->count(),
-            'todays_bookings'     => Booking::where('branch_id', $branch->id)->whereDate('created_at', $today)->count(),
-            'active_rentals'      => Booking::where('branch_id', $branch->id)->where('status', 'active')->count(),
-            'pending_bookings'    => Booking::where('branch_id', $branch->id)->where('status', 'pending')->count(),
-            'monthly_revenue'     => (float) Payment::where('branch_id', $branch->id)
-                ->where('status', 'paid')
-                ->whereBetween('paid_at', [$monthStart, $monthEnd])
-                ->sum('amount'),
-            'todays_revenue'      => (float) Payment::where('branch_id', $branch->id)
-                ->where('status', 'paid')
-                ->whereDate('paid_at', $today)
-                ->sum('amount'),
-            'total_revenue'       => (float) Payment::where('branch_id', $branch->id)->where('status', 'paid')->sum('amount'),
+            'available_vehicles'  => (int) ($vehicleStats->available_vehicles ?? 0),
+            'rented_vehicles'     => (int) ($vehicleStats->rented_vehicles ?? 0),
+            'maintenance_vehicles'=> (int) ($vehicleStats->maintenance_vehicles ?? 0),
+            'total_vehicles'      => (int) ($vehicleStats->total_vehicles ?? 0),
+            'todays_bookings'     => (int) ($bookingStats->todays_bookings ?? 0),
+            'active_rentals'      => (int) ($bookingStats->active_rentals ?? 0),
+            'pending_bookings'    => (int) ($bookingStats->pending_bookings ?? 0),
+            'monthly_revenue'     => (float) ($paymentStats->monthly_revenue ?? 0),
+            'todays_revenue'      => (float) ($paymentStats->todays_revenue ?? 0),
+            'total_revenue'       => (float) ($paymentStats->total_revenue ?? 0),
             'maintenance_count'   => Maintenance::where('branch_id', $branch->id)
                 ->whereIn('status', ['scheduled', 'in_progress'])
                 ->count(),
@@ -452,5 +510,11 @@ class BranchController extends Controller
         ];
 
         return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    private function forgetDirectoryCache(): void
+    {
+        Cache::forget('branches:directory:active');
+        Cache::forget('branches:directory:inactive');
     }
 }

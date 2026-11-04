@@ -1,6 +1,7 @@
 import apiClient from './client';
 
 export const reviewApi = {
+  getFeatured: (params = {}) => apiClient.get('/reviews/featured', { params }),
   getByVehicle: (vehicleId, params = {}) => apiClient.get(`/vehicles/${vehicleId}/reviews`, { params }),
   getByBranch: (branchId, params = {}) => apiClient.get(`/branches/${branchId}/reviews`, { params }),
   getUserReviews: (params = {}) => apiClient.get('/reviews', { params }),

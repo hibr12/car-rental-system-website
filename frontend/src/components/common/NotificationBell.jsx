@@ -1,48 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X, AlertCircle, RefreshCw } from 'lucide-react';
-import notificationApi from '../../api/notificationApi';
-import { ApiError } from '../../api/client';
 import { formatDate } from '../../utils/formatters';
+import useNotificationStore from '../../store/notificationStore';
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
-
-  const fetchNotifications = async (isRetry = false) => {
-    try {
-      if (!isRetry) setLoading(true);
-      setError(null);
-      const res = await notificationApi.getAll({ per_page: 10 });
-      setNotifications(res.data || []);
-      setUnreadCount(res.meta?.unread_count || 0);
-    } catch (err) {
-      console.warn('Failed to load notifications:', err);
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setError('Your session has expired. Please sign in again.');
-        } else if (err.status === 403) {
-          setError('You do not have permission to view notifications.');
-        } else {
-          setError(err.message || 'Failed to load notifications. Please try again.');
-        }
-      } else {
-        setError('Failed to load notifications. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const loading = useNotificationStore((state) => state.isLoading);
+  const error = useNotificationStore((state) => state.error);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const startPolling = useNotificationStore((state) => state.startPolling);
+  const stopPolling = useNotificationStore((state) => state.stopPolling);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const clearError = useNotificationStore((state) => state.clearError);
 
   useEffect(() => {
-    fetchNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(() => fetchNotifications(true), 30000);
-    return () => clearInterval(interval);
-  }, []);
+    startPolling();
+    return stopPolling;
+  }, [startPolling, stopPolling]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -55,33 +33,11 @@ const NotificationBell = () => {
   }, []);
 
   const handleMarkAllRead = async () => {
-    try {
-      await notificationApi.markAllAsRead();
-      setUnreadCount(0);
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, read_at: new Date().toISOString() }))
-      );
-    } catch (err) {
-      console.warn('Failed to mark notifications as read:', err);
-      if (err instanceof ApiError) {
-        setError(err.message || 'Failed to mark all as read.');
-      }
-    }
+    await markAllAsRead();
   };
 
   const handleMarkAsRead = async (id) => {
-    try {
-      await notificationApi.markAsRead(id);
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
-      );
-    } catch (err) {
-      console.warn('Failed to mark notification as read:', err);
-      if (err instanceof ApiError) {
-        setError(err.message || 'Failed to mark as read.');
-      }
-    }
+    await markAsRead(id);
   };
 
   const getNotificationTitle = (type) => {
@@ -94,17 +50,23 @@ const NotificationBell = () => {
   };
 
   const handleRetry = () => {
-    fetchNotifications(true);
+    fetchNotifications(1, { force: true }).catch(() => {});
   };
 
   const handleDismissError = () => {
-    setError(null);
+    clearError();
+  };
+
+  const handleToggle = () => {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
+    if (nextOpen) fetchNotifications(1, { force: true }).catch(() => {});
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="relative p-2 rounded-xl bg-theme-secondary border border-theme hover:border-theme-hover text-theme-secondary hover:text-theme-primary transition-all"
         aria-label="Notifications"
       >

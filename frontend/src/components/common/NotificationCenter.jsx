@@ -11,19 +11,19 @@ const NotificationCenter = () => {
     isLoading,
     error,
     fetchNotifications,
-    fetchUnreadCount,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     clearError,
+    startPolling,
+    stopPolling,
   } = useNotificationStore();
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    startPolling();
+    return stopPolling;
+  }, [startPolling, stopPolling]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -38,12 +38,12 @@ const NotificationCenter = () => {
   const handleOpen = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
-      fetchNotifications();
+      fetchNotifications(1, { force: true }).catch(() => {});
     }
   };
 
   const handleRetry = () => {
-    fetchNotifications();
+    fetchNotifications(1, { force: true }).catch(() => {});
   };
 
   const handleDismissError = () => {

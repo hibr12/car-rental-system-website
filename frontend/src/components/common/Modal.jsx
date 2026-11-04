@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
   useEffect(() => {
@@ -18,22 +17,15 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl'
   }, [isOpen, onClose]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+    isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm apex-fade-enter"
           />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className={`relative w-full ${maxWidth} bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden z-10 my-8`}
+          <div
+            className={`relative w-full ${maxWidth} bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden z-10 my-8 apex-modal-enter`}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-white">
               <h3 className="text-lg font-semibold text-[#0F172A]">{title}</h3>
@@ -49,10 +41,9 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl'
             <div className="p-6 max-h-[80vh] overflow-y-auto bg-white text-[#0F172A]">
               {children}
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+          </div>
+      </div>
+    )
   );
 };
 

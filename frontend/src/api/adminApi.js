@@ -1,4 +1,10 @@
 import apiClient from './client';
+import { invalidateBranchDirectory } from './branchesApi';
+
+const invalidateBranchesAfter = (request) => request.then((response) => {
+  invalidateBranchDirectory();
+  return response;
+});
 
 export const adminApi = {
   // Dashboard
@@ -11,10 +17,10 @@ export const adminApi = {
   // Branches
   getBranches:          (params = {}) => apiClient.get('/admin/branches', { params }),
   getBranch:            (id) => apiClient.get(`/admin/branches/${id}`),
-  createBranch:         (data) => apiClient.post('/admin/branches', data),
-  updateBranch:         (id, data) => apiClient.put(`/admin/branches/${id}`, data),
-  activateBranch:       (id) => apiClient.put(`/admin/branches/${id}/activate`),
-  deactivateBranch:     (id) => apiClient.put(`/admin/branches/${id}/deactivate`),
+  createBranch:         (data) => invalidateBranchesAfter(apiClient.post('/admin/branches', data)),
+  updateBranch:         (id, data) => invalidateBranchesAfter(apiClient.put(`/admin/branches/${id}`, data)),
+  activateBranch:       (id) => invalidateBranchesAfter(apiClient.put(`/admin/branches/${id}/activate`)),
+  deactivateBranch:     (id) => invalidateBranchesAfter(apiClient.put(`/admin/branches/${id}/deactivate`)),
   getBranchDashboard:   (id) => apiClient.get(`/admin/branches/${id}/dashboard`),
   getBranchVehicles:    (id, params = {}) => apiClient.get(`/admin/branches/${id}/vehicles`, { params }),
   getBranchStaff:       (id) => apiClient.get(`/admin/branches/${id}/staff`),

@@ -45,12 +45,18 @@ services:
         value: stderr
       - key: LOG_LEVEL
         value: info
+      - key: PHP_CLI_SERVER_WORKERS
+        value: "2"
       - key: FILESYSTEM_DISK
         value: local
       - key: MAIL_MAILER
         value: log
       - key: CHAPA_MODE
         value: test
+      - key: CHAPA_SECRET_KEY
+        sync: false
+      - key: CHAPA_BASE_URL
+        value: https://api.chapa.co
       - key: CHAPA_RETURN_URL
         value: https://frontend-snowy-ten-96.vercel.app/payments/status
 

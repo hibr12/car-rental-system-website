@@ -13,20 +13,16 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\ProcessedWebhook;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class PaymentService
 {
-    /**
-     * Minutes after which a gateway-pending checkout is considered abandoned.
-     * A late Chapa success after this still settles via markAsPaid — the TTL
-     * only stops pretending money is in flight for checkouts nobody finished.
-     */
-    private const ABANDON_TTL_MINUTES = 15;
-
     public function __construct(
         private ChapaService $chapaService,
         private AuditLogService $auditLogService,
@@ -81,11 +77,11 @@ class PaymentService
         }
 
         if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+            $query->where('created_at', '>=', Carbon::parse($filters['date_from'])->startOfDay());
         }
 
         if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+            $query->where('created_at', '<', Carbon::parse($filters['date_to'])->addDay()->startOfDay());
         }
 
         $perPage = min((int) ($filters['per_page'] ?? 15), 50);
@@ -110,7 +106,7 @@ class PaymentService
     }
 
     /**
-     * @return array{checkout_url: string, tx_ref: string, payment: Payment}
+     * @return array{checkout_url: string, tx_ref: string, payment: Payment, was_created: bool}
      */
     public function initializePayment(array $data, int $userId): array
     {
@@ -121,13 +117,10 @@ class PaymentService
         $this->assertBookingAmountIntegrity($booking);
         $this->reconcileStalePaymentState($booking);
 
-        // Reuse a recent pending online payment instead of creating duplicates
-        $existingPending = $booking->payments()
-            ->where('payment_method', Payment::METHOD_ONLINE_PAYMENT)
-            ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
-            ->where('created_at', '>=', now()->subMinutes(30))
-            ->latest()
-            ->first();
+        // A live payment intent is idempotent. PostgreSQL's partial unique
+        // index is the final guard when two initialize requests race.
+        $existingPending = $this->findLiveOnlinePayment($booking);
+        $paymentWasCreated = false;
 
         if ($existingPending) {
             $txRef = $existingPending->transaction_reference;
@@ -140,39 +133,62 @@ class PaymentService
         } else {
             $this->validateNoDuplicatePaidPayment($booking);
 
-            $txRef = $this->chapaService->generateTransactionRef($booking->id, $booking->booking_reference);
-
-            $payment = DB::transaction(function () use ($booking, $userId, $txRef) {
-                $expected = number_format((float) $booking->total_price, 2, '.', '');
-                $payment = Payment::create([
-                    'booking_id'            => $booking->id,
-                    'attempt_number'        => $this->nextAttemptNumber($booking),
-                    'user_id'               => $userId,
-                    'branch_id'             => $booking->branch_id,
-                    'amount'                => $expected,
-                    'expected_amount'       => $expected,
-                    'currency'              => 'ETB',
-                    'payment_method'        => Payment::METHOD_ONLINE_PAYMENT,
-                    'gateway'               => Payment::GATEWAY_CHAPA,
-                    'transaction_reference' => $txRef,
-                    'status'                => Payment::STATUS_PENDING,
-                    'verification_status'   => Payment::VERIFICATION_UNVERIFIED,
-                    'idempotency_key'       => 'chapa:' . $booking->id . ':' . $txRef,
-                ]);
-
-                // Only the payment intent is pending here — no money has moved yet.
-                // The booking stays payment_required so the customer can still pay or cancel.
-                $booking->update([
-                    'payment_status' => Booking::PAYMENT_STATUS_PENDING,
-                ]);
-
-                return $payment;
-            });
-
-            event(new PaymentCreated($booking, $payment));
+            [$payment, $paymentWasCreated] = $this->createOnlinePaymentIntent($booking, $userId);
+            $txRef = $payment->transaction_reference;
         }
 
-        $user = User::find($userId);
+        if ($paymentWasCreated) {
+            // The payment row is authoritative. These secondary effects must
+            // never turn a committed intent into a false HTTP 500 response.
+            try {
+                $booking->update(['payment_status' => Booking::PAYMENT_STATUS_PENDING]);
+            } catch (Throwable $e) {
+                Log::error('[Payment] Intent created but booking status update failed', [
+                    'payment_id' => $payment->id,
+                    'booking_id' => $booking->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                event(new PaymentCreated($booking, $payment));
+            } catch (Throwable $e) {
+                Log::error('[Payment] Intent created but PaymentCreated dispatch failed', [
+                    'payment_id' => $payment->id,
+                    'booking_id' => $booking->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $user = User::findOrFail($userId);
+
+        $storedCheckoutUrl = data_get($payment->gateway_response, 'checkout_url');
+        if (! $paymentWasCreated && $this->chapaService->isTrustedCheckoutUrl($storedCheckoutUrl)) {
+            Log::info('[Payment] Reusing stored Chapa checkout', [
+                'payment_id' => $payment->id,
+                'booking_id' => $booking->id,
+                'tx_ref' => $txRef,
+            ]);
+
+            return [
+                'checkout_url' => $storedCheckoutUrl,
+                'tx_ref' => $txRef,
+                'payment' => $payment->fresh()->load('booking'),
+                'was_created' => false,
+            ];
+        }
+
+        if (! $paymentWasCreated
+            && ! $storedCheckoutUrl
+            && $payment->created_at?->gt(now()->subMinute())) {
+            throw new \RuntimeException(
+                'Payment initialization is already in progress. Please retry shortly.',
+                409,
+            );
+        }
 
         // All URLs come from config (driven by env vars) — no hardcoding.
         $returnBase = rtrim((string) config('services.chapa.return_url', 'http://localhost:5173/payments/status'), '/');
@@ -200,27 +216,48 @@ class PaymentService
                 'return_url' => $returnUrl,
             ]);
 
-            $payment->update([
-                'status' => Payment::STATUS_PROCESSING,
-                'gateway' => Payment::GATEWAY_CHAPA,
-            ]);
+            try {
+                $payment->update([
+                    'status' => Payment::STATUS_PROCESSING,
+                    'gateway' => Payment::GATEWAY_CHAPA,
+                    'gateway_response' => [
+                        'checkout_url' => $checkoutData['checkout_url'],
+                    ],
+                ]);
+            } catch (Throwable $e) {
+                Log::error('[Payment] Chapa initialized but payment status update failed', [
+                    'payment_id' => $payment->id,
+                    'booking_id' => $booking->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-            $this->auditLogService->log(
-                $user,
-                'chapa_payment_initialized',
-                'payment',
-                $payment->id,
-                ['status' => Payment::STATUS_PENDING],
-                ['status' => Payment::STATUS_PROCESSING, 'tx_ref' => $txRef],
-                'Redirected customer to Chapa checkout',
-                $payment->branch_id
-            );
-        } catch (\RuntimeException $e) {
+            try {
+                $this->auditLogService->log(
+                    $user,
+                    'chapa_payment_initialized',
+                    'payment',
+                    $payment->id,
+                    ['status' => Payment::STATUS_PENDING],
+                    ['status' => Payment::STATUS_PROCESSING, 'tx_ref' => $txRef],
+                    'Redirected customer to Chapa checkout',
+                    $payment->branch_id
+                );
+            } catch (Throwable $e) {
+                Log::warning('[Payment] Chapa initialized but audit logging failed', [
+                    'payment_id' => $payment->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } catch (Throwable $e) {
             try {
                 $this->markAsFailed($payment, $e->getMessage());
-            } catch (\Exception $markEx) {
+            } catch (Throwable $markEx) {
                 Log::error('Failed to mark payment as failed after Chapa init error', [
                     'payment_id' => $payment->id,
+                    'exception_class' => $markEx::class,
                     'error' => $markEx->getMessage(),
                 ]);
             }
@@ -240,6 +277,7 @@ class PaymentService
             'checkout_url' => $checkoutData['checkout_url'],
             'tx_ref' => $txRef,
             'payment' => $payment->fresh()->load('booking'),
+            'was_created' => $paymentWasCreated,
         ];
     }
 
@@ -253,6 +291,8 @@ class PaymentService
 
         if ($payment->status === Payment::STATUS_PAID && $payment->isVerified()) {
             Log::info('[Payment] Already paid — idempotent verify', ['tx_ref' => $txRef]);
+            $this->syncVerifiedPaymentEffects($payment, $actor, $source, false);
+
             return $payment->fresh()->load('booking');
         }
 
@@ -264,19 +304,44 @@ class PaymentService
             return $payment->fresh()->load('booking');
         }
 
-        $payment->update(['verification_status' => Payment::VERIFICATION_VERIFYING]);
+        Payment::query()
+            ->whereKey($payment->id)
+            ->where(function ($query) {
+                $query->where('status', '!=', Payment::STATUS_PAID)
+                    ->orWhereNotIn('verification_status', [
+                        Payment::VERIFICATION_VERIFIED,
+                        Payment::VERIFICATION_MANUALLY_CONFIRMED,
+                    ])
+                    ->orWhereNull('verification_status');
+            })
+            ->update(['verification_status' => Payment::VERIFICATION_VERIFYING]);
+
+        $payment->refresh();
+        if ($payment->isSettled()) {
+            $this->syncVerifiedPaymentEffects($payment, $actor, $source, false);
+
+            return $payment->fresh()->load('booking');
+        }
 
         if ($actor) {
-            $this->auditLogService->log(
-                $actor,
-                'payment_verification_requested',
-                'payment',
-                $payment->id,
-                null,
-                ['tx_ref' => $txRef, 'source' => $source],
-                'Chapa verification requested',
-                $payment->branch_id
-            );
+            try {
+                $this->auditLogService->log(
+                    $actor,
+                    'payment_verification_requested',
+                    'payment',
+                    $payment->id,
+                    null,
+                    ['tx_ref' => $txRef, 'source' => $source],
+                    'Chapa verification requested',
+                    $payment->branch_id
+                );
+            } catch (Throwable $e) {
+                Log::warning('[Payment] Verification audit logging failed', [
+                    'payment_id' => $payment->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         try {
@@ -316,15 +381,6 @@ class PaymentService
             if (in_array($verification['status'], ['pending', 'processing'], true)) {
                 $isLive = in_array($payment->status, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING], true);
 
-                if ($isLive && $payment->created_at?->lt(now()->subMinutes(self::ABANDON_TTL_MINUTES))) {
-                    // Abandoned checkout — stop pretending money is in flight.
-                    return $this->markAsFailed(
-                        $payment,
-                        'Checkout abandoned — payment was not completed within ' . self::ABANDON_TTL_MINUTES . ' minutes.',
-                        Payment::VERIFICATION_UNVERIFIED
-                    );
-                }
-
                 if ($isLive) {
                     $payment->update([
                         'status' => Payment::STATUS_PROCESSING,
@@ -345,14 +401,6 @@ class PaymentService
         } catch (PaymentVerificationRetryableException $e) {
             $isLive = in_array($payment->status, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING], true);
 
-            if ($isLive && $payment->created_at?->lt(now()->subMinutes(self::ABANDON_TTL_MINUTES))) {
-                return $this->markAsFailed(
-                    $payment,
-                    'Checkout abandoned — payment was not completed within ' . self::ABANDON_TTL_MINUTES . ' minutes.',
-                    Payment::VERIFICATION_UNVERIFIED
-                );
-            }
-
             if ($isLive) {
                 $payment->update([
                     'status' => Payment::STATUS_PROCESSING,
@@ -369,16 +417,24 @@ class PaymentService
                 'error' => $e->getMessage(),
             ]);
             if ($actor) {
-                $this->auditLogService->log(
-                    $actor,
-                    'payment_verification_rejected',
-                    'payment',
-                    $payment->id,
-                    null,
-                    ['reason' => $e->getMessage(), 'source' => $source],
-                    $e->getMessage(),
-                    $payment->branch_id
-                );
+                try {
+                    $this->auditLogService->log(
+                        $actor,
+                        'payment_verification_rejected',
+                        'payment',
+                        $payment->id,
+                        null,
+                        ['reason' => $e->getMessage(), 'source' => $source],
+                        $e->getMessage(),
+                        $payment->branch_id
+                    );
+                } catch (Throwable $auditError) {
+                    Log::warning('[Payment] Rejected-verification audit logging failed', [
+                        'payment_id' => $payment->id,
+                        'exception_class' => $auditError::class,
+                        'error' => $auditError->getMessage(),
+                    ]);
+                }
             }
             throw $e;
         }
@@ -535,15 +591,7 @@ class PaymentService
         // Create a unique event ID for idempotency (tx_ref + event_type)
         $eventId = 'chapa:' . $txRef . ':' . ($eventType ?? 'unknown');
 
-        // Check if already processed (idempotency)
-        $alreadyProcessed = DB::transaction(function () use ($eventId) {
-            return ProcessedWebhook::where('source', 'chapa')
-                ->where('event_id', $eventId)
-                ->lockForUpdate()
-                ->exists();
-        });
-
-        if ($alreadyProcessed) {
+        if (ProcessedWebhook::where('source', 'chapa')->where('event_id', $eventId)->exists()) {
             Log::info('Duplicate webhook ignored (idempotent)', ['event_id' => $eventId]);
             return;
         }
@@ -553,27 +601,30 @@ class PaymentService
             'event' => $eventType,
         ]);
 
-        // Process and record as processed atomically
-        DB::transaction(function () use ($payload, $rawBody, $eventId, $eventType, $txRef) {
-            // Re-check inside transaction to prevent race condition
-            if (ProcessedWebhook::where('source', 'chapa')
-                ->where('event_id', $eventId)
-                ->exists()) {
-                return;
+        // Always re-query Chapa — never trust webhook body alone. Verification
+        // is idempotent, so simultaneous deliveries may both verify safely;
+        // the event_id unique index atomically deduplicates the receipt row.
+        $this->verifyPayment($txRef, null, 'webhook');
+
+        try {
+            ProcessedWebhook::firstOrCreate(
+                ['event_id' => $eventId],
+                [
+                    'source' => 'chapa',
+                    'event_type' => $eventType,
+                    'payload' => $payload,
+                    'processed_at' => now(),
+                ],
+            );
+        } catch (QueryException $e) {
+            if (! $this->isUniqueViolation($e)) {
+                throw $e;
             }
 
-            // Always re-query Chapa — never trust webhook body alone
-            $this->verifyPayment($txRef, null, 'webhook');
-
-            // Record as processed
-            ProcessedWebhook::create([
-                'source' => 'chapa',
+            Log::info('Duplicate webhook receipt raced with another request', [
                 'event_id' => $eventId,
-                'event_type' => $eventType,
-                'payload' => $payload,
-                'processed_at' => now(),
             ]);
-        });
+        }
     }
 
     public function processPayment(array $data, int $userId): Payment
@@ -763,78 +814,82 @@ class PaymentService
         string $source = 'api',
         ?float $paidAmount = null
     ): Payment {
-        return DB::transaction(function () use ($payment, $reference, $actor, $source, $paidAmount) {
-            $payment->refresh();
+        $payment->refresh();
 
-            if ($payment->status === Payment::STATUS_PAID && $payment->isVerified()) {
-                return $payment->fresh()->load('booking');
-            }
-
-            $this->assertNoOtherSettledPayment($payment);
-
-            $expected = (float) ($payment->expected_amount ?? $payment->amount);
-            $received = $paidAmount !== null ? $paidAmount : $expected;
-
-            $payment->update([
-                'status' => Payment::STATUS_PAID,
-                'expected_amount' => $expected,
-                'paid_amount' => number_format($received, 2, '.', ''),
-                'paid_at' => $payment->paid_at ?? now(),
-                'verified_at' => now(),
-                'verified_by' => $actor?->id,
-                'verification_source' => $source,
-                'verification_status' => Payment::VERIFICATION_VERIFIED,
-                'gateway_reference' => $reference ?? $payment->gateway_reference,
-                'gateway' => $payment->gateway ?? Payment::GATEWAY_CHAPA,
-                'gateway_status' => $payment->gateway_status ?? 'success',
-                'failure_reason' => null,
-                'mismatch_reason' => null,
-            ]);
-
-            $payment->booking->update([
-                'payment_status' => Booking::PAYMENT_STATUS_PAID,
-            ]);
-
-            if ($actor) {
-                $this->auditLogService->log(
-                    $actor,
-                    'payment_verified',
-                    'payment',
-                    $payment->id,
-                    null,
-                    [
-                        'status' => Payment::STATUS_PAID,
-                        'expected_amount' => $expected,
-                        'paid_amount' => $received,
-                        'gateway_reference' => $reference ?? $payment->gateway_reference,
-                        'source' => $source,
-                    ],
-                    "Payment verified via {$source}",
-                    $payment->branch_id
-                );
-            }
-
-            event(new PaymentSucceeded($payment->booking, $payment));
-
-            try {
-                $this->bookingWorkflow->advanceAfterPaymentVerified($payment->booking->fresh(), $actor);
-            } catch (\InvalidArgumentException $e) {
-                Log::warning('Payment paid but booking not advanced', [
-                    'booking_id' => $payment->booking_id,
-                    'reason' => $e->getMessage(),
-                ]);
-            }
-
-            Log::info('Payment marked as paid', [
-                'payment_id' => $payment->id,
-                'tx_ref' => $payment->transaction_reference,
-                'gateway_reference' => $reference,
-                'source' => $source,
-                'actor_id' => $actor?->id,
-            ]);
+        if ($payment->status === Payment::STATUS_PAID && $payment->isVerified()) {
+            $this->syncVerifiedPaymentEffects($payment, $actor, $source, false);
 
             return $payment->fresh()->load('booking');
-        });
+        }
+
+        $this->assertNoOtherSettledPayment($payment);
+
+        $expected = (float) ($payment->expected_amount ?? $payment->amount);
+        $received = $paidAmount !== null ? $paidAmount : $expected;
+
+        try {
+            $updated = Payment::query()
+                ->whereKey($payment->id)
+                ->where(function ($query) {
+                    $query->where('status', '!=', Payment::STATUS_PAID)
+                        ->orWhereNotIn('verification_status', [
+                            Payment::VERIFICATION_VERIFIED,
+                            Payment::VERIFICATION_MANUALLY_CONFIRMED,
+                        ])
+                        ->orWhereNull('verification_status');
+                })
+                ->update([
+                    'status' => Payment::STATUS_PAID,
+                    'expected_amount' => $expected,
+                    'paid_amount' => number_format($received, 2, '.', ''),
+                    'paid_at' => $payment->paid_at ?? now(),
+                    'verified_at' => now(),
+                    'verified_by' => $actor?->id,
+                    'verification_source' => $source,
+                    'verification_status' => Payment::VERIFICATION_VERIFIED,
+                    'gateway_reference' => $reference ?? $payment->gateway_reference,
+                    'gateway' => $payment->gateway ?? Payment::GATEWAY_CHAPA,
+                    'gateway_status' => $payment->gateway_status ?? 'success',
+                    'failure_reason' => null,
+                    'mismatch_reason' => null,
+                ]);
+        } catch (QueryException $e) {
+            if (! $this->isSettledPaymentConstraintViolation($e)) {
+                throw $e;
+            }
+
+            return $this->markAsInvalid(
+                $payment->fresh(),
+                Payment::VERIFICATION_REFERENCE_MISMATCH,
+                'This booking already has a verified paid payment. This gateway result requires reconciliation.',
+                'DUPLICATE_PAYMENT',
+                $actor,
+                ['received' => $received],
+            );
+        }
+
+        $payment->refresh();
+        if ($updated !== 1) {
+            if (! $payment->isSettled()) {
+                throw new \RuntimeException('Payment settlement changed concurrently. Please retry verification.', 409);
+            }
+
+            $this->syncVerifiedPaymentEffects($payment, $actor, $source, false);
+
+            return $payment->fresh()->load('booking');
+        }
+
+        $this->syncVerifiedPaymentEffects($payment, $actor, $source, true);
+
+        Log::info('Payment marked as paid', [
+            'payment_id' => $payment->id,
+            'tx_ref' => $payment->transaction_reference,
+            'gateway_reference' => $reference,
+            'source' => $source,
+            'actor_id' => $actor?->id,
+        ]);
+
+        return $payment->fresh()->load('booking');
     }
 
     public function markAsInvalid(
@@ -845,21 +900,23 @@ class PaymentService
         ?User $actor = null,
         array $meta = []
     ): Payment {
-        return DB::transaction(function () use ($payment, $verificationStatus, $reason, $mismatchReason, $actor, $meta) {
-            $old = $payment->status;
+        $old = $payment->status;
 
-            $payment->update([
-                'status' => Payment::STATUS_INVALID,
-                'verification_status' => $verificationStatus,
-                'failure_reason' => $reason,
-                'mismatch_reason' => $mismatchReason,
-                'paid_amount' => $meta['received'] ?? $meta['amount'] ?? $payment->paid_amount,
-                'amount_received' => $meta['received'] ?? $payment->amount_received,
-            ]);
+        $payment->update([
+            'status' => Payment::STATUS_INVALID,
+            'verification_status' => $verificationStatus,
+            'failure_reason' => $reason,
+            'mismatch_reason' => $mismatchReason,
+            'paid_amount' => $meta['received'] ?? $meta['amount'] ?? $payment->paid_amount,
+            'amount_received' => $meta['received'] ?? $payment->amount_received,
+        ]);
 
-            // Do not mark booking paid
-            if ($payment->booking->payment_status === Booking::PAYMENT_STATUS_PAID) {
-                $hasValidPaid = $payment->booking->payments()
+        try {
+            $booking = $payment->booking()->firstOrFail();
+
+            // Do not mark booking paid because of an invalid gateway result.
+            if ($booking->payment_status === Booking::PAYMENT_STATUS_PAID) {
+                $hasValidPaid = $booking->payments()
                     ->where('id', '!=', $payment->id)
                     ->where('status', Payment::STATUS_PAID)
                     ->whereIn('verification_status', [
@@ -868,31 +925,35 @@ class PaymentService
                     ])
                     ->exists();
 
-                if (!$hasValidPaid) {
-                    $payment->booking->update([
-                        'payment_status' => Booking::PAYMENT_STATUS_FAILED,
-                    ]);
+                if (! $hasValidPaid) {
+                    $booking->update(['payment_status' => Booking::PAYMENT_STATUS_FAILED]);
                 }
-            } elseif (!in_array($payment->booking->normalizeStatus(), [
+            } elseif (! in_array($booking->normalizeStatus(), [
                 Booking::STATUS_CANCELLED,
                 Booking::STATUS_REJECTED,
                 Booking::STATUS_EXPIRED,
                 Booking::STATUS_COMPLETED,
-            ], true) && $payment->booking->isBranchApproved() && $payment->booking->isAdminApproved()) {
-                // Keep booking payable after mismatch for manual review / retry.
-                $payment->booking->update([
-                    'status' => Booking::STATUS_PAYMENT_REQUIRED,
-                ]);
+            ], true) && $booking->isBranchApproved() && $booking->isAdminApproved()) {
+                $booking->update(['status' => Booking::STATUS_PAYMENT_REQUIRED]);
             }
+        } catch (Throwable $e) {
+            Log::error('[Payment] Invalid result saved but booking reconciliation failed', [
+                'payment_id' => $payment->id,
+                'booking_id' => $payment->booking_id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-            if ($actor) {
-                $action = match ($verificationStatus) {
-                    Payment::VERIFICATION_AMOUNT_MISMATCH => 'payment_amount_mismatch',
-                    Payment::VERIFICATION_CURRENCY_MISMATCH => 'payment_currency_mismatch',
-                    Payment::VERIFICATION_REFERENCE_MISMATCH => 'payment_reference_mismatch',
-                    default => 'payment_invalid',
-                };
+        if ($actor) {
+            $action = match ($verificationStatus) {
+                Payment::VERIFICATION_AMOUNT_MISMATCH => 'payment_amount_mismatch',
+                Payment::VERIFICATION_CURRENCY_MISMATCH => 'payment_currency_mismatch',
+                Payment::VERIFICATION_REFERENCE_MISMATCH => 'payment_reference_mismatch',
+                default => 'payment_invalid',
+            };
 
+            try {
                 $this->auditLogService->log(
                     $actor,
                     $action,
@@ -908,16 +969,22 @@ class PaymentService
                     $reason,
                     $payment->branch_id
                 );
+            } catch (Throwable $e) {
+                Log::warning('[Payment] Invalid-result audit logging failed', [
+                    'payment_id' => $payment->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
             }
+        }
 
-            Log::warning('[Payment] Marked invalid', [
-                'payment_id' => $payment->id,
-                'verification_status' => $verificationStatus,
-                'reason' => $reason,
-            ]);
+        Log::warning('[Payment] Marked invalid', [
+            'payment_id' => $payment->id,
+            'verification_status' => $verificationStatus,
+            'reason' => $reason,
+        ]);
 
-            return $payment->fresh()->load('booking');
-        });
+        return $payment->fresh()->load('booking');
     }
 
     public function markAsFailed(
@@ -925,23 +992,24 @@ class PaymentService
         ?string $reason = null,
         string $verificationStatus = Payment::VERIFICATION_GATEWAY_FAILED
     ): Payment {
-        return DB::transaction(function () use ($payment, $reason, $verificationStatus) {
-            if (in_array($payment->status, [
-                Payment::STATUS_FAILED,
-                Payment::STATUS_PAID,
-                Payment::STATUS_REFUNDED,
-                Payment::STATUS_INVALID,
-            ], true)) {
-                return $payment->fresh();
-            }
+        if (in_array($payment->status, [
+            Payment::STATUS_FAILED,
+            Payment::STATUS_PAID,
+            Payment::STATUS_REFUNDED,
+            Payment::STATUS_INVALID,
+        ], true)) {
+            return $payment->fresh();
+        }
 
-            $payment->update([
-                'status' => Payment::STATUS_FAILED,
-                'failure_reason' => $reason,
-                'verification_status' => $verificationStatus,
-            ]);
+        $payment->update([
+            'status' => Payment::STATUS_FAILED,
+            'failure_reason' => $reason,
+            'verification_status' => $verificationStatus,
+        ]);
 
-            $hasPaid = $payment->booking->payments()
+        try {
+            $booking = $payment->booking()->firstOrFail();
+            $hasPaid = $booking->payments()
                 ->where('status', Payment::STATUS_PAID)
                 ->whereIn('verification_status', [
                     Payment::VERIFICATION_VERIFIED,
@@ -949,19 +1017,34 @@ class PaymentService
                 ])
                 ->exists();
 
-            if (!$hasPaid) {
-                $payment->booking->update([
+            if (! $hasPaid) {
+                $booking->update([
                     'payment_status' => Booking::PAYMENT_STATUS_FAILED,
-                    'status' => $payment->booking->isBranchApproved() && $payment->booking->isAdminApproved()
+                    'status' => $booking->isBranchApproved() && $booking->isAdminApproved()
                         ? Booking::STATUS_PAYMENT_REQUIRED
-                        : $payment->booking->status,
+                        : $booking->status,
                 ]);
             }
+        } catch (Throwable $e) {
+            Log::error('[Payment] Failure saved but booking reconciliation failed', [
+                'payment_id' => $payment->id,
+                'booking_id' => $payment->booking_id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
+        try {
             event(new PaymentFailed($payment->booking, $payment));
+        } catch (Throwable $e) {
+            Log::warning('[Payment] Failure saved but PaymentFailed dispatch failed', [
+                'payment_id' => $payment->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-            return $payment->fresh();
-        });
+        return $payment->fresh();
     }
 
     public function refundPayment(Payment $payment, ?User $actor = null, ?float $refundAmount = null, ?string $reason = null): Payment
@@ -1201,20 +1284,45 @@ class PaymentService
             $query->where('branch_id', $user->branch_id);
         }
 
-        $base = clone $query;
+        $summary = $query->selectRaw(<<<'SQL'
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS paid,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS processing,
+            COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) AS pending,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS failed,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS invalid,
+            COALESCE(SUM(CASE WHEN verification_status = ? THEN 1 ELSE 0 END), 0) AS amount_mismatch,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS refund_pending,
+            COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) AS refunded,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS disputed,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS cash_awaiting
+            SQL, [
+                Payment::STATUS_PAID,
+                Payment::STATUS_PROCESSING,
+                Payment::STATUS_PENDING,
+                Payment::STATUS_CASH_PENDING,
+                Payment::STATUS_FAILED,
+                Payment::STATUS_INVALID,
+                Payment::VERIFICATION_AMOUNT_MISMATCH,
+                Payment::STATUS_REFUND_PENDING,
+                Payment::STATUS_REFUNDED,
+                Payment::STATUS_PARTIALLY_REFUNDED,
+                Payment::STATUS_DISPUTED,
+                Payment::STATUS_CASH_PENDING,
+            ])->first();
 
         return [
-            'total' => (clone $base)->count(),
-            'paid' => (clone $base)->where('status', Payment::STATUS_PAID)->count(),
-            'processing' => (clone $base)->where('status', Payment::STATUS_PROCESSING)->count(),
-            'pending' => (clone $base)->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_CASH_PENDING])->count(),
-            'failed' => (clone $base)->where('status', Payment::STATUS_FAILED)->count(),
-            'invalid' => (clone $base)->where('status', Payment::STATUS_INVALID)->count(),
-            'amount_mismatch' => (clone $base)->where('verification_status', Payment::VERIFICATION_AMOUNT_MISMATCH)->count(),
-            'refund_pending' => (clone $base)->where('status', Payment::STATUS_REFUND_PENDING)->count(),
-            'refunded' => (clone $base)->whereIn('status', [Payment::STATUS_REFUNDED, Payment::STATUS_PARTIALLY_REFUNDED])->count(),
-            'disputed' => (clone $base)->where('status', Payment::STATUS_DISPUTED)->count(),
-            'cash_awaiting' => (clone $base)->where('status', Payment::STATUS_CASH_PENDING)->count(),
+            'total' => (int) ($summary?->total ?? 0),
+            'paid' => (int) ($summary?->paid ?? 0),
+            'processing' => (int) ($summary?->processing ?? 0),
+            'pending' => (int) ($summary?->pending ?? 0),
+            'failed' => (int) ($summary?->failed ?? 0),
+            'invalid' => (int) ($summary?->invalid ?? 0),
+            'amount_mismatch' => (int) ($summary?->amount_mismatch ?? 0),
+            'refund_pending' => (int) ($summary?->refund_pending ?? 0),
+            'refunded' => (int) ($summary?->refunded ?? 0),
+            'disputed' => (int) ($summary?->disputed ?? 0),
+            'cash_awaiting' => (int) ($summary?->cash_awaiting ?? 0),
         ];
     }
 
@@ -1250,11 +1358,11 @@ class PaymentService
         }
 
         if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+            $query->where('created_at', '>=', Carbon::parse($filters['date_from'])->startOfDay());
         }
 
         if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+            $query->where('created_at', '<', Carbon::parse($filters['date_to'])->addDay()->startOfDay());
         }
 
         $items = $query->orderByDesc('updated_at')->limit(100)->get();
@@ -1295,6 +1403,185 @@ class PaymentService
             'summary' => $this->summaryCounts($user),
             'items' => $rows,
         ];
+    }
+
+    private function findLiveOnlinePayment(Booking $booking): ?Payment
+    {
+        return $booking->payments()
+            ->where('payment_method', Payment::METHOD_ONLINE_PAYMENT)
+            ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
+            ->where('is_archived', false)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Insert a payment intent without opening an application transaction.
+     * The partial unique index on booking_id serializes concurrent Chapa
+     * initialization attempts while the tx-ref constraints protect retries.
+     *
+     * @return array{0: Payment, 1: bool}
+     */
+    private function createOnlinePaymentIntent(Booking $booking, int $userId): array
+    {
+        $expected = number_format((float) $booking->total_price, 2, '.', '');
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $txRef = $this->chapaService->generateTransactionRef($booking->id, $booking->booking_reference);
+
+            try {
+                return [Payment::create([
+                    'booking_id'            => $booking->id,
+                    'attempt_number'        => $this->nextAttemptNumber($booking),
+                    'user_id'               => $userId,
+                    'branch_id'             => $booking->branch_id,
+                    'amount'                => $expected,
+                    'expected_amount'       => $expected,
+                    'currency'              => 'ETB',
+                    'payment_method'        => Payment::METHOD_ONLINE_PAYMENT,
+                    'gateway'               => Payment::GATEWAY_CHAPA,
+                    'transaction_reference' => $txRef,
+                    'status'                => Payment::STATUS_PENDING,
+                    'verification_status'   => Payment::VERIFICATION_UNVERIFIED,
+                    'idempotency_key'       => 'chapa:' . $booking->id . ':' . $txRef,
+                ]), true];
+            } catch (QueryException $e) {
+                if ($this->isUniqueViolation($e)) {
+                    $winner = $this->findLiveOnlinePayment($booking);
+                    if ($winner) {
+                        Log::info('[Payment] Concurrent initialization reused winning intent', [
+                            'payment_id' => $winner->id,
+                            'booking_id' => $booking->id,
+                        ]);
+
+                        return [$winner, false];
+                    }
+
+                    if ($attempt < 5 && $this->isPaymentReferenceCollision($e)) {
+                        Log::warning('[Payment] Transaction reference collision during initialization', [
+                            'booking_id' => $booking->id,
+                            'attempt' => $attempt,
+                        ]);
+
+                        continue;
+                    }
+                }
+
+                Log::error('[Payment] Intent insert failed', [
+                    'booking_id' => $booking->id,
+                    'user_id' => $userId,
+                    'stage' => 'create_payment_intent',
+                    'sql_state' => $e->errorInfo[0] ?? $e->getCode(),
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+
+                throw $e;
+            }
+        }
+
+        throw new \RuntimeException('Unable to create a unique payment reference.', 500);
+    }
+
+    private function syncVerifiedPaymentEffects(
+        Payment $payment,
+        ?User $actor,
+        string $source,
+        bool $newlyPaid,
+    ): void {
+        try {
+            Booking::query()
+                ->whereKey($payment->booking_id)
+                ->where('payment_status', '!=', Booking::PAYMENT_STATUS_PAID)
+                ->update(['payment_status' => Booking::PAYMENT_STATUS_PAID]);
+        } catch (Throwable $e) {
+            Log::error('[Payment] Verified payment saved but booking payment status update failed', [
+                'payment_id' => $payment->id,
+                'booking_id' => $payment->booking_id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $booking = Booking::find($payment->booking_id);
+        if (! $booking) {
+            Log::error('[Payment] Verified payment references a missing booking', [
+                'payment_id' => $payment->id,
+                'booking_id' => $payment->booking_id,
+            ]);
+
+            return;
+        }
+
+        if ($newlyPaid && $actor) {
+            try {
+                $this->auditLogService->log(
+                    $actor,
+                    'payment_verified',
+                    'payment',
+                    $payment->id,
+                    null,
+                    [
+                        'status' => Payment::STATUS_PAID,
+                        'expected_amount' => (float) ($payment->expected_amount ?? $payment->amount),
+                        'paid_amount' => (float) ($payment->paid_amount ?? $payment->amount),
+                        'gateway_reference' => $payment->gateway_reference,
+                        'source' => $source,
+                    ],
+                    "Payment verified via {$source}",
+                    $payment->branch_id,
+                );
+            } catch (Throwable $e) {
+                Log::warning('[Payment] Verified but audit logging failed', [
+                    'payment_id' => $payment->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($newlyPaid) {
+            try {
+                event(new PaymentSucceeded($booking, $payment));
+            } catch (Throwable $e) {
+                Log::warning('[Payment] Verified but PaymentSucceeded dispatch failed', [
+                    'payment_id' => $payment->id,
+                    'booking_id' => $booking->id,
+                    'exception_class' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            $this->bookingWorkflow->advanceAfterPaymentVerified($booking->fresh(), $actor);
+        } catch (Throwable $e) {
+            Log::warning('[Payment] Verified but booking was not advanced', [
+                'payment_id' => $payment->id,
+                'booking_id' => $booking->id,
+                'exception_class' => $e::class,
+                'reason' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function isUniqueViolation(QueryException $e): bool
+    {
+        return in_array((string) ($e->errorInfo[0] ?? $e->getCode()), ['23000', '23505'], true);
+    }
+
+    private function isPaymentReferenceCollision(QueryException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'transaction_reference')
+            || str_contains($message, 'idempotency_key');
+    }
+
+    private function isSettledPaymentConstraintViolation(QueryException $e): bool
+    {
+        return $this->isUniqueViolation($e)
+            && str_contains(strtolower($e->getMessage()), 'payments_one_settled_per_booking');
     }
 
     private function nextAttemptNumber(Booking $booking): int
@@ -1366,25 +1653,13 @@ class PaymentService
     }
 
     /**
-     * Expires abandoned checkout sessions and heals bookings parked in
-     * payment_processing with nothing live left to wait for.
-     *
-     * Called from the customer booking read path as well as initialize, because
-     * there is no scheduler to sweep stale rows. Returns true when the booking
-     * row itself changed, so callers can refresh their in-memory copy.
+     * Heal bookings parked in payment_processing after every payment attempt
+     * has reached an authoritative terminal state. A Chapa attempt is never
+     * expired merely because it is old: an unknown gateway outcome must remain
+     * blocked from replacement to avoid charging the booking twice.
      */
     public function reconcileStalePaymentState(Booking $booking): bool
     {
-        $booking->payments()
-            ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
-            ->where('created_at', '<', now()->subHours(2))
-            ->where('is_archived', false)
-            ->update([
-                'status' => Payment::STATUS_EXPIRED,
-                'verification_status' => Payment::VERIFICATION_UNVERIFIED,
-                'failure_reason' => 'Expired pending payment',
-            ]);
-
         if ($booking->normalizeStatus() !== Booking::STATUS_PAYMENT_PROCESSING) {
             return false;
         }

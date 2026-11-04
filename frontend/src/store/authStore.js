@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import authApi from '../api/authApi';
+import useNotificationStore from './notificationStore';
+
+const resetNotifications = () => useNotificationStore.getState().reset();
+const refreshNotificationCount = () => useNotificationStore.getState().fetchUnreadCount();
 
 // A 200 from /auth/login only proves the credentials; the app runs on a
 // session cookie. Confirm the browser actually holds one before showing the
@@ -21,6 +25,7 @@ export const useAuthStore = create((set) => ({
   error: null,
 
   initAuth: async () => {
+    resetNotifications();
     // Clear old token-based auth data (from previous version)
     localStorage.removeItem('auth_token');
     
@@ -34,7 +39,8 @@ export const useAuthStore = create((set) => ({
       set({ isLoading: true, isInitializing: true });
       const response = await authApi.me();
       const freshUser = response.data?.user || response.data;
-      
+
+      resetNotifications();
       localStorage.setItem('auth_user', JSON.stringify(freshUser));
       set({
         user: freshUser,
@@ -43,6 +49,7 @@ export const useAuthStore = create((set) => ({
         isInitializing: false,
         error: null,
       });
+      refreshNotificationCount();
     } catch (err) {
       console.warn('Session expired or invalid:', err);
       localStorage.removeItem('auth_user');
@@ -57,10 +64,12 @@ export const useAuthStore = create((set) => ({
   },
 
   login: async (credentials) => {
+    resetNotifications();
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.login(credentials);
       const user = await confirmSession();
+      resetNotifications();
       localStorage.setItem('auth_user', JSON.stringify(user));
       
       set({
@@ -70,6 +79,7 @@ export const useAuthStore = create((set) => ({
         isInitializing: false,
         error: null,
       });
+      refreshNotificationCount();
       return response;
     } catch (err) {
       const message = err.message || 'Login failed. Please check your credentials.';
@@ -79,10 +89,12 @@ export const useAuthStore = create((set) => ({
   },
 
   register: async (registerData) => {
+    resetNotifications();
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.register(registerData);
       const user = await confirmSession();
+      resetNotifications();
       localStorage.setItem('auth_user', JSON.stringify(user));
       
       set({
@@ -92,6 +104,7 @@ export const useAuthStore = create((set) => ({
         isInitializing: false,
         error: null,
       });
+      refreshNotificationCount();
       return response;
     } catch (err) {
       const message = err.message || 'Registration failed. Please try again.';
@@ -107,6 +120,7 @@ export const useAuthStore = create((set) => ({
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      resetNotifications();
       localStorage.removeItem('auth_user');
       set({
         user: null,
@@ -138,6 +152,7 @@ export const useAuthStore = create((set) => ({
   },
 
   resetAuth: () => {
+    resetNotifications();
     localStorage.removeItem('auth_user');
     set({
       user: null,

@@ -96,10 +96,9 @@ Artisan::command('app:ensure-initial-admin', function () {
     return Command::SUCCESS;
 })->purpose('Create the first production administrator from environment secrets');
 
-// Nobody is guaranteed to ever re-open an abandoned checkout, so this sweep
-// is what actually expires its stale payment and frees the booking/vehicle
-// hold — reconcileStalePaymentState() is otherwise only triggered reactively
-// when a customer happens to read or re-initialize that specific booking.
+// Heal legacy payment_processing bookings once all related payment attempts
+// have an authoritative terminal status. Unknown Chapa outcomes stay live so
+// the scheduler can never permit a duplicate charge merely because of age.
 Schedule::call(function () {
     $paymentService = app(PaymentService::class);
 

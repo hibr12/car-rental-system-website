@@ -33,7 +33,7 @@ export default function BranchMaintenanceRequests() {
 
   useEffect(() => {
     load();
-    vehicleApi.getAll({ per_page: 100 }).then((r) => setVehicles(r.data || []));
+    vehicleApi.getOptions().then((r) => setVehicles(r.data || []));
   }, []);
 
   const submit = async (e) => {

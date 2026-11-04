@@ -172,6 +172,70 @@ class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * Lightweight management dropdown data. Full vehicle resources include
+     * images, category, branch and transfer relations and should not be loaded
+     * merely to render a selector.
+     */
+    public function options(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = Vehicle::query()->select([
+            'id',
+            'brand',
+            'model',
+            'registration_number',
+            'branch_id',
+            'status',
+        ]);
+
+        $requestedBranchId = $request->filled('branch_id')
+            ? (int) $request->input('branch_id')
+            : null;
+        $effectiveBranchId = $this->branchScope->resolveBranchFilter($user, $requestedBranchId);
+
+        if ($effectiveBranchId !== null) {
+            $query->where('branch_id', $effectiveBranchId);
+        }
+
+        if (! $user->isAdmin()) {
+            $query->whereHas('branch', fn ($branch) => $branch->where('status', 'active'));
+
+            if ($effectiveBranchId !== null) {
+                $query->whereDoesntHave('transfers', function ($transfer) use ($effectiveBranchId) {
+                    $transfer->where('from_branch_id', $effectiveBranchId)
+                        ->whereIn('status', VehicleTransfer::ACTIVE_STATUSES);
+                });
+            }
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', (string) $request->input('status'));
+        }
+
+        if ($request->filled('search')) {
+            $search = strtolower(trim((string) $request->input('search')));
+            $query->where(function ($builder) use ($search) {
+                $builder->whereRaw('LOWER(brand) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(model) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(registration_number) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        $limit = min(max($request->integer('limit', 250), 1), 500);
+        $vehicles = $query
+            ->orderBy('brand')
+            ->orderBy('model')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vehicle options retrieved successfully',
+            'data' => $vehicles,
+        ]);
+    }
+
     public function show(Request $request, Vehicle $vehicle): JsonResponse
     {
         $user = $request->user();

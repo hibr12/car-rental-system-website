@@ -60,6 +60,18 @@ class ReviewController extends Controller
         ]);
     }
 
+    public function featured(Request $request): JsonResponse
+    {
+        $limit = max(1, min((int) $request->input('limit', 4), 12));
+        $reviews = $this->reviewService->getFeaturedReviews($limit);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Featured reviews retrieved successfully',
+            'data' => ReviewResource::collection($reviews),
+        ]);
+    }
+
     public function userReviews(Request $request): JsonResponse
     {
         $reviews = $this->reviewService->getUserReviews($request->user());

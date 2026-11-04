@@ -21,7 +21,11 @@ class ReviewService
 
     public function getApprovedReviewsForVehicle(Vehicle $vehicle, int $perPage = 10): LengthAwarePaginator
     {
-        return Review::with(['user:id,name', 'branch:id,name,code'])
+        return Review::with([
+                'user:id,name',
+                'branch:id,name,code',
+                'booking:id,status,picked_up_at,returned_at',
+            ])
             ->where('vehicle_id', $vehicle->id)
             ->publiclyVisible()
             ->orderByDesc('created_at')
@@ -30,11 +34,36 @@ class ReviewService
 
     public function getReviewsForBranch(int $branchId, int $perPage = 10): LengthAwarePaginator
     {
-        return Review::with(['user:id,name', 'vehicle:id,brand,model'])
+        return Review::with([
+                'user:id,name',
+                'vehicle:id,brand,model',
+                'booking:id,status,picked_up_at,returned_at',
+            ])
             ->where('branch_id', $branchId)
             ->publiclyVisible()
             ->orderByDesc('created_at')
             ->paginate($perPage);
+    }
+
+    /**
+     * A small site-wide set for the public home page. This replaces one HTTP
+     * request per branch while keeping the same published-review rules.
+     */
+    public function getFeaturedReviews(int $limit = 4): Collection
+    {
+        return Review::with([
+                'user:id,name',
+                'vehicle:id,brand,model',
+                'branch:id,name,code',
+                'booking:id,status,picked_up_at,returned_at',
+            ])
+            ->publiclyVisible()
+            ->where('overall_rating', '>=', 4)
+            ->whereNotNull('comment')
+            ->whereRaw("TRIM(comment) <> ''")
+            ->orderByDesc('created_at')
+            ->limit(max(1, min($limit, 12)))
+            ->get();
     }
 
     public function getUserReviews(User $user, int $perPage = 15): LengthAwarePaginator

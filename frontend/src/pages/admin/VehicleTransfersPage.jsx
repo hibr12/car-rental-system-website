@@ -113,7 +113,7 @@ export default function VehicleTransfersPage() {
 
   useEffect(() => {
     adminApi.getBranches({ status: 'active' }).then(r => setBranches(r.data || []));
-    vehicleApi.getAll({ status: 'available', per_page: 100 }).then(r => setVehicles(r.data || []));
+    vehicleApi.getOptions({ status: 'available' }).then(r => setVehicles(r.data || []));
   }, []);
 
   const applyFilters = (e) => {
@@ -401,10 +401,11 @@ export default function VehicleTransfersPage() {
               </div>
               {form.vehicle_id && (() => {
                 const v = vehicles.find(x => String(x.id) === String(form.vehicle_id));
-                return v?.branch ? (
+                const currentBranch = branches.find((branch) => String(branch.id) === String(v?.branch_id));
+                return currentBranch ? (
                   <div>
                     <label className={LABEL_CLS}>Current Branch</label>
-                    <input readOnly value={v.branch.name} className={`${INPUT_CLS} bg-[#F8FAFC]`} />
+                    <input readOnly value={currentBranch.name} className={`${INPUT_CLS} bg-[#F8FAFC]`} />
                   </div>
                 ) : null;
               })()}

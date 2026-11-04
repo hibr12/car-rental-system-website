@@ -32,6 +32,9 @@ class BranchService
     public function dashboardStats(Branch $branch): array
     {
         $today = Carbon::today();
+        $tomorrow = $today->copy()->addDay();
+        $monthStart = $today->copy()->startOfMonth();
+        $nextMonthStart = $monthStart->copy()->addMonth();
         $branchId = $branch->id;
 
         $pickupStatuses = [
@@ -62,38 +65,80 @@ class BranchService
             ->where('created_at', '>=', now()->subDays(7))
             ->count();
 
+        $bookingStats = Booking::query()
+            ->where('branch_id', $branchId)
+            ->selectRaw(
+                'SUM(CASE WHEN pickup_date >= ? AND pickup_date < ? AND status IN (?, ?) THEN 1 ELSE 0 END) AS todays_pickups, '
+                . 'SUM(CASE WHEN return_date >= ? AND return_date < ? AND status IN (?, ?) THEN 1 ELSE 0 END) AS todays_returns, '
+                . 'SUM(CASE WHEN status IN (?, ?, ?) AND branch_approval_status = ? THEN 1 ELSE 0 END) AS pending_approvals, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS confirmed_bookings, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS ready_for_pickup, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS active_rentals, '
+                . 'SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END) AS todays_bookings',
+                [
+                    $today,
+                    $tomorrow,
+                    ...$pickupStatuses,
+                    $today,
+                    $tomorrow,
+                    ...$returnStatuses,
+                    ...$pendingApprovalStatuses,
+                    Booking::APPROVAL_PENDING,
+                    Booking::STATUS_CONFIRMED,
+                    Booking::STATUS_READY_FOR_PICKUP,
+                    Booking::STATUS_ACTIVE,
+                    $today,
+                    $tomorrow,
+                ],
+            )
+            ->first();
+
+        $paymentStats = Payment::query()
+            ->where('branch_id', $branchId)
+            ->selectRaw(
+                'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS pending_cash_payments, '
+                . 'COALESCE(SUM(CASE WHEN status = ? AND paid_at >= ? AND paid_at < ? THEN amount ELSE 0 END), 0) AS monthly_revenue, '
+                . 'COALESCE(SUM(CASE WHEN status = ? AND paid_at >= ? AND paid_at < ? THEN amount ELSE 0 END), 0) AS todays_revenue',
+                [
+                    Payment::STATUS_CASH_PENDING,
+                    Payment::STATUS_PAID,
+                    $monthStart,
+                    $nextMonthStart,
+                    Payment::STATUS_PAID,
+                    $today,
+                    $tomorrow,
+                ],
+            )
+            ->first();
+
+        $vehicleStats = Vehicle::query()
+            ->where('branch_id', $branchId)
+            ->selectRaw(
+                'COUNT(*) AS total_vehicles, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS available_vehicles, '
+                . 'SUM(CASE WHEN status IN (?, ?, ?, ?) THEN 1 ELSE 0 END) AS vehicles_requiring_attention, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS rented_vehicles, '
+                . 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS maintenance_vehicles',
+                [
+                    Vehicle::STATUS_AVAILABLE,
+                    ...$attentionStatuses,
+                    Vehicle::STATUS_RENTED,
+                    Vehicle::STATUS_MAINTENANCE,
+                ],
+            )
+            ->first();
+
         return [
             'branch' => $branch->load('manager'),
-            'todays_pickups' => Booking::where('branch_id', $branchId)
-                ->whereDate('pickup_date', $today)
-                ->whereIn('status', $pickupStatuses)
-                ->count(),
-            'todays_returns' => Booking::where('branch_id', $branchId)
-                ->whereDate('return_date', $today)
-                ->whereIn('status', $returnStatuses)
-                ->count(),
-            'pending_approvals' => Booking::where('branch_id', $branchId)
-                ->whereIn('status', $pendingApprovalStatuses)
-                ->where('branch_approval_status', Booking::APPROVAL_PENDING)
-                ->count(),
-            'confirmed_bookings' => Booking::where('branch_id', $branchId)
-                ->where('status', Booking::STATUS_CONFIRMED)
-                ->count(),
-            'ready_for_pickup' => Booking::where('branch_id', $branchId)
-                ->where('status', Booking::STATUS_READY_FOR_PICKUP)
-                ->count(),
-            'active_rentals' => Booking::where('branch_id', $branchId)
-                ->where('status', Booking::STATUS_ACTIVE)
-                ->count(),
-            'pending_cash_payments' => Payment::where('branch_id', $branchId)
-                ->where('status', Payment::STATUS_CASH_PENDING)
-                ->count(),
-            'available_vehicles' => Vehicle::where('branch_id', $branchId)
-                ->where('status', Vehicle::STATUS_AVAILABLE)
-                ->count(),
-            'vehicles_requiring_attention' => Vehicle::where('branch_id', $branchId)
-                ->whereIn('status', $attentionStatuses)
-                ->count(),
+            'todays_pickups' => (int) ($bookingStats->todays_pickups ?? 0),
+            'todays_returns' => (int) ($bookingStats->todays_returns ?? 0),
+            'pending_approvals' => (int) ($bookingStats->pending_approvals ?? 0),
+            'confirmed_bookings' => (int) ($bookingStats->confirmed_bookings ?? 0),
+            'ready_for_pickup' => (int) ($bookingStats->ready_for_pickup ?? 0),
+            'active_rentals' => (int) ($bookingStats->active_rentals ?? 0),
+            'pending_cash_payments' => (int) ($paymentStats->pending_cash_payments ?? 0),
+            'available_vehicles' => (int) ($vehicleStats->available_vehicles ?? 0),
+            'vehicles_requiring_attention' => (int) ($vehicleStats->vehicles_requiring_attention ?? 0),
             'maintenance_requests' => MaintenanceRequest::where('branch_id', $branchId)
                 ->whereIn('status', [
                     MaintenanceRequest::STATUS_REQUESTED,
@@ -102,24 +147,12 @@ class BranchService
                 ])
                 ->count(),
             'new_reviews' => $recentReviews,
-            'total_vehicles' => Vehicle::where('branch_id', $branchId)->count(),
-            'rented_vehicles' => Vehicle::where('branch_id', $branchId)
-                ->where('status', Vehicle::STATUS_RENTED)
-                ->count(),
-            'maintenance_vehicles' => Vehicle::where('branch_id', $branchId)
-                ->where('status', Vehicle::STATUS_MAINTENANCE)
-                ->count(),
-            'todays_bookings' => Booking::where('branch_id', $branchId)
-                ->whereDate('created_at', $today)
-                ->count(),
-            'monthly_revenue' => (float) Payment::where('branch_id', $branchId)
-                ->where('status', Payment::STATUS_PAID)
-                ->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()])
-                ->sum('amount'),
-            'todays_revenue' => (float) Payment::where('branch_id', $branchId)
-                ->where('status', Payment::STATUS_PAID)
-                ->whereDate('paid_at', $today)
-                ->sum('amount'),
+            'total_vehicles' => (int) ($vehicleStats->total_vehicles ?? 0),
+            'rented_vehicles' => (int) ($vehicleStats->rented_vehicles ?? 0),
+            'maintenance_vehicles' => (int) ($vehicleStats->maintenance_vehicles ?? 0),
+            'todays_bookings' => (int) ($bookingStats->todays_bookings ?? 0),
+            'monthly_revenue' => (float) ($paymentStats->monthly_revenue ?? 0),
+            'todays_revenue' => (float) ($paymentStats->todays_revenue ?? 0),
             'recent_bookings' => Booking::with(['user', 'vehicle'])
                 ->where('branch_id', $branchId)
                 ->orderByDesc('created_at')

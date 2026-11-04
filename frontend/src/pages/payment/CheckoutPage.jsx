@@ -202,14 +202,23 @@ export const CheckoutPage = () => {
 
         const { checkout_url, tx_ref } = res.data || {};
 
-        if (checkout_url) {
+        let checkoutHostIsTrusted = false;
+        try {
+          const checkoutUrl = new URL(checkout_url);
+          checkoutHostIsTrusted = checkoutUrl.protocol === 'https:'
+            && (checkoutUrl.hostname === 'chapa.co' || checkoutUrl.hostname.endsWith('.chapa.co'));
+        } catch {
+          checkoutHostIsTrusted = false;
+        }
+
+        if (checkout_url && tx_ref && checkoutHostIsTrusted) {
           sessionStorage.setItem('pending_payment_tx_ref', tx_ref);
           sessionStorage.setItem('pending_payment_booking_id', String(booking.id));
           // Use replace so back button does not return to a stuck processing checkout
           window.location.replace(checkout_url);
           return;
         } else {
-          throw new Error('No checkout URL received from payment gateway.');
+          throw new Error('The payment gateway returned an invalid checkout response. Please try again.');
         }
       } catch (err) {
         const msg = err.message || 'Failed to initialize payment. Please try again.';

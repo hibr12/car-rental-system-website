@@ -8,6 +8,7 @@ use App\Models\Maintenance;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,19 +22,28 @@ class ReportController extends Controller
     {
         $from = $request->input('from', now()->subMonths(6)->startOfMonth()->toDateString());
         $to   = $request->input('to', now()->endOfMonth()->toDateString());
+        $fromStart = Carbon::parse($from)->startOfDay();
+        $toExclusive = Carbon::parse($to)->addDay()->startOfDay();
 
-        $byBranch = Branch::with([])->get()->map(function (Branch $branch) use ($from, $to) {
-            $revenue = Payment::where('branch_id', $branch->id)
-                ->where('status', 'paid')
-                ->whereBetween('paid_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
-                ->sum('amount');
-
-            return [
-                'branch'  => $branch->name,
-                'code'    => $branch->code,
-                'revenue' => (float) $revenue,
-            ];
-        });
+        // One grouped query keeps zero-revenue branches while avoiding the
+        // previous payment SUM query for every branch.
+        $byBranch = Branch::query()
+            ->leftJoin('payments', function ($join) use ($fromStart, $toExclusive) {
+                $join->on('payments.branch_id', '=', 'branches.id')
+                    ->where('payments.status', Payment::STATUS_PAID)
+                    ->where('payments.paid_at', '>=', $fromStart)
+                    ->where('payments.paid_at', '<', $toExclusive);
+            })
+            ->select(['branches.id', 'branches.name', 'branches.code'])
+            ->selectRaw('COALESCE(SUM(payments.amount), 0) AS revenue')
+            ->groupBy('branches.id', 'branches.name', 'branches.code')
+            ->orderBy('branches.name')
+            ->get()
+            ->map(fn ($branch) => [
+                'branch' => $branch->name,
+                'code' => $branch->code,
+                'revenue' => (float) $branch->revenue,
+            ]);
 
         $total = $byBranch->sum('revenue');
 
@@ -45,8 +55,9 @@ class ReportController extends Controller
         };
 
         $monthly = Payment::select(DB::raw($dateExpr . ' as month'), DB::raw('SUM(amount) as revenue'))
-            ->where('status', 'paid')
-            ->whereBetween('paid_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('status', Payment::STATUS_PAID)
+            ->where('paid_at', '>=', $fromStart)
+            ->where('paid_at', '<', $toExclusive)
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -82,6 +93,8 @@ class ReportController extends Controller
 
         $from = $request->input('from', now()->subMonths(1)->startOfMonth()->toDateString());
         $to   = $request->input('to', now()->endOfMonth()->toDateString());
+        $fromStart = Carbon::parse($from)->startOfDay();
+        $toExclusive = Carbon::parse($to)->addDay()->startOfDay();
 
         $branch = Branch::findOrFail($branchId);
 
@@ -94,15 +107,17 @@ class ReportController extends Controller
 
         $dailyRevenue = Payment::select(DB::raw($dateExpr . ' as day'), DB::raw('SUM(amount) as revenue'))
             ->where('branch_id', $branchId)
-            ->where('status', 'paid')
-            ->whereBetween('paid_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('status', Payment::STATUS_PAID)
+            ->where('paid_at', '>=', $fromStart)
+            ->where('paid_at', '<', $toExclusive)
             ->groupBy('day')
             ->orderBy('day')
             ->get()
             ->map(fn($r) => ['day' => $r->day, 'revenue' => (float) $r->revenue]);
 
         $bookingStats = Booking::where('branch_id', $branchId)
-            ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('created_at', '>=', $fromStart)
+            ->where('created_at', '<', $toExclusive)
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -114,12 +129,14 @@ class ReportController extends Controller
 
         $maintenanceCost = (float) Maintenance::where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->whereBetween('service_date', [$from, $to])
+            ->where('service_date', '>=', $fromStart->toDateString())
+            ->where('service_date', '<=', Carbon::parse($to)->toDateString())
             ->sum('cost');
 
         $topVehicles = Booking::select('vehicle_id', DB::raw('count(*) as bookings'))
             ->where('branch_id', $branchId)
-            ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('created_at', '>=', $fromStart)
+            ->where('created_at', '<', $toExclusive)
             ->groupBy('vehicle_id')
             ->with('vehicle:id,brand,model,registration_number')
             ->orderByDesc('bookings')
@@ -136,7 +153,7 @@ class ReportController extends Controller
             'data'    => [
                 'branch'              => $branch->name,
                 'period'              => ['from' => $from, 'to' => $to],
-                'total_revenue'       => (float) Payment::where('branch_id', $branchId)->where('status', 'paid')->whereBetween('paid_at', [$from, $to])->sum('amount'),
+                'total_revenue'       => (float) $dailyRevenue->sum('revenue'),
                 'daily_revenue'       => $dailyRevenue,
                 'booking_stats'       => $bookingStats,
                 'vehicle_utilization' => $vehicleUtilization,
@@ -152,7 +169,7 @@ class ReportController extends Controller
     public function fleetUtilization(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Vehicle::with('branch:id,name,code');
+        $query = Vehicle::query();
 
         if ($user->isBranchManager() && !$user->isAdmin()) {
             $query->where('branch_id', $user->branch_id);

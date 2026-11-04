@@ -19,6 +19,7 @@ const apiClient = axios.create({
 });
 
 let csrfPromise = null;
+let csrfReady = false;
 
 // Registered once by the app (SessionWatcher) to clear auth state and send
 // the user to the right sign-in page when the server says the session is gone.
@@ -32,13 +33,25 @@ export const onUnauthorized = (handler) => {
 const SELF_HANDLED_401 = ['/auth/login', '/auth/me', '/auth/logout', '/auth/register'];
 
 // CSRF cookie is at /sanctum/csrf-cookie
-const getCsrfCookie = () => {
+const hasCsrfCookie = () => typeof document !== 'undefined'
+  && document.cookie.split(';').some((cookie) => cookie.trim().startsWith('XSRF-TOKEN='));
+
+const getCsrfCookie = (force = false) => {
+  if (!force && (csrfReady || hasCsrfCookie())) {
+    csrfReady = true;
+    return Promise.resolve();
+  }
+
   if (!csrfPromise) {
     csrfPromise = axios.get(`${BASE_URL}/sanctum/csrf-cookie`, {
       withCredentials: true,
-    }).finally(() => {
-      csrfPromise = null;
-    });
+    })
+      .then(() => {
+        csrfReady = true;
+      })
+      .finally(() => {
+        csrfPromise = null;
+      });
   }
   return csrfPromise;
 };
@@ -79,7 +92,8 @@ apiClient.interceptors.response.use(
     // lifetime). Fetch a fresh one and replay the request once.
     if (status === 419 && !config._csrfRetried) {
       config._csrfRetried = true;
-      await getCsrfCookie();
+      csrfReady = false;
+      await getCsrfCookie(true);
       return apiClient(config);
     }
 

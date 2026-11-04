@@ -58,8 +58,11 @@ Route::get('/categories',         [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
 Route::get('/vehicles',            [VehicleController::class, 'index'])->middleware('optional.auth');
+Route::get('/vehicles/options',    [VehicleController::class, 'options'])
+    ->middleware(['auth:sanctum,web', 'role:admin,fleet_manager,branch_manager,staff']);
 Route::get('/vehicles/{vehicle}',  [VehicleController::class, 'show'])->middleware('optional.auth');
 Route::get('/vehicles/{vehicle}/reviews', [ReviewController::class, 'index']);
+Route::get('/reviews/featured', [ReviewController::class, 'featured']);
 
 Route::get('/branches',            [BranchController::class, 'index']);
 Route::get('/branches/transfer-destinations', [BranchController::class, 'transferDestinations'])

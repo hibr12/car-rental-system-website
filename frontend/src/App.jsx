@@ -15,15 +15,15 @@ const BranchLayout = lazy(() => import('./layouts/BranchLayout'));
 const FleetLayout = lazy(() => import('./layouts/FleetLayout'));
 const StaffLayout = lazy(() => import('./layouts/StaffLayout'));
 
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
 
 import HomePage from './pages/public/HomePage';
-import VehiclesPage from './pages/public/VehiclesPage';
-import VehicleDetailPage from './pages/public/VehicleDetailPage';
-import ContactPage from './pages/public/ContactPage';
+const VehiclesPage = lazy(() => import('./pages/public/VehiclesPage'));
+const VehicleDetailPage = lazy(() => import('./pages/public/VehicleDetailPage'));
+const ContactPage = lazy(() => import('./pages/public/ContactPage'));
 const LegalPage = lazy(() => import('./pages/public/legal/LegalPage'));
 
 const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
@@ -77,7 +77,7 @@ const FleetDamage = lazy(() => import('./pages/fleet/FleetDamage'));
 const StaffDashboard = lazy(() => import('./pages/staff/StaffDashboard'));
 const StaffBookings = lazy(() => import('./pages/staff/StaffBookings'));
 
-import PortalNotFound from './pages/shared/PortalNotFound';
+const PortalNotFound = lazy(() => import('./pages/shared/PortalNotFound'));
 const ManagementLoginPage = lazy(() => import('./pages/auth/ManagementLoginPage'));
 import LegacyBranchRedirect from './app/redirects/LegacyBranchRedirect';
 

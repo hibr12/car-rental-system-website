@@ -17,9 +17,9 @@ class ChapaService
     public function __construct()
     {
         $this->mode = strtolower(trim((string) config('services.chapa.mode', 'test')));
-        $this->secretKey = (string) config('services.chapa.secret_key');
-        $this->baseUrl = rtrim((string) config('services.chapa.base_url', 'https://api.chapa.co'), '/');
-        $this->webhookSecret = (string) config('services.chapa.webhook_secret', $this->secretKey);
+        $this->secretKey = trim((string) config('services.chapa.secret_key'));
+        $this->baseUrl = rtrim(trim((string) config('services.chapa.base_url', 'https://api.chapa.co')), '/');
+        $this->webhookSecret = trim((string) config('services.chapa.webhook_secret', $this->secretKey));
     }
 
     public function getMode(): string
@@ -33,7 +33,34 @@ class ChapaService
     public function initializePayment(array $payload): array
     {
         if (!$this->secretKey) {
-            throw new \RuntimeException('Chapa secret key is not configured on the server.');
+            throw new \RuntimeException('Chapa secret key is not configured on the server.', 503);
+        }
+
+        $txRef = trim((string) ($payload['tx_ref'] ?? ''));
+        $amount = round((float) ($payload['amount'] ?? 0), 2);
+        $currency = strtoupper(trim((string) ($payload['currency'] ?? 'ETB')));
+        $email = trim((string) ($payload['email'] ?? ''));
+
+        if ($txRef === '' || strlen($txRef) > 100) {
+            throw new \RuntimeException('The payment reference is invalid.', 422);
+        }
+
+        if ($amount <= 0) {
+            throw new \RuntimeException('The payment amount must be greater than zero.', 422);
+        }
+
+        if ($currency !== 'ETB') {
+            throw new \RuntimeException('Chapa payments must use ETB.', 422);
+        }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \RuntimeException('A valid customer email is required for online payment.', 422);
+        }
+
+        foreach (['callback_url', 'return_url'] as $urlField) {
+            if (filter_var((string) ($payload[$urlField] ?? ''), FILTER_VALIDATE_URL) === false) {
+                throw new \RuntimeException('The payment return configuration is invalid.', 503);
+            }
         }
 
         try {
@@ -41,10 +68,10 @@ class ChapaService
                 'Authorization' => 'Bearer ' . $this->secretKey,
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post($this->baseUrl . '/v1/transaction/initialize', [
-                'tx_ref' => $payload['tx_ref'],
-                'amount' => number_format((float) $payload['amount'], 2, '.', ''),
-                'currency' => $payload['currency'] ?? 'ETB',
-                'email' => $payload['email'],
+                'tx_ref' => $txRef,
+                'amount' => number_format($amount, 2, '.', ''),
+                'currency' => $currency,
+                'email' => $email,
                 'first_name' => $payload['first_name'] ?? '',
                 'last_name' => $payload['last_name'] ?? '',
                 'callback_url' => $payload['callback_url'],
@@ -58,24 +85,33 @@ class ChapaService
             Log::error('[Chapa] Initialize request failed', [
                 'error' => $e->getMessage(),
             ]);
-            throw new \RuntimeException('Unable to connect to payment gateway. Please try again later.');
+            throw new \RuntimeException('Unable to connect to payment gateway. Please try again later.', 502);
         }
 
         if ($response->failed()) {
-            $errorData = $response->json();
+            $decoded = $response->json();
+            $errorData = is_array($decoded) ? $decoded : [];
             Log::error('[Chapa] Initialize failed', [
                 'status' => $response->status(),
-                'response' => $errorData,
+                'response' => $errorData ?: null,
+                'content_type' => $response->header('Content-Type'),
             ]);
 
-            throw new \RuntimeException($this->extractGatewayMessage($errorData, $response->status()));
+            $status = $response->status();
+            $safeStatus = match (true) {
+                in_array($status, [401, 403], true) => 503,
+                $status === 422 || $status === 400 => 422,
+                default => 502,
+            };
+
+            throw new \RuntimeException($this->extractGatewayMessage($errorData, $status), $safeStatus);
         }
 
         $data = $response->json();
 
-        if (!isset($data['data']['checkout_url'])) {
+        if (!isset($data['data']['checkout_url']) || ! $this->isTrustedCheckoutUrl((string) $data['data']['checkout_url'])) {
             Log::error('[Chapa] Initialize response missing checkout_url', ['response' => $data]);
-            throw new \RuntimeException('Payment initialization failed. Invalid response from payment gateway.');
+            throw new \RuntimeException('Payment initialization failed. Invalid response from payment gateway.', 502);
         }
 
         Log::info('[Chapa] Initialize transaction', [
@@ -89,6 +125,19 @@ class ChapaService
             'checkout_url' => $data['data']['checkout_url'],
             'tx_ref' => $payload['tx_ref'],
         ];
+    }
+
+    public function isTrustedCheckoutUrl(?string $url): bool
+    {
+        if (! $url || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        return strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+            && ($host === 'chapa.co' || str_ends_with($host, '.chapa.co'));
     }
 
     /**
@@ -130,7 +179,7 @@ class ChapaService
     public function verifyTransaction(string $txRef): array
     {
         if (!$this->secretKey) {
-            throw new \RuntimeException('Chapa secret key is not configured on the server.');
+            throw new \RuntimeException('Chapa secret key is not configured on the server.', 503);
         }
 
         Log::info('[Chapa] Verify transaction', ['mode' => $this->mode, 'tx_ref' => $txRef]);
@@ -175,7 +224,7 @@ class ChapaService
             ]);
 
             if ($response->status() === 401 || $response->status() === 403) {
-                throw new \RuntimeException('Chapa API authentication failed. Check server credentials.');
+                throw new \RuntimeException('Chapa API authentication failed. Check server credentials.', 503);
             }
 
             throw new PaymentVerificationRetryableException(

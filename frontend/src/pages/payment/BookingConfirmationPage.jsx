@@ -102,6 +102,8 @@ export const BookingConfirmationPage = () => {
             <img
               src={vehicle.image_url}
               alt={vehicleName}
+              loading="lazy"
+              decoding="async"
               className="w-full h-48 object-cover"
             />
           </div>

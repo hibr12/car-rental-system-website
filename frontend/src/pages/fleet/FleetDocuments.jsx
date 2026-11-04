@@ -44,7 +44,7 @@ export default function FleetDocuments() {
     setLoading(true);
     Promise.all([
       documentApi.getAll({ per_page: 100, status: filterStatus || undefined }),
-      vehicleApi.getAll({ per_page: 200 }),
+      vehicleApi.getOptions(),
     ])
       .then(([docRes, vehRes]) => {
         setRecords(docRes.data || []);

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Payments;
 
+use App\Events\PaymentSucceeded;
+use App\Exceptions\PaymentVerificationRetryableException;
 use App\Models\Booking;
 use App\Models\Branch;
 use App\Models\Category;
@@ -11,6 +13,8 @@ use App\Models\Vehicle;
 use App\Services\ChapaService;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Mockery;
 use Tests\TestCase;
 
@@ -108,9 +112,38 @@ class PaymentVerificationTest extends TestCase
         $this->assertEquals(Payment::VERIFICATION_VERIFIED, $result->verification_status);
         $this->assertEquals(200.0, (float) $result->paid_amount);
         $this->booking->refresh();
+        $this->assertEquals(Booking::PAYMENT_STATUS_PAID, $this->booking->payment_status);
         $this->assertContains($this->booking->normalizeStatus(), [
             Booking::STATUS_CONFIRMED,
             Booking::STATUS_READY_FOR_PICKUP,
+        ]);
+    }
+
+    public function test_chapa_settlement_does_not_open_an_explicit_service_transaction(): void
+    {
+        $this->makeOnlinePayment();
+        $this->mockChapa([
+            'status' => 'success',
+            'amount' => 200.00,
+            'currency' => 'ETB',
+            'tx_ref' => 'APEX-TEST-TX-001',
+            'reference' => 'CHAPA-REF-NO-TX',
+            'raw' => ['status' => 'success', 'amount' => 200, 'currency' => 'ETB', 'tx_ref' => 'APEX-TEST-TX-001'],
+        ]);
+
+        $baselineLevel = DB::transactionLevel();
+        $eventTransactionLevel = null;
+        Event::listen(PaymentSucceeded::class, function () use (&$eventTransactionLevel): void {
+            $eventTransactionLevel = DB::transactionLevel();
+        });
+
+        $result = $this->paymentService->verifyPayment('APEX-TEST-TX-001', $this->admin, 'manual_verify');
+
+        $this->assertEquals(Payment::STATUS_PAID, $result->status);
+        $this->assertSame($baselineLevel, $eventTransactionLevel);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $this->booking->id,
+            'payment_status' => Booking::PAYMENT_STATUS_PAID,
         ]);
     }
 
@@ -226,6 +259,33 @@ class PaymentVerificationTest extends TestCase
         $this->assertEquals(Payment::VERIFICATION_GATEWAY_PENDING, $result->verification_status);
     }
 
+    public function test_retryable_verification_of_an_old_payment_remains_processing(): void
+    {
+        $payment = $this->makeOnlinePayment();
+        $payment->forceFill([
+            'created_at' => now()->subHours(3),
+            'updated_at' => now()->subHours(3),
+        ])->saveQuietly();
+
+        $mock = Mockery::mock(ChapaService::class);
+        $mock->shouldReceive('verifyTransaction')
+            ->once()
+            ->andThrow(new PaymentVerificationRetryableException('Gateway temporarily unavailable.'));
+        $this->app->instance(ChapaService::class, $mock);
+        $this->paymentService = app(PaymentService::class);
+
+        try {
+            $this->paymentService->verifyPayment('APEX-TEST-TX-001', $this->admin);
+            $this->fail('A retryable verification exception should be propagated.');
+        } catch (PaymentVerificationRetryableException) {
+            // The unknown gateway outcome must remain blocked from replacement.
+        }
+
+        $payment->refresh();
+        $this->assertSame(Payment::STATUS_PROCESSING, $payment->status);
+        $this->assertSame(Payment::VERIFICATION_ERROR, $payment->verification_status);
+    }
+
     public function test_cash_exact_amount_is_manually_confirmed(): void
     {
         $payment = Payment::create([
@@ -279,6 +339,18 @@ class PaymentVerificationTest extends TestCase
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/payments/' . $payment->id . '/verify')
             ->assertStatus(403);
+    }
+
+    public function test_cross_branch_manager_cannot_verify_by_transaction_reference(): void
+    {
+        $payment = $this->makeOnlinePayment();
+        $mock = Mockery::mock(ChapaService::class);
+        $mock->shouldNotReceive('verifyTransaction');
+        $this->app->instance(ChapaService::class, $mock);
+
+        $this->actingAs($this->otherManager, 'sanctum')
+            ->getJson('/api/payments/verify/' . urlencode($payment->transaction_reference))
+            ->assertForbidden();
     }
 
     public function test_cross_branch_manager_cannot_confirm_cash(): void
@@ -394,6 +466,32 @@ class PaymentVerificationTest extends TestCase
 
         $result = $this->paymentService->verifyPayment('APEX-TEST-TX-001', $this->admin);
         $this->assertEquals(Payment::STATUS_PAID, $result->status);
+    }
+
+    public function test_repeated_settlement_dispatches_success_event_once(): void
+    {
+        $payment = $this->makeOnlinePayment();
+        $staleCopy = Payment::findOrFail($payment->id);
+        Event::fake([PaymentSucceeded::class]);
+
+        $first = $this->paymentService->markAsPaid(
+            $payment,
+            'CHAPA-IDEMPOTENT-REF',
+            $this->admin,
+            'callback',
+            200,
+        );
+        $second = $this->paymentService->markAsPaid(
+            $staleCopy,
+            'CHAPA-IDEMPOTENT-REF',
+            $this->admin,
+            'webhook',
+            200,
+        );
+
+        $this->assertTrue($first->isSettled());
+        $this->assertTrue($second->isSettled());
+        Event::assertDispatchedTimes(PaymentSucceeded::class, 1);
     }
 
     public function test_refund_preserves_history_and_uses_refund_states(): void

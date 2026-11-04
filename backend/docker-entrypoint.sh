@@ -55,6 +55,11 @@ php artisan view:cache --no-interaction
 # cron service. Queued notifications use the sync driver in this deployment.
 php artisan schedule:work --no-interaction &
 
+# Laravel's development server otherwise handles one request at a time. Two
+# workers keep a slow database or Chapa request from blocking every other API
+# call on the small Render instance, while keeping memory use bounded.
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-2}"
+
 exec php artisan serve \
     --no-reload \
     --host=0.0.0.0 \

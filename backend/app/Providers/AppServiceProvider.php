@@ -26,9 +26,13 @@ use App\Policies\VehiclePolicy;
 use App\Services\ChapaConfigValidator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\PostgresConnection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -54,6 +58,29 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            // Register only after a request actually opens a connection. Using
+            // the DB facade here would connect Neon during application boot,
+            // slowing cache hits and making the health endpoint depend on DB.
+            Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $established): void {
+                $established->connection->listen(function (QueryExecuted $event) use ($established): void {
+                    if ($event->time < 750) {
+                        return;
+                    }
+
+                    Log::warning('[Database] Slow query detected', [
+                        'connection' => $established->connection->getName(),
+                        'duration_ms' => $event->time,
+                        // Keep bindings out of production logs because they
+                        // can contain customer or payment data.
+                        'sql' => $event->sql,
+                        'method' => app()->runningInConsole() ? 'CLI' : request()->method(),
+                        'path' => app()->runningInConsole() ? null : request()->path(),
+                    ]);
+                });
+            });
+        }
+
         // Rate Limiters
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)

@@ -31,7 +31,13 @@ export const VehicleGallery = ({ images = [], vehicleName = 'Vehicle' }) => {
                   : 'border-theme opacity-60 hover:opacity-100 hover:border-slate-700'
               }`}
             >
-              <img src={imgUrl} alt={`${vehicleName} view ${idx + 1}`} className="w-full h-full object-cover" />
+              <img
+                src={imgUrl}
+                alt={`${vehicleName} view ${idx + 1}`}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>

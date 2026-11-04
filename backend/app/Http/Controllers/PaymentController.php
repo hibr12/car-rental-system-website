@@ -11,8 +11,11 @@ use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
 
 class PaymentController extends Controller
 {
@@ -71,24 +74,69 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment initialized successfully',
+                'message' => $result['was_created']
+                    ? 'Payment initialized successfully'
+                    : 'Your existing Chapa checkout is ready.',
                 'data' => [
                     'checkout_url' => $result['checkout_url'],
                     'tx_ref' => $result['tx_ref'],
                     'payment' => new PaymentResource($result['payment']),
                 ],
-            ], 201);
+            ], $result['was_created'] ? 201 : 200);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         } catch (\RuntimeException $e) {
-            Log::error('Payment initialization failed', ['error' => $e->getMessage()]);
+            $errorId = (string) Str::uuid();
+            $httpStatus = in_array($e->getCode(), [409, 422, 502, 503], true)
+                ? $e->getCode()
+                : 500;
+
+            Log::error('[Payment] Initialization failed', [
+                'error_id' => $errorId,
+                'user_id' => $request->user()?->id,
+                'booking_id' => $request->integer('booking_id') ?: null,
+                'stage' => 'initialize_payment',
+                'http_status' => $httpStatus,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = match ($httpStatus) {
+                409, 422 => $e->getMessage(),
+                502 => "The payment gateway is temporarily unavailable. Please try again. Error reference: {$errorId}.",
+                503 => "Online payment is temporarily unavailable. Please try again later. Error reference: {$errorId}.",
+                default => "Payment initialization failed. Please try again later. Error reference: {$errorId}.",
+            };
 
             return response()->json([
                 'success' => false,
-                'message' => 'Payment initialization failed. Please try again later.',
+                'message' => $message,
+                'error_code' => 'PAYMENT_INITIALIZATION_FAILED',
+                'error_id' => $errorId,
+            ], $httpStatus);
+        } catch (Throwable $e) {
+            $errorId = (string) Str::uuid();
+
+            Log::error('[Payment] Unexpected initialization failure', [
+                'error_id' => $errorId,
+                'user_id' => $request->user()?->id,
+                'booking_id' => $request->integer('booking_id') ?: null,
+                'stage' => 'initialize_payment',
+                'sql_state' => $e instanceof QueryException
+                    ? ($e->errorInfo[0] ?? $e->getCode())
+                    : null,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Payment initialization failed. Please try again later. Error reference: {$errorId}.",
+                'error_code' => 'PAYMENT_INITIALIZATION_FAILED',
+                'error_id' => $errorId,
             ], 500);
         }
     }
@@ -96,18 +144,24 @@ class PaymentController extends Controller
     public function verify(Request $request, string $txRef): JsonResponse
     {
         try {
+            $existingPayment = Payment::where('transaction_reference', $txRef)->firstOrFail();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment reference not found.',
+            ], 404);
+        }
+
+        // Keep authorization outside the broad gateway-error handler so a
+        // policy denial remains a 403 response.
+        Gate::authorize('view', $existingPayment);
+
+        try {
             $payment = $this->paymentService->verifyPayment(
                 $txRef,
                 $request->user(),
                 'customer_return'
             );
-
-            if ($request->user()->isCustomer() && (int) $payment->user_id !== (int) $request->user()->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized.',
-                ], 403);
-            }
 
             return response()->json([
                 'success' => true,
@@ -125,22 +179,48 @@ class PaymentController extends Controller
                 'data' => $payment ? new PaymentResource($payment->load('booking')) : null,
                 'retryable' => true,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment reference not found.',
-            ], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         } catch (\RuntimeException $e) {
-            Log::error('Payment verification failed', ['tx_ref' => $txRef, 'error' => $e->getMessage()]);
+            $errorId = (string) Str::uuid();
+            $httpStatus = $e->getCode() === 503 ? 503 : 502;
+
+            Log::error('[Payment] Verification failed', [
+                'error_id' => $errorId,
+                'tx_ref' => $txRef,
+                'user_id' => $request->user()?->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Payment verification failed. Please try again later.',
+                'message' => "Payment verification is temporarily unavailable. Error reference: {$errorId}.",
+                'error_code' => 'PAYMENT_VERIFICATION_FAILED',
+                'error_id' => $errorId,
+            ], $httpStatus);
+        } catch (Throwable $e) {
+            $errorId = (string) Str::uuid();
+
+            Log::error('[Payment] Unexpected verification failure', [
+                'error_id' => $errorId,
+                'tx_ref' => $txRef,
+                'user_id' => $request->user()?->id,
+                'sql_state' => $e instanceof QueryException
+                    ? ($e->errorInfo[0] ?? $e->getCode())
+                    : null,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Payment verification failed. Please try again later. Error reference: {$errorId}.",
+                'error_code' => 'PAYMENT_VERIFICATION_FAILED',
+                'error_id' => $errorId,
             ], 500);
         }
     }
@@ -461,6 +541,10 @@ class PaymentController extends Controller
     public function history(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Payment::class);
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
 
         $filters = $request->only([
             'branch_id', 'status', 'payment_method', 'verification_status',
@@ -486,6 +570,10 @@ class PaymentController extends Controller
     public function reconciliation(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Payment::class);
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
 
         $user = $request->user();
         if (!$user->isAdmin() && !$user->isBranchManager()) {

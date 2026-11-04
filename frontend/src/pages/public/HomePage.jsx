@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Car, Calendar, Star, ArrowRight, Search, MapPin, Phone, Mail, FileText, Key, Shield, Compass, Users } from 'lucide-react';
 import vehicleApi from '../../api/vehicleApi';
-import categoryApi from '../../api/categoryApi';
 import branchApi from '../../api/branchesApi';
 import reviewApi from '../../api/reviewApi';
 import VehicleCard from '../../components/vehicles/VehicleCard';
@@ -16,7 +15,6 @@ const CTA_IMAGE = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?
 export const HomePage = () => {
   const navigate = useNavigate();
   const [featuredVehicles, setFeaturedVehicles] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,44 +22,36 @@ export const HomePage = () => {
   const [returnBranch, setReturnBranch] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    // Real published reviews only. There's no site-wide endpoint, so gather
-    // them per branch; any branch that fails is skipped, and with none at all
-    // the section is hidden rather than filled with placeholder quotes.
-    const loadReviews = async (branchList) => {
-      const results = await Promise.allSettled(
-        branchList.map((b) => reviewApi.getByBranch(b.id, { per_page: 10 })),
-      );
-      const all = results
-        .filter((r) => r.status === 'fulfilled')
-        .flatMap((r) => r.value.data || [])
-        .filter((r) => r.comment?.trim() && Number(r.overall_rating ?? r.rating) >= 4)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setReviews(all.slice(0, 4));
-    };
+    let active = true;
+    setLoading(true);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [vehRes, catRes, branchRes] = await Promise.all([
-          vehicleApi.getAll({ featured: true, per_page: 6 }),
-          categoryApi.getAll(),
-          branchApi.getAll({ status: 'active' }),
-        ]);
-        setFeaturedVehicles(vehRes.data || []);
-        setCategories(catRes.data || []);
-        setBranches(branchRes.data || []);
-        loadReviews(branchRes.data || []);
-      } catch {
-        // Sections below render their own empty states.
-      } finally {
-        setLoading(false);
-      }
+    vehicleApi.getAll({ featured: true, per_page: 6 })
+      .then((response) => {
+        if (active) setFeaturedVehicles(response.data || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    branchApi.getAll({ status: 'active' })
+      .then((response) => {
+        if (active) setBranches(response.data || []);
+      })
+      .catch(() => {});
+
+    reviewApi.getFeatured({ limit: 4 })
+      .then((response) => {
+        if (active) setReviews(response.data || []);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
     };
-    fetchData();
   }, []);
 
   const handleHeroSearch = (e) => {
@@ -71,7 +61,6 @@ export const HomePage = () => {
     if (returnBranch) params.set('return_branch_id', returnBranch);
     if (pickupDate) params.set('pickup_date', pickupDate);
     if (returnDate) params.set('return_date', returnDate);
-    if (selectedCategory) params.set('category', selectedCategory);
     navigate(`/vehicles?${params.toString()}`);
   };
 
@@ -84,10 +73,13 @@ export const HomePage = () => {
       {/* Dark base colour: the white headline stays readable while the photo
           loads on slow connections (it was white-on-white until then). */}
       <section className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-slate-900">
-        {/* Background image via inline style for maximum reliability */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+        <img
+          src={HERO_IMAGE}
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
         {/* Full-height scrim — nav at the top, headline/subtitle in the middle */}
         <div
@@ -392,6 +384,8 @@ export const HomePage = () => {
                 <img
                   src={WHY_IMAGE}
                   alt="Vehicle in scenic Bahir Dar setting"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-[420px] object-cover"
                 />
               </div>
@@ -576,10 +570,13 @@ export const HomePage = () => {
       {/* CTA BANNER                                    */}
       {/* ============================================= */}
       <section className="relative py-24 overflow-hidden">
-        {/* Background image via inline style */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${CTA_IMAGE})` }}
+        <img
+          src={CTA_IMAGE}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
         {/* Dark blue overlay */}
         <div

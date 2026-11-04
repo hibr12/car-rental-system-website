@@ -61,7 +61,7 @@ export const FleetMaintenance = () => {
 
   const fetchVehicles = () => {
     vehicleApi
-      .getAll({ per_page: 200 })
+      .getOptions()
       .then((res) => {
         setVehicles(res.data || []);
       })

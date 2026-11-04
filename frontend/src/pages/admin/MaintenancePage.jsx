@@ -58,7 +58,7 @@ export const MaintenancePage = () => {
   };
 
   useEffect(() => {
-    vehicleApi.getAll({ per_page: 100 }).then((res) => setVehicles(res.data || []));
+    vehicleApi.getOptions().then((res) => setVehicles(res.data || []));
   }, []);
 
   useEffect(() => {

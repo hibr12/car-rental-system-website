@@ -63,7 +63,7 @@ class BookingController extends Controller
     {
         Gate::authorize('view', $booking);
 
-        // Heal legacy payment_processing rows / expire abandoned attempts on read.
+        // Heal legacy payment_processing rows with no live or paid attempt.
         $this->paymentService->reconcileStalePaymentState($booking);
 
         $booking->load([

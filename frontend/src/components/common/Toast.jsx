@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const ToastContext = createContext(null);
 
@@ -41,11 +40,9 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={value}>
       {children}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none px-4 sm:px-0">
-        <AnimatePresence>
-          {toasts.map((toast) => (
-            <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
-          ))}
-        </AnimatePresence>
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+        ))}
       </div>
     </ToastContext.Provider>
   );
@@ -90,11 +87,8 @@ const ToastItem = ({ toast, onClose }) => {
   const style = styles[toast.type] || styles.info;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border border-l-4 bg-white shadow-lg ${style.border} ${style.accent} ${style.text}`}
+    <div
+      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border border-l-4 bg-white shadow-lg apex-toast-enter ${style.border} ${style.accent} ${style.text}`}
     >
       {style.icon}
       <p className="flex-1 text-sm font-medium text-[#334155]">{toast.message}</p>
@@ -105,7 +99,7 @@ const ToastItem = ({ toast, onClose }) => {
       >
         <X className="w-4 h-4" />
       </button>
-    </motion.div>
+    </div>
   );
 };
 

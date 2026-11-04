@@ -18,6 +18,7 @@ use App\Services\VehicleStatusService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Central booking state machine. All lifecycle transitions go through here.
@@ -371,18 +372,70 @@ class BookingWorkflowService
 
         $this->assertVehicleAvailableForConfirmation($booking);
 
-        return DB::transaction(function () use ($booking, $actor) {
-            $old = $booking->status;
-            $booking->update(['status' => Booking::STATUS_CONFIRMED]);
-            $booking->vehicle->update(['status' => Vehicle::STATUS_RESERVED]);
+        $old = $booking->status;
+        $updated = Booking::query()
+            ->whereKey($booking->id)
+            ->where('status', $old)
+            ->update(['status' => Booking::STATUS_CONFIRMED]);
+
+        if ($updated !== 1) {
+            $booking->refresh();
+            if (in_array($booking->normalizeStatus(), [
+                Booking::STATUS_CONFIRMED,
+                Booking::STATUS_READY_FOR_PICKUP,
+            ], true)) {
+                return $booking->load(['vehicle', 'user', 'branch', 'payments']);
+            }
+
+            throw new \InvalidArgumentException('Booking changed while it was being confirmed. Please retry.');
+        }
+
+        $booking->refresh();
+
+        try {
+            $booking->vehicle?->update(['status' => Vehicle::STATUS_RESERVED]);
+        } catch (Throwable $e) {
+            Log::error('[Booking] Confirmed but vehicle reservation update failed', [
+                'booking_id' => $booking->id,
+                'vehicle_id' => $booking->vehicle_id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
             $this->maybeMarkReadyForPickup($booking);
+        } catch (Throwable $e) {
+            Log::warning('[Booking] Confirmed but ready-for-pickup evaluation failed', [
+                'booking_id' => $booking->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-            $fresh = $booking->fresh()->load(['vehicle', 'user', 'branch', 'payments']);
+        $fresh = $booking->fresh()->load(['vehicle', 'user', 'branch', 'payments']);
+
+        try {
             $this->audit($actor, $fresh, 'booking_confirmed', $old, $fresh->status);
-            event(new BookingConfirmed($fresh));
+        } catch (Throwable $e) {
+            Log::warning('[Booking] Confirmed but audit logging failed', [
+                'booking_id' => $booking->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-            return $fresh;
-        });
+        try {
+            event(new BookingConfirmed($fresh));
+        } catch (Throwable $e) {
+            Log::warning('[Booking] Confirmed but BookingConfirmed dispatch failed', [
+                'booking_id' => $booking->id,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $fresh;
     }
 
     public function preparePickup(Booking $booking, User $actor): Booking
@@ -909,23 +962,53 @@ class BookingWorkflowService
             $query->where('branch_id', $branchId);
         }
 
-        $base = clone $query;
+        $summary = $query->selectRaw(<<<'SQL'
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS pending_branch_approval,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS payment_required,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS payment_processing,
+            COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) AS pending_payment,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS awaiting_admin_approval,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS confirmed,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS ready_for_pickup,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS active,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS return_pending,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS completed,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS cancelled,
+            COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS rejected
+            SQL, [
+                Booking::STATUS_PENDING_BRANCH_APPROVAL,
+                Booking::STATUS_PAYMENT_REQUIRED,
+                Booking::STATUS_PAYMENT_PROCESSING,
+                Booking::STATUS_PENDING_PAYMENT,
+                Booking::STATUS_PENDING,
+                Booking::STATUS_PENDING_ADMIN_APPROVAL,
+                Booking::STATUS_CONFIRMED,
+                Booking::STATUS_READY_FOR_PICKUP,
+                Booking::STATUS_ACTIVE,
+                Booking::STATUS_RETURN_PENDING,
+                Booking::STATUS_COMPLETED,
+                Booking::STATUS_CANCELLED,
+                Booking::STATUS_REJECTED,
+            ])->first();
+
+        $pendingBranchApproval = (int) ($summary?->pending_branch_approval ?? 0);
 
         return [
-            'pending_branch_approval' => (clone $base)->where('status', Booking::STATUS_PENDING_BRANCH_APPROVAL)->count(),
-            'payment_required' => (clone $base)->where('status', Booking::STATUS_PAYMENT_REQUIRED)->count(),
-            'payment_processing' => (clone $base)->where('status', Booking::STATUS_PAYMENT_PROCESSING)->count(),
-            'pending_payment' => (clone $base)->whereIn('status', [Booking::STATUS_PENDING_PAYMENT, Booking::STATUS_PENDING])->count(),
-            'awaiting_branch_approval' => (clone $base)->where('status', Booking::STATUS_PENDING_BRANCH_APPROVAL)->count(),
-            'awaiting_admin_approval' => (clone $base)->where('status', Booking::STATUS_PENDING_ADMIN_APPROVAL)->count(),
-            'confirmed' => (clone $base)->where('status', Booking::STATUS_CONFIRMED)->count(),
-            'ready_for_pickup' => (clone $base)->where('status', Booking::STATUS_READY_FOR_PICKUP)->count(),
-            'active' => (clone $base)->where('status', Booking::STATUS_ACTIVE)->count(),
-            'return_pending' => (clone $base)->where('status', Booking::STATUS_RETURN_PENDING)->count(),
-            'completed' => (clone $base)->where('status', Booking::STATUS_COMPLETED)->count(),
-            'cancelled' => (clone $base)->where('status', Booking::STATUS_CANCELLED)->count(),
-            'rejected' => (clone $base)->where('status', Booking::STATUS_REJECTED)->count(),
-            'total' => (clone $base)->count(),
+            'pending_branch_approval' => $pendingBranchApproval,
+            'payment_required' => (int) ($summary?->payment_required ?? 0),
+            'payment_processing' => (int) ($summary?->payment_processing ?? 0),
+            'pending_payment' => (int) ($summary?->pending_payment ?? 0),
+            'awaiting_branch_approval' => $pendingBranchApproval,
+            'awaiting_admin_approval' => (int) ($summary?->awaiting_admin_approval ?? 0),
+            'confirmed' => (int) ($summary?->confirmed ?? 0),
+            'ready_for_pickup' => (int) ($summary?->ready_for_pickup ?? 0),
+            'active' => (int) ($summary?->active ?? 0),
+            'return_pending' => (int) ($summary?->return_pending ?? 0),
+            'completed' => (int) ($summary?->completed ?? 0),
+            'cancelled' => (int) ($summary?->cancelled ?? 0),
+            'rejected' => (int) ($summary?->rejected ?? 0),
+            'total' => (int) ($summary?->total ?? 0),
         ];
     }
 

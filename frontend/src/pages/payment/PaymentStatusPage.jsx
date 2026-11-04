@@ -14,8 +14,8 @@ import paymentApi from '../../api/paymentApi';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { useToast } from '../../components/common/Toast';
 
-// Poll schedule: immediate, then 3s intervals up to ~30s total
-const POLL_DELAYS_MS = [0, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000];
+// The first check runs immediately; subsequent checks use progressive backoff.
+const POLL_DELAYS_MS = [3000, 3000, 4000, 4000, 5000, 5000, 6000];
 
 export const PaymentStatusPage = () => {
   const navigate = useNavigate();
@@ -131,9 +131,13 @@ export const PaymentStatusPage = () => {
     if (!pollingActive.current) return;
 
     const delay = POLL_DELAYS_MS[Math.min(pollIndex.current, POLL_DELAYS_MS.length - 1)];
-    pollIndex.current += 1;
-
     timerRef.current = setTimeout(async () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        scheduleNextPoll();
+        return;
+      }
+
+      pollIndex.current += 1;
       const result = await checkStatusOnce();
 
       if (result === 'paid' || result === 'failed' || result === 'error') {
