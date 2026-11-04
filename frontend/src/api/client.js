@@ -124,7 +124,7 @@ apiClient.interceptors.response.use(
     } else if (status === 404) {
       message = 'The requested resource was not found.';
     } else if (status === 500) {
-      message = 'Something went wrong on our end. Please try again later.';
+      message = responseData?.message || 'Something went wrong on our end. Please try again later.';
     } else if (status === 400) {
       message = responseData?.message || 'Invalid request.';
     } else if (status === 405) {

@@ -110,7 +110,7 @@ function RejectModal({ license, onClose, onConfirm }) {
 
 // ─── License detail panel ─────────────────────────────────────────────────────
 
-function LicenseDetailPanel({ license, onApprove, onReject, onClose }) {
+function LicenseDetailPanel({ license, onApprove, onReject, onClose, approving }) {
   const cfg = STATUS_CONFIG[license.status] || STATUS_CONFIG.pending_review;
   const Icon = cfg.icon;
 
@@ -169,14 +169,17 @@ function LicenseDetailPanel({ license, onApprove, onReject, onClose }) {
             <div className="flex gap-3 pt-2 flex-wrap">
               <button
                 onClick={() => onApprove(license.id)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-sm transition-colors"
+                disabled={approving}
+                aria-busy={approving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors"
               >
-                <ShieldCheck className="w-4 h-4" />
-                Approve
+                {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                {approving ? 'Approving…' : 'Approve'}
               </button>
               <button
                 onClick={() => onReject(license)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl text-sm transition-colors"
+                disabled={approving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors"
               >
                 <ShieldX className="w-4 h-4" />
                 Reject
@@ -222,6 +225,7 @@ export const LicenseReviewPage = () => {
   const [page, setPage] = useState(1);
   const [selectedLicense, setSelectedLicense] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -240,13 +244,19 @@ export const LicenseReviewPage = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleApprove = async (id) => {
+    if (approvingId !== null) return;
+
+    setApprovingId(id);
     try {
       const res = await licenseApi.approve(id);
-      toast.success('License approved.');
+      toast.success(res.message || 'License approved.');
       setLicenses((prev) => prev.map((l) => l.id === id ? res.data : l));
       setSelectedLicense(res.data);
+      await load();
     } catch (err) {
       toast.error(err.message || 'Failed to approve.');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -392,15 +402,20 @@ export const LicenseReviewPage = () => {
                             <>
                               <button
                                 onClick={() => handleApprove(lic.id)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/20 rounded-lg transition-colors"
+                                disabled={approvingId !== null}
+                                aria-busy={approvingId === lic.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-60 disabled:cursor-not-allowed border border-emerald-500/20 rounded-lg transition-colors"
                                 aria-label={`Approve license for ${lic.customer?.name}`}
                               >
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                Approve
+                                {approvingId === lic.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <ShieldCheck className="w-3.5 h-3.5" />}
+                                {approvingId === lic.id ? 'Approving…' : 'Approve'}
                               </button>
                               <button
                                 onClick={() => setRejectTarget(lic)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 border border-red-500/20 rounded-lg transition-colors"
+                                disabled={approvingId !== null}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed border border-red-500/20 rounded-lg transition-colors"
                                 aria-label={`Reject license for ${lic.customer?.name}`}
                               >
                                 <ShieldX className="w-3.5 h-3.5" />
@@ -451,6 +466,7 @@ export const LicenseReviewPage = () => {
           onApprove={handleApprove}
           onReject={(lic) => { setRejectTarget(lic); setSelectedLicense(null); }}
           onClose={() => setSelectedLicense(null)}
+          approving={approvingId === selectedLicense.id}
         />
       )}
 

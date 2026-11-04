@@ -293,16 +293,60 @@ class DriverLicenseService
             throw new \InvalidArgumentException('Only pending licenses can be approved.');
         }
 
-        return DB::transaction(function () use ($license, $reviewer) {
-            $old = $license->status;
+        $old = $license->status;
+        $verifiedAt = now();
 
-            $license->update([
-                'status'      => DriverLicense::STATUS_VERIFIED,
-                'verified_by' => $reviewer->id,
-                'verified_at' => now(),
-                'rejection_reason' => null,
+        try {
+            $updated = DriverLicense::query()
+                ->whereKey($license->id)
+                ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
+                ->update([
+                    'status'      => DriverLicense::STATUS_VERIFIED,
+                    'verified_by' => $reviewer->id,
+                    'verified_at' => $verifiedAt,
+                    'rejection_reason' => null,
+                    'updated_at' => $verifiedAt,
+                ]);
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Approval transition failed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'from_status' => $old,
+                'to_status' => DriverLicense::STATUS_VERIFIED,
+                'stage' => 'update_license',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
 
+            throw $e;
+        }
+
+        if ($updated !== 1) {
+            $currentStatus = DriverLicense::query()
+                ->whereKey($license->id)
+                ->value('status');
+
+            Log::warning('[DriverLicense] Approval skipped because status changed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'expected_status' => DriverLicense::STATUS_PENDING_REVIEW,
+                'current_status' => $currentStatus,
+            ]);
+
+            throw new \InvalidArgumentException('This license is no longer pending review. Refresh the page and try again.');
+        }
+
+        $license->forceFill([
+            'status' => DriverLicense::STATUS_VERIFIED,
+            'verified_by' => $reviewer->id,
+            'verified_at' => $verifiedAt,
+            'rejection_reason' => null,
+            'updated_at' => $verifiedAt,
+        ]);
+        $license->syncOriginal();
+        $license->setRelation('reviewer', $reviewer);
+
+        try {
             $this->auditLogService->log(
                 $reviewer,
                 'license_approved',
@@ -313,23 +357,38 @@ class DriverLicenseService
                 'License approved by reviewer.',
                 $reviewer->branch_id,
             );
-
-            try {
-                $license->user->notify(new LicenseApproved($license));
-            } catch (\Throwable $e) {
-                Log::warning('[DriverLicense] Failed to send approval notification', [
-                    'license_id' => $license->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            Log::info('[DriverLicense] Approved', [
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Approval committed but audit logging failed', [
                 'license_id' => $license->id,
                 'reviewer_id' => $reviewer->id,
+                'from_status' => $old,
+                'to_status' => DriverLicense::STATUS_VERIFIED,
+                'stage' => 'write_audit_log',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
+        }
 
-            return $license->fresh(['user', 'reviewer']);
-        });
+        try {
+            $license->user->notify(new LicenseApproved($license));
+        } catch (Throwable $e) {
+            Log::warning('[DriverLicense] Approval notification failed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'stage' => 'notify_customer',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        Log::info('[DriverLicense] Approved', [
+            'license_id' => $license->id,
+            'reviewer_id' => $reviewer->id,
+            'from_status' => $old,
+            'to_status' => DriverLicense::STATUS_VERIFIED,
+        ]);
+
+        return $license;
     }
 
     public function reject(DriverLicense $license, User $reviewer, string $reason): DriverLicense
@@ -344,16 +403,60 @@ class DriverLicenseService
             throw new \InvalidArgumentException('Only pending licenses can be rejected.');
         }
 
-        return DB::transaction(function () use ($license, $reviewer, $reason) {
-            $old = $license->status;
+        $old = $license->status;
+        $rejectedAt = now();
 
-            $license->update([
-                'status'           => DriverLicense::STATUS_REJECTED,
-                'rejection_reason' => $reason,
-                'verified_by'      => $reviewer->id,
-                'verified_at'      => now(),
+        try {
+            $updated = DriverLicense::query()
+                ->whereKey($license->id)
+                ->where('status', DriverLicense::STATUS_PENDING_REVIEW)
+                ->update([
+                    'status'           => DriverLicense::STATUS_REJECTED,
+                    'rejection_reason' => $reason,
+                    'verified_by'      => $reviewer->id,
+                    'verified_at'      => $rejectedAt,
+                    'updated_at'       => $rejectedAt,
+                ]);
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Rejection transition failed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'from_status' => $old,
+                'to_status' => DriverLicense::STATUS_REJECTED,
+                'stage' => 'update_license',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
 
+            throw $e;
+        }
+
+        if ($updated !== 1) {
+            $currentStatus = DriverLicense::query()
+                ->whereKey($license->id)
+                ->value('status');
+
+            Log::warning('[DriverLicense] Rejection skipped because status changed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'expected_status' => DriverLicense::STATUS_PENDING_REVIEW,
+                'current_status' => $currentStatus,
+            ]);
+
+            throw new \InvalidArgumentException('This license is no longer pending review. Refresh the page and try again.');
+        }
+
+        $license->forceFill([
+            'status' => DriverLicense::STATUS_REJECTED,
+            'rejection_reason' => $reason,
+            'verified_by' => $reviewer->id,
+            'verified_at' => $rejectedAt,
+            'updated_at' => $rejectedAt,
+        ]);
+        $license->syncOriginal();
+        $license->setRelation('reviewer', $reviewer);
+
+        try {
             $this->auditLogService->log(
                 $reviewer,
                 'license_rejected',
@@ -364,23 +467,38 @@ class DriverLicenseService
                 'License rejected: ' . Str::limit($reason, 100),
                 $reviewer->branch_id,
             );
-
-            try {
-                $license->user->notify(new LicenseRejected($license, $reason));
-            } catch (\Throwable $e) {
-                Log::warning('[DriverLicense] Failed to send rejection notification', [
-                    'license_id' => $license->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            Log::info('[DriverLicense] Rejected', [
+        } catch (Throwable $e) {
+            Log::error('[DriverLicense] Rejection committed but audit logging failed', [
                 'license_id' => $license->id,
                 'reviewer_id' => $reviewer->id,
+                'from_status' => $old,
+                'to_status' => DriverLicense::STATUS_REJECTED,
+                'stage' => 'write_audit_log',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
             ]);
+        }
 
-            return $license->fresh(['user', 'reviewer']);
-        });
+        try {
+            $license->user->notify(new LicenseRejected($license, $reason));
+        } catch (Throwable $e) {
+            Log::warning('[DriverLicense] Rejection notification failed', [
+                'license_id' => $license->id,
+                'reviewer_id' => $reviewer->id,
+                'stage' => 'notify_customer',
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        Log::info('[DriverLicense] Rejected', [
+            'license_id' => $license->id,
+            'reviewer_id' => $reviewer->id,
+            'from_status' => $old,
+            'to_status' => DriverLicense::STATUS_REJECTED,
+        ]);
+
+        return $license;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

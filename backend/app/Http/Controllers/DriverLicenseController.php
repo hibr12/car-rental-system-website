@@ -10,7 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DriverLicenseController extends Controller
 {
@@ -267,9 +269,6 @@ class DriverLicenseController extends Controller
         try {
             $approved = $this->licenseService->approve($license, $request->user());
 
-            // Fire LicenseApproved event
-            event(new \App\Events\LicenseApproved($approved));
-
             return response()->json([
                 'success' => true,
                 'message' => 'Identity document approved.',
@@ -277,6 +276,8 @@ class DriverLicenseController extends Controller
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return $this->reviewFailureResponse('approve', $license, $request, $e);
         }
     }
 
@@ -294,9 +295,6 @@ class DriverLicenseController extends Controller
         try {
             $rejected = $this->licenseService->reject($license, $request->user(), $data['reason']);
 
-            // Fire LicenseRejected event
-            event(new \App\Events\LicenseRejected($rejected, $data['reason']));
-
             return response()->json([
                 'success' => true,
                 'message' => 'Identity document rejected.',
@@ -304,6 +302,8 @@ class DriverLicenseController extends Controller
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return $this->reviewFailureResponse('reject', $license, $request, $e);
         }
     }
 
@@ -339,5 +339,27 @@ class DriverLicenseController extends Controller
             'message' => 'We could not store your documents. Please try again.',
             'error_code' => LicenseDocumentStorageException::ERROR_CODE,
         ], 503);
+    }
+
+    private function reviewFailureResponse(string $action, DriverLicense $license, Request $request, Throwable $e): JsonResponse
+    {
+        $errorId = (string) Str::uuid();
+
+        Log::error('[DriverLicense] Review request failed', [
+            'error_id' => $errorId,
+            'action' => $action,
+            'license_id' => $license->id,
+            'reviewer_id' => $request->user()?->id,
+            'license_status' => $license->status,
+            'exception_class' => $e::class,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => "Unable to {$action} this license right now. Please try again. Error reference: {$errorId}.",
+            'error_code' => 'LICENSE_REVIEW_FAILED',
+            'error_id' => $errorId,
+        ], 500);
     }
 }
